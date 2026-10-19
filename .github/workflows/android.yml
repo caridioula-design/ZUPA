@@ -101,9 +101,22 @@ jobs:
           path: dist/*
           retention-days: 30
 
-      - name: Publication (tag v*)
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: dist/*
-          generate_release_notes: true
+      - name: Publication dans « Releases » (APK de la version en cours)
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          mkdir -p release
+          cp dist/ZUPA-*-build*.apk "release/ZUPA-${VERSION}.apk"
+          [ -f "dist/ZUPA-${VERSION}-signe.apk" ] && cp "dist/ZUPA-${VERSION}-signe.apk" "dist/ZUPA-${VERSION}-playstore.aab" release/ || true
+          NOTES="ZUPA ${VERSION} — Bouge. Trouve. Vis.
+
+          Installez ZUPA-${VERSION}.apk sur votre téléphone Android (autoriser les sources inconnues).
+          Compilation n° ${ZUPA_BUILD} du $(date -u +%d/%m/%Y), commit ${GITHUB_SHA::7}."
+          if gh release view "v${VERSION}" >/dev/null 2>&1; then
+            gh release upload "v${VERSION}" release/* --clobber
+            gh release edit "v${VERSION}" --notes "$NOTES"
+          else
+            gh release create "v${VERSION}" release/* --title "ZUPA ${VERSION}" --notes "$NOTES" --target "$GITHUB_SHA"
+          fi

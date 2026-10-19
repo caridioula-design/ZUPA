@@ -20,14 +20,16 @@ ZUPA simplifie votre quotidien à Abidjan : itinéraires en bus SOTRA (avec corr
 
 ## Récupérer l'APK
 
-Chaque modification de la branche `main` lance la compilation sur GitHub :
+Chaque modification de la branche `main` lance la compilation sur GitHub (onglet **Actions**, environ 5 minutes) :
 
-1. Onglet **Actions** › dernière exécution de « APK Android » › section **Artifacts** › `ZUPA-apk`.
-2. Décompressez le fichier et installez `ZUPA-1.0.0-buildN.apk` sur le téléphone (autoriser l'installation d'applications de sources inconnues).
+- **Releases › ZUPA 1.0.0** : toujours le dernier APK de la version en cours (`ZUPA-1.0.0.apk`). C'est le lien à utiliser pour installer l'application.
+- **Actions** › exécution « APK Android » › **Artifacts** : l'APK de chaque compilation (conservé 30 jours).
 
-Pour publier une version : créez un tag `v1.0.0` (onglet Releases › « Draft a new release »). L'APK est alors joint à la release.
+Installation : ouvrez le fichier `.apk` sur le téléphone Android et autorisez l'installation depuis cette source.
 
-Chaque lundi, la compilation se relance automatiquement avec la liste à jour des pharmacies d'Abidjan.
+Nouvelle version : changez `version` dans `package.json` (ex. `1.1.0`) et `versionName` dans `android/app/build.gradle` ; une nouvelle release est créée automatiquement.
+
+Chaque lundi, la compilation se relance avec la liste à jour des pharmacies d'Abidjan.
 
 ## Mettre à jour les pharmacies de garde (chaque semaine)
 
