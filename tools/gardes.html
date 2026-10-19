@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZUPA · Pharmacies de garde</title>
+<style>
+:root{--brand:#E97234;--ph:#16994d;--bg:#f3f4f6;--surface:#fff;--text:#1c1f26;--text-2:#5a606c;--border:#e4e6ea;--err:#d92d20;--shadow:0 1px 2px rgba(16,24,40,.05),0 4px 14px rgba(16,24,40,.07);color-scheme:light dark}
+@media(prefers-color-scheme:dark){:root{--bg:#0e1014;--surface:#171a20;--text:#eceef2;--text-2:#b2b7c1;--border:#2a2f38;--shadow:0 4px 14px rgba(0,0,0,.4)}}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;padding:16px}
+main{max-width:860px;margin:0 auto}
+h1{font-size:1.6rem;color:var(--ph);margin-bottom:4px}
+.lead,.muted{color:var(--text-2)}
+.lead{margin-bottom:18px}
+.muted{font-size:.9rem}
+.card{background:var(--surface);border-radius:16px;box-shadow:var(--shadow);padding:18px;margin-bottom:14px}
+.card h2{font-size:1.05rem;margin-bottom:8px;display:flex;gap:10px;align-items:center}
+.n{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--ph);color:#fff;font-size:.85rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+label{display:block;font-size:.82rem;font-weight:600;color:var(--text-2);margin-bottom:4px}
+input,textarea{width:100%;font:inherit;color:inherit;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg)}
+textarea{min-height:220px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.85rem}
+.btn{display:inline-flex;gap:8px;align-items:center;padding:12px 18px;border-radius:12px;border:0;font:inherit;font-weight:600;cursor:pointer;background:var(--ph);color:#fff;margin-top:12px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+table{width:100%;border-collapse:collapse;font-size:.86rem;margin-top:10px}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--border);vertical-align:top}
+th{font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text-2)}
+.ok{color:var(--ph);font-weight:600}
+.no{color:#b45309;font-weight:600}
+code{background:color-mix(in srgb,var(--text) 8%,transparent);padding:1px 5px;border-radius:5px;font-size:.85em}
+.sum{margin-top:8px;font-weight:600}
+.wrap{overflow-x:auto}
+</style>
+</head>
+<body>
+<main>
+  <h1>ZUPA · Pharmacies de garde</h1>
+  <p class="lead">Préparez chaque semaine le fichier <code>gardes.json</code> lu par l'application, à partir de la liste officielle publiée.</p>
+
+  <section class="card">
+    <h2><span class="n">1</span>Période de garde</h2>
+    <div class="grid">
+      <div><label for="du">Du</label><input type="date" id="du"></div>
+      <div><label for="au">Au</label><input type="date" id="au"></div>
+      <div><label for="src">Source</label><input id="src" placeholder="Ex. : liste officielle de la semaine"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2><span class="n">2</span>Coller la liste</h2>
+    <p class="muted">Une pharmacie par ligne : <code>Nom - quartier/adresse - téléphone</code>. Une ligne en MAJUSCULES sans téléphone (ex. <code>COCODY</code>) indique la commune des lignes suivantes.</p>
+    <textarea id="txt" placeholder="COCODY&#10;Pharmacie des Deux Plateaux - Rue des Jardins - 27 22 41 00 00&#10;Pharmacie Saint Jean - Riviera 3 - 07 07 12 34 56&#10;YOPOUGON&#10;Pharmacie Keneya - Sicogi - 27 23 45 67 89"></textarea>
+    <button class="btn" id="go">Analyser la liste</button>
+  </section>
+
+  <section class="card" id="res" hidden>
+    <h2><span class="n">3</span>Vérifier et télécharger</h2>
+    <p class="muted">« Position trouvée » : la pharmacie a été reconnue dans la base OpenStreetMap de ZUPA, elle sera affichée avec sa distance et son itinéraire. Sinon elle apparaît quand même, sans distance : corrigez au besoin son nom pour qu'il corresponde.</p>
+    <p class="sum" id="sum"></p>
+    <div class="wrap"><table><thead><tr><th>Pharmacie</th><th>Commune</th><th>Téléphone</th><th>Base ZUPA</th></tr></thead><tbody id="rows"></tbody></table></div>
+    <button class="btn" id="dl">Télécharger gardes.json</button>
+    <p class="muted" style="margin-top:12px">Remplacez ensuite <code>www/data/gardes.json</code> sur GitHub (bouton crayon › coller › « Commit changes »). L'application le lit au démarrage si le fichier est accessible publiquement, et il est intégré au prochain APK.</p>
+  </section>
+</main>
+
+<script src="../www/data/pharmacies.js"></script>
+<script src="../www/js/pharma-core.js"></script>
+<script>
+(function () {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const base = (window.ZUPA_PHARMA && window.ZUPA_PHARMA.list) || [];
+  // Par défaut : du samedi le plus récent au samedi suivant
+  const d = new Date(); d.setDate(d.getDate() - ((d.getDay() + 1) % 7));
+  const e = new Date(d); e.setDate(d.getDate() + 7);
+  $('du').value = PharmaCore.dayStr(d); $('au').value = PharmaCore.dayStr(e);
+  let entries = [];
+
+  $('go').onclick = () => {
+    entries = PharmaCore.parseGardeText($('txt').value);
+    const g = { du: $('du').value, au: $('au').value, pharmacies: entries };
+    const all = PharmaCore.applyGardes(base, g);
+    const found = new Map();
+    all.filter(p => p.garde && Number.isFinite(p.lat) && !/^g\d+$/.test(p.id)).forEach(p => found.set(PharmaCore.nameKey(p.name), p));
+    let ok = 0;
+    $('rows').innerHTML = entries.map(en => {
+      const p = found.get(PharmaCore.nameKey(en.nom));
+      if (p) { ok++; en.osm = p.id; } else delete en.osm;
+      return `<tr><td>${esc(en.nom)}${en.adresse ? `<br><small>${esc(en.adresse)}</small>` : ''}</td><td>${esc(en.commune || '—')}</td><td>${esc(en.tel || '—')}</td><td>${p ? `<span class="ok">Position trouvée</span><br><small>${esc(p.name)}</small>` : '<span class="no">Sans position</span>'}</td></tr>`;
+    }).join('');
+    $('sum').textContent = `${entries.length} pharmacies lues · ${ok} reconnues dans la base ZUPA (${base.length} pharmacies)` + (base.length ? '' : ' — base vide : lancez d\'abord la compilation GitHub qui la télécharge.');
+    $('res').hidden = false;
+    $('dl').disabled = !entries.length || !$('du').value || !$('au').value;
+  };
+
+  $('dl').onclick = () => {
+    const g = { du: $('du').value, au: $('au').value, source: $('src').value.trim(), maj: new Date().toISOString().slice(0, 10), pharmacies: entries };
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(g, null, 2)], { type: 'application/json' }));
+    a.download = 'gardes.json'; document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+  };
+})();
+</script>
+</body>
+</html>

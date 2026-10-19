@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZUPA · Mise à jour des lignes de bus</title>
+<style>
+:root{--brand:#E97234;--bg:#f3f4f6;--surface:#fff;--text:#1c1f26;--text-2:#5a606c;--text-3:#8d929c;--border:#e4e6ea;--ok:#16a34a;--err:#d92d20;--shadow:0 1px 2px rgba(16,24,40,.05),0 4px 14px rgba(16,24,40,.07);color-scheme:light dark}
+@media(prefers-color-scheme:dark){:root{--brand:#ff9a52;--bg:#0e1014;--surface:#171a20;--text:#eceef2;--text-2:#b2b7c1;--text-3:#7c828e;--border:#2a2f38;--shadow:0 4px 14px rgba(0,0,0,.4)}}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;padding:16px}
+main{max-width:720px;margin:0 auto}
+h1{font-size:1.6rem;color:var(--brand);margin-bottom:4px}
+.lead{color:var(--text-2);margin-bottom:18px}
+.card{background:var(--surface);border-radius:16px;box-shadow:var(--shadow);padding:18px;margin-bottom:14px}
+.card h2{font-size:1.05rem;margin-bottom:6px;display:flex;align-items:center;gap:10px}
+.n{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--brand);color:#fff;font-size:.85rem;flex-shrink:0}
+.muted{color:var(--text-2);font-size:.9rem}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 18px;border-radius:12px;border:0;font:inherit;font-weight:600;cursor:pointer;background:var(--brand);color:#fff;margin-top:12px}
+.btn.ghost{background:color-mix(in srgb,var(--text) 8%,transparent);color:var(--text)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.status{margin-top:12px;font-size:.9rem;color:var(--text-2);min-height:1.4em}
+.status.err{color:var(--err)}
+.status.ok{color:var(--ok)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:14px}
+.stat{background:color-mix(in srgb,var(--brand) 9%,transparent);border-radius:12px;padding:10px 12px}
+.stat b{display:block;font-size:1.4rem}
+.stat span{font-size:.8rem;color:var(--text-2)}
+label.chk{display:inline-flex;gap:6px;align-items:center;margin:10px 16px 0 0;font-size:.92rem}
+details{margin-top:12px}
+summary{cursor:pointer;font-weight:600;font-size:.92rem}
+ul.list{margin:8px 0 0 18px;font-size:.85rem;color:var(--text-2);max-height:260px;overflow:auto}
+input[type=file]{margin-top:12px;font:inherit;max-width:100%}
+code{background:color-mix(in srgb,var(--text) 8%,transparent);padding:1px 5px;border-radius:5px;font-size:.85em}
+.spin{width:16px;height:16px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:s .8s linear infinite;display:inline-block;vertical-align:-3px;margin-right:6px}
+@keyframes s{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<main>
+  <h1>ZUPA · Lignes de bus</h1>
+  <p class="lead">Récupère les lignes de bus SOTRA d'Abidjan publiées sur OpenStreetMap, avec les coordonnées de chaque arrêt, et produit le fichier <code>www/data/bus.js</code> de ZUPA. Les gbakas et woro-woros sont ignorés.</p>
+
+  <section class="card">
+    <h2><span class="n">1</span>Télécharger les lignes depuis OpenStreetMap</h2>
+    <p class="muted">Nécessite une connexion internet. Le téléchargement prend en général 20 à 60 secondes.</p>
+    <button class="btn" id="dl">Télécharger les lignes</button>
+    <div class="status" id="st1"></div>
+    <div class="stats" id="stats1" hidden></div>
+  </section>
+
+  <section class="card">
+    <h2><span class="n">2</span>Choisir le fichier actuel <code>bus.js</code></h2>
+    <p class="muted">Sélectionnez <code>www/data/bus.js</code> du projet ZUPA. Les lignes actuelles sont conservées, celles qui existent aussi sur OpenStreetMap sont mises à jour (sans changer leur nom, pour garder les arrêts ajoutés par les utilisateurs), et les nouvelles sont ajoutées.</p>
+    <input type="file" id="file" accept=".js,.json,text/javascript,application/json">
+    <div class="status" id="st2"></div>
+  </section>
+
+  <section class="card">
+    <h2><span class="n">3</span>Récupérer le résultat</h2>
+    <div class="stats" id="stats3" hidden></div>
+    <details id="det-added" hidden><summary id="sum-added"></summary><ul class="list" id="list-added"></ul></details>
+    <details id="det-skipped" hidden><summary id="sum-skipped"></summary><ul class="list" id="list-skipped"></ul></details>
+    <div class="row">
+      <button class="btn" id="out-html" disabled>Télécharger le nouveau bus.js</button>
+    </div>
+    <p class="muted" style="margin-top:12px">Remplacez <code>www/data/bus.js</code> dans le dépôt GitHub par ce fichier : l'APK est recompilé automatiquement.</p>
+  </section>
+
+  <p class="muted" style="text-align:center;font-size:.8rem">Données © contributeurs OpenStreetMap, licence ODbL. Les lignes incomplètes (moins de deux arrêts nommés), en construction, ainsi que les gbakas et woro-woros sont ignorés.</p>
+</main>
+
+<script src="osm.js"></script>
+<script>
+(function () {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  let fresh = null, skipped = [], existing = null, indexHtml = null, merged = null;
+
+  const stat = (n, label) => `<div class="stat"><b>${n}</b><span>${esc(label)}</span></div>`;
+  const setSt = (id, msg, cls) => { const el = $(id); el.className = 'status' + (cls ? ' ' + cls : ''); el.innerHTML = msg; };
+
+  $('dl').onclick = async () => {
+    const b = $('dl'); b.disabled = true;
+    setSt('st1', '<span class="spin"></span>Connexion à OpenStreetMap…');
+    try {
+      const json = await OsmConvert.download(m => setSt('st1', '<span class="spin"></span>' + esc(m)));
+      setSt('st1', '<span class="spin"></span>Conversion des lignes…');
+      const r = OsmConvert.convert(json);
+      fresh = r.lines; skipped = r.skipped;
+      const c = k => fresh.filter(l => l.kind === k).length;
+      const nStops = new Set(fresh.flatMap(l => l.stops.map(s => s.name.toLowerCase()))).size;
+      $('stats1').hidden = false;
+      $('stats1').innerHTML = stat(c('bus'), 'trajets de bus') + stat(nStops, 'noms d\'arrêts');
+      setSt('st1', `Téléchargement terminé. ${skipped.length} ligne(s) ignorée(s) : gbakas, woro-woros, lignes incomplètes ou en construction.`, 'ok');
+      update();
+    } catch (e) {
+      setSt('st1', `Impossible de joindre OpenStreetMap (${esc(e.message || e)}). Vérifiez la connexion et réessayez dans quelques minutes : les serveurs gratuits sont parfois saturés.`, 'err');
+    } finally { b.disabled = false; }
+  };
+
+  $('file').addEventListener('change', async e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    try {
+      const txt = await f.text();
+      existing = OsmConvert.readBusFile(txt);
+      indexHtml = true;
+      setSt('st2', `bus.js chargé : ${existing.length} trajets actuellement.`, 'ok');
+      update();
+    } catch (err) {
+      existing = null; indexHtml = null;
+      setSt('st2', `Fichier non reconnu : ${esc(err.message || err)}.`, 'err');
+      update();
+    }
+  });
+
+  function update() {
+    if (!fresh) { $('out-html').disabled = true; return; }
+    const m = OsmConvert.merge(existing || [], fresh, { kinds: ['bus'] });
+    merged = m.lines;
+    $('stats3').hidden = false;
+    $('stats3').innerHTML = stat(m.lines.length, 'trajets au total') + stat(m.added.length, 'nouveaux trajets') + stat(m.updated.length, 'trajets mis à jour') + stat(m.kept.length, 'conservés tels quels');
+    $('det-added').hidden = !m.added.length;
+    $('sum-added').textContent = `Voir les ${m.added.length} nouveaux trajets`;
+    $('list-added').innerHTML = m.added.slice().sort((a, b) => a.name.localeCompare(b.name, 'fr', { numeric: true }))
+      .map(l => `<li>${esc(l.name)} <span style="opacity:.7">(${l.stops.length} arrêts)</span></li>`).join('');
+    $('det-skipped').hidden = !skipped.length;
+    $('sum-skipped').textContent = `Voir les ${skipped.length} lignes ignorées`;
+    $('list-skipped').innerHTML = skipped.map(s => `<li>${esc(s.name || 'Sans nom')} — ${esc(s.reason)} (<a href="https://www.openstreetmap.org/relation/${s.id}" target="_blank" rel="noopener">voir sur OSM</a>)</li>`).join('');
+    $('out-html').disabled = false;
+  }
+
+  function save(name, content, type) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([content], { type }));
+    a.download = name; document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+  }
+  $('out-html').onclick = () => merged && save('bus.js', OsmConvert.writeBusFile(merged), 'text/javascript');
+})();
+</script>
+</body>
+</html>

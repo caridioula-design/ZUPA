@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ZUPA</string>
+    <string name="title_activity_main">ZUPA</string>
+    <string name="package_name">ci.zupa.app</string>
+    <string name="custom_url_scheme">ci.zupa.app</string>
+</resources>

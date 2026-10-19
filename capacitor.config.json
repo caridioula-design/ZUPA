@@ -1,0 +1,22 @@
+{
+  "appId": "ci.zupa.app",
+  "appName": "ZUPA",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#E97234"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1200,
+      "launchAutoHide": true,
+      "backgroundColor": "#E97234",
+      "showSpinner": false,
+      "androidScaleType": "CENTER_CROP"
+    },
+    "StatusBar": {
+      "backgroundColor": "#E97234",
+      "style": "DARK",
+      "overlaysWebView": false
+    }
+  }
+}

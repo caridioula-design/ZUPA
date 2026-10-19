@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#E97234">
+<meta name="description" content="ZUPA — Bouge. Trouve. Vis. Itinéraires de bus et pharmacies de garde à Abidjan.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="format-detection" content="telephone=no">
+<title>ZUPA</title>
+<link rel="icon" href="img/icon-192.png">
+<link rel="stylesheet" href="lib/leaflet/leaflet.css">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div class="app">
+<main>
+  <!-- ================= ACCUEIL ================= -->
+  <section class="screen active" id="screen-home" aria-label="Accueil">
+    <header class="home-head">
+      <div>
+        <div class="brand">ZUPA</div>
+        <div class="slogan">Bouge. Trouve. Vis.</div>
+        <div class="greet" id="greet">Bonjour</div>
+      </div>
+      <button class="icon-btn" id="theme-quick" aria-label="Changer le thème"></button>
+    </header>
+
+    <div class="loc-chip" id="loc-chip" aria-live="polite"></div>
+
+    <div class="card search-card" role="search">
+      <div class="field">
+        <span class="dot o" aria-hidden="true"></span>
+        <input id="origin-input" type="text" autocomplete="off" placeholder="Ma position actuelle" aria-label="Départ" role="combobox" aria-autocomplete="list" aria-controls="suggest-home" aria-expanded="false">
+        <button class="clear-btn" id="origin-clear" aria-label="Utiliser ma position" hidden></button>
+      </div>
+      <div class="sep"></div>
+      <div class="field">
+        <span class="dot d" aria-hidden="true"></span>
+        <input id="dest-input" type="text" autocomplete="off" placeholder="Où allez-vous ?" aria-label="Destination" role="combobox" aria-autocomplete="list" aria-controls="suggest-home" aria-expanded="false">
+        <button class="clear-btn" id="dest-clear" aria-label="Effacer la destination" hidden></button>
+      </div>
+      <button class="swap-btn" id="swap-btn" aria-label="Inverser départ et destination"></button>
+      <div class="suggest" id="suggest-home" role="listbox" hidden></div>
+    </div>
+    <button class="btn primary block" id="search-btn">Trouver mon bus</button>
+
+    <button class="ph-teaser" id="ph-teaser" aria-label="Voir les pharmacies">
+      <span class="ph-teaser-ic"><span data-icon="cross"></span></span>
+      <span class="ph-teaser-txt"><small id="ph-teaser-label">Pharmacie de garde la plus proche</small><b id="ph-teaser-name">Recherche…</b><small id="ph-teaser-meta"></small></span>
+      <span class="ph-teaser-go"><span data-icon="chevron"></span></span>
+    </button>
+
+    <section class="section">
+      <div class="section-head"><h2>Mes favoris</h2><button class="link" id="manage-fav">Gérer</button></div>
+      <div id="fav-board"></div>
+    </section>
+
+    <section class="section" id="recents-section" hidden>
+      <div class="section-head"><h2>Recherches récentes</h2><button class="link" id="clear-recents">Effacer</button></div>
+      <div class="chips" id="recents"></div>
+    </section>
+
+    <button class="cta-card" id="cta-addstop"><span class="sg-ic"><span data-icon="addPin"></span></span><span><b>Un arrêt manque ?</b><small>Ajoutez-le avec votre position : il sera utilisé dans vos itinéraires.</small></span></button>
+
+    <div class="ad-slot">Espace publicitaire</div>
+    <p class="foot-note" id="data-note"></p>
+  </section>
+
+  <!-- ================= RÉSULTATS ================= -->
+  <section class="screen" id="screen-results" aria-label="Itinéraires">
+    <div class="topbar">
+      <button class="icon-btn" id="res-back" aria-label="Retour"></button>
+      <div class="topbar-text"><div class="title">Itinéraires</div><div class="subtitle" id="res-sub"></div></div>
+      <button class="icon-btn" id="fav-toggle" aria-label="Ajouter la destination aux favoris"></button>
+    </div>
+    <div class="map-wrap"><div class="map" id="res-map"></div></div>
+    <div id="res-list"></div>
+    <div class="ad-slot">Espace publicitaire</div>
+  </section>
+
+  <!-- ================= SUIVI ================= -->
+  <section class="screen" id="screen-track" aria-label="Suivi du trajet">
+    <div class="topbar">
+      <button class="icon-btn" data-go="screen-results" aria-label="Retour aux itinéraires"></button>
+      <div class="topbar-text"><div class="title">Suivi du trajet</div><div class="subtitle" id="trk-sub"></div></div>
+    </div>
+    <div class="next-card" aria-live="polite">
+      <div class="next-label" id="trk-label">Prochain arrêt</div>
+      <div class="next-name" id="trk-next">—</div>
+      <div class="next-hint" id="trk-hint"></div>
+      <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="trk-progress"><div class="progress-bar" id="trk-bar"></div></div>
+      <div class="progress-meta"><span id="trk-count"></span><span id="trk-eta"></span></div>
+    </div>
+    <div class="map-wrap" id="trk-map-wrap">
+      <div class="map" id="trk-map"></div>
+      <button class="map-btn" id="trk-full" aria-label="Plein écran"></button>
+    </div>
+    <div class="trk-controls">
+      <button class="btn ghost" id="trk-prev">Précédent</button>
+      <button class="btn primary" id="trk-step">Arrêt suivant</button>
+    </div>
+    <ol class="timeline" id="trk-list"></ol>
+    <button class="btn danger block" id="trk-stop">Terminer le trajet</button>
+  </section>
+
+  <!-- ================= NOUVEL ARRÊT ================= -->
+  <section class="screen" id="screen-addstop" aria-label="Ajouter un arrêt">
+    <div class="topbar">
+      <button class="icon-btn" id="as-back" aria-label="Retour"></button>
+      <div class="topbar-text"><div class="title" id="as-title">Nouvel arrêt</div><div class="subtitle">Enregistré sur cet appareil</div></div>
+    </div>
+    <form class="form" id="as-form" novalidate>
+      <div class="card">
+        <h3><span class="step-n">1</span>Nom de l'arrêt</h3>
+        <input class="input" id="as-name" maxlength="60" autocomplete="off" placeholder="Ex. : Carrefour Pharmacie Bel Air">
+        <p class="hint" id="as-name-hint" hidden></p>
+      </div>
+      <div class="card">
+        <h3><span class="step-n">2</span>Emplacement</h3>
+        <p class="muted">Placez-vous à l'arrêt et utilisez votre position, ou touchez la carte. Vous pouvez déplacer le repère.</p>
+        <div class="map-wrap" style="margin:12px 0 10px"><div class="map" id="as-map"></div></div>
+        <button type="button" class="btn ghost block" id="as-gps">Utiliser ma position actuelle</button>
+        <div class="row" id="as-manual" hidden style="margin-top:10px">
+          <input class="input" id="as-lat" inputmode="decimal" placeholder="Latitude (ex. 5.3245)">
+          <input class="input" id="as-lon" inputmode="decimal" placeholder="Longitude (ex. -4.0123)">
+        </div>
+        <p class="coords" id="as-coords">Aucun emplacement choisi</p>
+      </div>
+      <div class="card">
+        <h3><span class="step-n">3</span>Bus et sens du trajet</h3>
+        <div class="as-row">
+          <select class="input" id="as-bus" aria-label="Numéro du bus"></select>
+          <select class="input" id="as-dir" aria-label="Sens du trajet"></select>
+        </div>
+        <button type="button" class="btn ghost sm" id="as-add-link" style="margin-top:10px">Ajouter ce bus</button>
+        <ul class="link-list" id="as-links"></ul>
+        <p class="hint">Facultatif. Sans bus, l'arrêt sert de point de repère : on vous guide jusqu'à l'arrêt desservi le plus proche.</p>
+      </div>
+      <div class="card">
+        <h3><span class="step-n">4</span>Remarque <small class="muted">(facultatif)</small></h3>
+        <input class="input" id="as-note" maxlength="120" placeholder="Abri, repère, côté de la route…">
+      </div>
+      <button class="btn primary block" type="submit" id="as-save">Enregistrer l'arrêt</button>
+      <button class="btn danger block" type="button" id="as-delete" hidden style="margin-top:10px">Supprimer cet arrêt</button>
+    </form>
+  </section>
+
+  <!-- ================= CORRIGER MA POSITION ================= -->
+  <section class="screen" id="screen-fixpos" aria-label="Corriger ma position">
+    <div class="topbar">
+      <button class="icon-btn" id="fp-back" aria-label="Retour"></button>
+      <div class="topbar-text"><div class="title">Ma position</div><div class="subtitle" id="fp-sub"></div></div>
+    </div>
+    <div class="card">
+      <p class="muted">Déplacez la carte pour placer le repère rouge exactement là où vous êtes, puis validez.</p>
+      <div class="map-wrap" style="margin:12px 0 12px">
+        <div class="map" id="fp-map"></div>
+        <svg class="center-pin" viewBox="0 0 24 34" width="30" height="43" aria-hidden="true"><path d="M12 0C5.4 0 0 5.3 0 11.9 0 20.6 12 34 12 34s12-13.4 12-22.1C24 5.3 18.6 0 12 0z" fill="#EA4335" stroke="#B31412"/><circle cx="12" cy="12" r="4.3" fill="#B31412"/></svg>
+      </div>
+      <button class="btn primary block" id="fp-ok">Je suis ici</button>
+      <button class="btn ghost block" id="fp-gps" style="margin-top:8px">Utiliser la position GPS</button>
+    </div>
+    <div class="card">
+      <h3>Vous êtes à un arrêt ?</h3>
+      <div class="fp-stops" id="fp-stops"></div>
+    </div>
+    <details class="card help" id="fp-help">
+      <summary>Améliorer la précision du GPS</summary>
+      <ol>
+        <li><b>Autorisez la « position exacte » pour ZUPA.</b> Sinon l'application ne reçoit qu'une position à ±1 à 3 km.<br>Paramètres › Applications › ZUPA › Autorisations › Position › « Autoriser seulement si l'appli est en cours d'utilisation » et « Utiliser la position exacte ».</li>
+        <li><b>Android : activez « Précision de la localisation Google »</b> (Paramètres › Localisation › Services de localisation).</li>
+        <li><b>Laissez le Wi-Fi activé</b>, même sans être connecté : il aide fortement en ville.</li>
+        <li><b>Mettez-vous à découvert</b>, loin des grands immeubles et des toits en tôle, et patientez 20 à 30 secondes : la précision s'améliore au fil des mesures.</li>
+        <li><b>Désactivez l'économiseur de batterie</b>, qui bride le GPS.</li>
+      </ol>
+    </details>
+  </section>
+
+  <!-- ================= PHARMACIES ================= -->
+  <section class="screen ph" id="screen-pharma" aria-label="Pharmacies">
+    <div class="topbar">
+      <div class="topbar-text"><div class="title">Pharmacies</div><div class="subtitle" id="ph-sub">Autour de vous</div></div>
+      <button class="icon-btn" id="ph-refresh" aria-label="Actualiser"></button>
+    </div>
+    <div class="garde-banner" id="ph-garde" aria-live="polite"></div>
+    <div class="ph-search">
+      <span data-icon="search"></span>
+      <input id="ph-q" type="search" autocomplete="off" placeholder="Nom, commune ou quartier" aria-label="Rechercher une pharmacie">
+    </div>
+    <div class="segmented ph-seg" id="ph-filter" role="tablist">
+      <button data-f="garde" role="tab">De garde</button><button data-f="open" role="tab">Ouvertes</button><button data-f="all" role="tab">Toutes</button>
+    </div>
+    <div id="ph-board"></div>
+    <div id="ph-list" class="ph-list"></div>
+    <button class="btn ghost block" id="ph-more" hidden>Afficher plus</button>
+    <div class="ad-slot">Espace publicitaire</div>
+    <p class="foot-note" id="ph-note"></p>
+  </section>
+
+  <!-- ================= DÉTAIL PHARMACIE ================= -->
+  <section class="screen ph" id="screen-pharma-detail" aria-label="Détail de la pharmacie">
+    <div class="topbar">
+      <button class="icon-btn" id="pd-back" aria-label="Retour"></button>
+      <div class="topbar-text"><div class="title" id="pd-name">Pharmacie</div><div class="subtitle" id="pd-status"></div></div>
+      <button class="icon-btn" id="pd-share" aria-label="Partager"></button>
+    </div>
+    <div class="map-wrap"><div class="map" id="pd-map"></div></div>
+    <div class="pd-walk" id="pd-walk"></div>
+    <div class="pd-actions">
+      <a class="btn green" id="pd-call" href="#"><span data-icon="phone"></span>Appeler</a>
+      <button class="btn primary" id="pd-bus"><span data-icon="bus"></span>Y aller en bus</button>
+    </div>
+    <button class="btn ghost block" id="pd-gmaps"><span data-icon="walk"></span>Itinéraire à pied dans Google Maps</button>
+    <div class="card pd-info" id="pd-info"></div>
+    <p class="foot-note">Vérifiez par téléphone avant de vous déplacer : les informations proviennent d'OpenStreetMap et de la liste de garde publiée.</p>
+  </section>
+
+  <!-- ================= PROFIL ================= -->
+  <section class="screen" id="screen-profile" aria-label="Profil">
+    <div class="topbar"><div class="topbar-text"><div class="title">Profil</div></div></div>
+    <form class="card form" id="profile-form">
+      <h3>Vous</h3>
+      <label for="pf-first">Prénom</label>
+      <input class="input" id="pf-first" autocomplete="given-name" placeholder="Votre prénom">
+      <label for="pf-last">Nom</label>
+      <input class="input" id="pf-last" autocomplete="family-name" placeholder="Votre nom">
+      <button class="btn primary block" type="submit" style="margin-top:14px">Enregistrer</button>
+    </form>
+    <div class="card">
+      <h3>Destinations favorites</h3>
+      <div class="rel">
+        <input class="input" id="fav-input" type="text" autocomplete="off" placeholder="Rechercher un arrêt à ajouter…" role="combobox" aria-autocomplete="list" aria-controls="suggest-fav" aria-expanded="false" aria-label="Ajouter un favori">
+        <div class="suggest" id="suggest-fav" role="listbox" hidden></div>
+      </div>
+      <ul class="fav-list" id="fav-list"></ul>
+    </div>
+    <div class="card">
+      <h3>Arrêts ajoutés</h3>
+      <p class="muted">Arrêts que vous avez enregistrés sur cet appareil. Exportez-les pour les partager ou les intégrer aux données officielles.</p>
+      <ul class="fav-list" id="custom-list"></ul>
+      <div class="btn-row">
+        <button class="btn primary sm" id="add-stop-btn">Ajouter un arrêt</button>
+        <button class="btn ghost sm" id="export-stops">Exporter</button>
+        <button class="btn ghost sm" id="import-stops">Importer</button>
+        <input type="file" id="import-file" accept="application/json,.json" hidden>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Apparence</h3>
+      <div class="segmented" id="theme-seg">
+        <button data-theme="auto">Auto</button><button data-theme="light">Clair</button><button data-theme="dark">Sombre</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>À propos</h3>
+      <p class="muted"><b>ZUPA</b> — Bouge. Trouve. Vis.<br>Version <span id="app-version">1.0.0</span>. Données © contributeurs OpenStreetMap (ODbL).</p>
+    </div>
+    <div class="card">
+      <h3>Données</h3>
+      <p class="muted" id="data-stats"></p>
+      <button class="btn danger sm" id="reset-data" style="margin-top:12px">Effacer mes données</button>
+    </div>
+  </section>
+</main>
+
+<nav class="navbar" aria-label="Navigation principale">
+  <button class="nav-btn active" data-nav="screen-home"><span data-icon="bus"></span>Bus</button>
+  <button class="nav-btn" data-nav="screen-pharma"><span data-icon="cross"></span>Pharmacies</button>
+  <button class="nav-btn" data-nav="screen-track" id="nav-track"><span data-icon="route"></span>Trajet<span class="badge" id="nav-badge" hidden></span></button>
+  <button class="nav-btn" data-nav="screen-profile"><span data-icon="user"></span>Profil</button>
+</nav>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+</div>
+
+<script src="lib/leaflet/leaflet.js"></script>
+<script src="js/config.js"></script>
+<script src="data/bus.js"></script>
+<script src="data/pharmacies.js"></script>
+<script src="js/core.js"></script>
+<script src="js/pharma-core.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
