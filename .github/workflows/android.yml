@@ -39,19 +39,19 @@ jobs:
       - name: Dépendances
         run: npm ci
 
-      - name: Pharmacies d'Abidjan (OpenStreetMap)
+      - name: Pharmacies et villes de Côte d'Ivoire (OpenStreetMap)
         run: node scripts/fetch-pharmacies.mjs
         continue-on-error: true
 
-      - name: Enregistrer les pharmacies actualisées dans le dépôt
+      - name: Enregistrer les données actualisées dans le dépôt
         if: github.ref == 'refs/heads/main'
         run: |
-          if ! git diff --quiet -- www/data/pharmacies.js; then
+          git add www/data/pharmacies.js www/data/villes.js
+          if ! git diff --cached --quiet; then
             git config user.name "zupa-bot"
             git config user.email "zupa-bot@users.noreply.github.com"
-            git add www/data/pharmacies.js
-            git commit -m "Pharmacies : mise à jour OpenStreetMap"
-            git pull --rebase -q origin main; git push || echo "Push impossible (branche protégée ?) : données utilisées pour cet APK seulement"
+            git commit -m "Pharmacies et villes : mise à jour OpenStreetMap"
+            git pull --rebase -q origin main; git push || echo "Push impossible : données utilisées pour cet APK seulement"
           fi
 
       - name: Copier l'application web dans le projet Android

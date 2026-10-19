@@ -1,26 +1,24 @@
-// ZUPA — télécharge les pharmacies du Grand Abidjan depuis OpenStreetMap
-// et régénère www/data/pharmacies.js. En cas d'échec, le fichier existant est conservé.
+// ZUPA — télécharge depuis OpenStreetMap les pharmacies et les villes de Côte d'Ivoire
+// et régénère www/data/pharmacies.js et www/data/villes.js. En cas d'échec, les fichiers existants sont conservés.
 import { createRequire } from 'node:module';
 import { writeFileSync, readFileSync } from 'node:fs';
 const require = createRequire(import.meta.url);
 const PC = require('../www/js/pharma-core.js');
 
-const OUT = new URL('../www/data/pharmacies.js', import.meta.url);
 const ENDPOINTS = [
   'https://overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
   'https://maps.mail.ru/osm/tools/overpass/api/interpreter'
 ];
-
-async function download() {
+async function overpass(query) {
   for (const url of ENDPOINTS) {
     try {
       console.log('Overpass :', url);
       const r = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'ZUPA-build/1.0 (github.com/caridioula-design/zupa)' },
-        body: 'data=' + encodeURIComponent(PC.queryBBox()),
-        signal: AbortSignal.timeout(180000)
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'ZUPA-build/1.0 (github.com/caridioula-design/ZUPA)' },
+        body: 'data=' + encodeURIComponent(query),
+        signal: AbortSignal.timeout(240000)
       });
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return await r.json();
@@ -28,19 +26,28 @@ async function download() {
   }
   return null;
 }
+const out = (f) => new URL('../www/data/' + f, import.meta.url);
 
-const json = await download();
-const list = json ? PC.fromOsm(json) : [];
-if (list.length < 20) {
-  console.warn(`Seulement ${list.length} pharmacies reçues : fichier existant conservé.`);
-  process.exit(0);
-}
-list.sort((a, b) => a.name.localeCompare(b.name, 'fr'));
-const old = readFileSync(OUT, 'utf8');
-const body = JSON.stringify({ updated: new Date().toISOString(), list });
-writeFileSync(OUT, `/* ZUPA — pharmacies du Grand Abidjan (© contributeurs OpenStreetMap, ODbL).
+// Pharmacies
+const pj = await overpass(PC.queryCountry());
+const list = pj ? PC.fromOsm(pj) : [];
+if (list.length >= 100) {
+  list.sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+  const prev = (readFileSync(out('pharmacies.js'), 'utf8').match(/"id":/g) || []).length;
+  writeFileSync(out('pharmacies.js'), `/* ZUPA — pharmacies de Côte d'Ivoire (© contributeurs OpenStreetMap, ODbL).
    Fichier régénéré par scripts/fetch-pharmacies.mjs (GitHub Actions). */
-window.ZUPA_PHARMA = ${body};
+window.ZUPA_PHARMA = ${JSON.stringify({ updated: new Date().toISOString(), list })};
 `);
-const prev = (old.match(/"id":/g) || []).length;
-console.log(`${list.length} pharmacies enregistrées (avant : ${prev}).`);
+  console.log(`::notice title=Pharmacies OSM::${list.length} pharmacies en Côte d'Ivoire (avant : ${prev})`);
+} else console.log(`::warning title=Pharmacies OSM::${list.length} reçues : fichier conservé`);
+
+// Villes, villages et quartiers
+const vj = await overpass(PC.queryPlaces());
+const places = vj ? vj.elements.filter(e => e.tags && e.tags.name && Number.isFinite(e.lat))
+  .map(e => [e.tags['name:fr'] || e.tags.name, e.tags.place, +e.lat.toFixed(4), +e.lon.toFixed(4)]) : [];
+if (places.length >= 500) {
+  writeFileSync(out('villes.js'), `/* ZUPA — villes, villages et quartiers de Côte d'Ivoire (© contributeurs OpenStreetMap, ODbL) */
+window.ZUPA_VILLES = ${JSON.stringify(places)};
+`);
+  console.log(`::notice title=Villes OSM::${places.length} lieux`);
+} else console.log(`::warning title=Villes OSM::${places.length} reçus : fichier conservé`);

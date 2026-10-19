@@ -28,7 +28,24 @@ const PharmaCore = (() => {
     marcory: [5.305, -3.985], plateau: [5.324, -4.020], 'port bouet': [5.255, -3.930], treichville: [5.295, -4.010],
     yopougon: [5.345, -4.080], bingerville: [5.355, -3.890], anyama: [5.495, -4.050], songon: [5.320, -4.260]
   };
-  const communeCenter = c => { const k = norm(c); if (!k) return null; for (const n in COMMUNES) if (k.includes(n)) return COMMUNES[n]; return null; };
+  // Villes et quartiers du pays (data/villes.js), pour l'intérieur
+  let PLACES = new Map();
+  function setPlaces(list) {
+    PLACES = new Map();
+    const rank = { city: 0, town: 1, village: 2, suburb: 3, quarter: 4, neighbourhood: 5 };
+    for (const raw of list || []) {
+      const p = Array.isArray(raw) ? { name: raw[0], type: raw[1], lat: raw[2], lon: raw[3] } : raw;
+      const k = norm(p.name); if (!k) continue;
+      const cur = PLACES.get(k);
+      if (!cur || (rank[p.type] ?? 9) < (rank[cur.type] ?? 9)) PLACES.set(k, p);
+    }
+  }
+  const communeCenter = c => {
+    const k = norm(c); if (!k) return null;
+    for (const n in COMMUNES) if (k.includes(n)) return COMMUNES[n];
+    const p = PLACES.get(k) || PLACES.get(k.split(' ')[0]);
+    return p ? [p.lat, p.lon] : null;
+  };
   /* « PHCIE DU BANCO » -> « Pharmacie du Banco » */
   function prettyName(n) {
     let s = String(n || '').trim().replace(/\s+/g, ' ');
@@ -47,6 +64,15 @@ const PharmaCore = (() => {
   const queryBBox = (bbox = BBOX) => `[out:json][timeout:120];
 (node["amenity"="pharmacy"](${bbox.join(',')});way["amenity"="pharmacy"](${bbox.join(',')}););
 out center tags;`;
+  // Toute la Côte d'Ivoire : pharmacies et villes (pour situer les pharmacies de garde de l'intérieur)
+  const queryCountry = () => `[out:json][timeout:240];
+area["ISO3166-1"="CI"][admin_level=2]->.ci;
+(node["amenity"="pharmacy"](area.ci);way["amenity"="pharmacy"](area.ci););
+out center tags;`;
+  const queryPlaces = () => `[out:json][timeout:120];
+area["ISO3166-1"="CI"][admin_level=2]->.ci;
+node["place"~"^(city|town|village|suburb|quarter)$"]["name"](area.ci);
+out tags;`;
   const queryAround = (lat, lon, m = 4000) => `[out:json][timeout:25];
 (node["amenity"="pharmacy"](around:${m},${lat},${lon});way["amenity"="pharmacy"](around:${m},${lat},${lon}););
 out center tags;`;
@@ -265,6 +291,6 @@ out center tags;`;
     return out;
   }
 
-  return { BBOX, norm, nameKey, prettyName, pickWeek, haversine, queryBBox, queryAround, fromOsm, openingStatus, fmtHM, gardeState, applyGardes, mergeLists, parseGardeText, dayStr };
+  return { BBOX, norm, nameKey, prettyName, pickWeek, setPlaces, communeCenter, queryCountry, queryPlaces, haversine, queryBBox, queryAround, fromOsm, openingStatus, fmtHM, gardeState, applyGardes, mergeLists, parseGardeText, dayStr };
 })();
 if (typeof module !== 'undefined') module.exports = PharmaCore;

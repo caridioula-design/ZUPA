@@ -1362,6 +1362,7 @@
      ===================================================================== */
   const CONFIG = window.ZUPA_CONFIG || {};
   const PC = PharmaCore;
+  PC.setPlaces(window.ZUPA_VILLES || []);
   const PH_EMBED = (window.ZUPA_PHARMA && Array.isArray(window.ZUPA_PHARMA.list)) ? window.ZUPA_PHARMA.list : [];
   const ph = {
     cache: store.get('phCache', null),          // { t, center:[lat,lon], list }
