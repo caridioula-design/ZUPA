@@ -227,8 +227,11 @@ function unppciPdfCandidates(html, base = 'https://www.unppci.org/') {
     const ctx = decode(html.slice(Math.max(0, m.index - 400), m.index + 300)).toUpperCase();
     urls.add(JSON.stringify({ url: new URL(m[1], base).href, ctx: deacc(ctx) }));
   }
+  // boutons « Télécharger » : onclick="window.open('controllers/downloads.php?id=991')" … texte du lien
+  const reD = /(controllers\/downloads\.php\?id=\d+)[^>]*>([\s\S]{0,200}?)<\/a>/gi;
+  while ((m = reD.exec(html))) urls.add(JSON.stringify({ url: new URL(m[1], base).href, ctx: deacc(decode(m[2])).toUpperCase(), bouton: true }));
   const list = [...urls].map(JSON.parse);
-  const score = c => (/GARDE/.test(c.ctx) ? 2 : 0) + (/INTERIEUR/.test(c.ctx) ? -3 : 0) + (/SEMAINE/.test(c.ctx) ? -1 : 0)
+  const score = c => (c.bouton ? 3 : 0) + (/GARDE/.test(c.ctx) ? 2 : 0) + (/INTERIEUR/.test(c.ctx) ? -3 : 0) + (/SEMAINE/.test(c.ctx) ? -1 : 0)
     + (/VOEUX|EXPO|TRONC|COLLECTE/.test(c.ctx) ? -5 : 0);
   return list.sort((a, b) => score(b) - score(a));
 }
