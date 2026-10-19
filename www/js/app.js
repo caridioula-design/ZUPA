@@ -1700,19 +1700,27 @@
   const PY_EMBED = (window.ZUPA_PAIYA && Array.isArray(window.ZUPA_PAIYA.list)) ? window.ZUPA_PAIYA.list : [];
   const py = { cat: store.get('pyCat', 'resto'), q: '', shown: 20, cache: store.get('pyCache', null), loading: false, lastTry: 0 };
 
-  function allPlaces() {
+  // Liste fusionnée (intégrée + actualisée), recalculée seulement quand le cache change
+  let pyBase = null, pyBaseKey = '';
+  function placesBase() {
+    const key = (py.cache && py.cache.t) || 0;
+    if (pyBase && pyBaseKey === key) return pyBase;
     const m = new Map();
     for (const p of PY_EMBED) m.set(p.id, p);
     for (const p of (py.cache && py.cache.list) || []) m.set(p.id, p);
-    const now = new Date();
-    return [...m.values()].map(p0 => {
-      const p = Object.assign({}, p0);
-      p.d = state.pos ? Core.haversine(state.pos[0], state.pos[1], p.lat, p.lon) : null;
-      p.os = PC.openingStatus(p.hours, now);
-      p.st = p.os.open === true ? 'open' : p.os.open === false ? 'closed' : 'unk';
-      return p;
-    });
+    pyBase = [...m.values()]; pyBaseKey = key;
+    return pyBase;
   }
+  // Distance rapide (approximation plane, suffisante pour trier à l'échelle d'une ville)
+  const quickKm = (p) => { const x = (p.lon - state.pos[1]) * 111.32 * Math.cos(state.pos[0] * Math.PI / 180), y = (p.lat - state.pos[0]) * 110.57; return Math.sqrt(x * x + y * y); };
+  function withStatus(p0) {
+    const p = Object.assign({}, p0);
+    p.d = state.pos ? Core.haversine(state.pos[0], state.pos[1], p.lat, p.lon) : null;
+    p.os = PC.openingStatus(p.hours, new Date());
+    p.st = p.os.open === true ? 'open' : p.os.open === false ? 'closed' : 'unk';
+    return p;
+  }
+  function allPlaces() { return placesBase().map(withStatus); }
   async function refreshPaiya(force) {
     if (!state.pos || py.loading) return;
     const c = py.cache;
@@ -1743,21 +1751,23 @@
   }
 
   function renderPaiya() {
-    const all = allPlaces();
-    const near = p => p.d == null || p.d <= 15;
-    const counts = Object.fromEntries(PYC.ORDER.map(c => [c, all.filter(p => p.cat === c && near(p)).length]));
+    const base = placesBase();
+    const counts = Object.fromEntries(PYC.ORDER.map(c => [c, 0]));
+    for (const p of base) if (!state.pos || quickKm(p) <= 15) counts[p.cat]++;
     $('py-cats').innerHTML = PYC.ORDER.map(c => `<button class="py-cat${py.cat === c ? ' on' : ''}" role="tab" aria-selected="${py.cat === c}" data-cat="${c}" style="--c:${PY_COLOR[c]}">${ic(PY_ICON[c])}${esc(PYC.CATS[c].label)}<small>${counts[c] || 0}</small></button>`).join('');
     $('py-sub').textContent = state.pos ? (state.placeName ? `Autour de ${state.placeName}` : 'Autour de vous') : 'Position inconnue : triés par nom';
-    let list = all.filter(p => p.cat === py.cat);
+    let list = base.filter(p => p.cat === py.cat);
     const q = PC.norm(py.q);
     if (q) list = list.filter(p => PC.norm([p.name, p.sub, p.street, p.commune].filter(Boolean).join(' ')).includes(q));
-    list.sort((a, b) => (a.d == null) - (b.d == null) || (a.d ?? 0) - (b.d ?? 0) || a.name.localeCompare(b.name, 'fr'));
+    if (state.pos) { const dk = new Map(list.map(p => [p, quickKm(p)])); list.sort((a, b) => dk.get(a) - dk.get(b)); }
+    else list.sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+    const shown = list.slice(0, py.shown).map(withStatus);
     const col = PY_COLOR[py.cat];
     if (!list.length) {
       $('py-list').innerHTML = `<div class="empty">${ic(PY_ICON[py.cat])}<p><b>Aucun lieu trouvé</b></p><p>${q ? 'Modifiez votre recherche.' : 'Connectez-vous à internet puis touchez « Actualiser » pour charger les lieux autour de vous.'}</p></div>`;
       $('py-more').hidden = true;
     } else {
-      $('py-list').innerHTML = list.slice(0, py.shown).map(p => `<article class="py-card" data-py="${esc(p.id)}" tabindex="0" style="--c:${col}">
+      $('py-list').innerHTML = shown.map(p => `<article class="py-card" data-py="${esc(p.id)}" tabindex="0" style="--c:${col}">
         <div class="ph-top"><span class="ph-ic">${ic(PY_ICON[p.cat])}</span>
           <div class="ph-main"><div class="ph-name">${esc(p.name)}</div><div class="ph-meta">${esc([p.sub, p.street || p.commune].filter(Boolean).join(' · '))}</div></div>
           <div class="ph-dist">${p.d != null ? `<b>${fmtDist(p.d)}</b><small>~${fmtMin(Core.walkMin(p.d * Core.CFG.DETOUR))} à pied</small>` : ''}</div>
@@ -1789,8 +1799,8 @@
     const el = e.target.closest('[data-py-go]') || e.target.closest('[data-py]');
     if (!el) return;
     const id = el.dataset.pyGo || el.dataset.py;
-    const p = allPlaces().find(x => x.id === id);
-    if (p) openDetail(p, 'screen-paiya', 'paiya');
+    const p0 = placesBase().find(x => x.id === id);
+    if (p0) openDetail(withStatus(p0), 'screen-paiya', 'paiya');
   });
   $('py-list').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('.py-card')) e.target.click(); });
   document.addEventListener('click', e => { const a = e.target.closest('a[data-ext]'); if (a) { e.preventDefault(); openExternal(a.href); } });
