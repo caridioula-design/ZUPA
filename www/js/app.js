@@ -1476,7 +1476,9 @@
     const g = week(), stt = PC.gardeState(ph.gardes);
     if (stt === 'current') {
       el.className = 'garde-banner';
-      el.innerHTML = `${ic('cross')}<span><b>Pharmacies de garde</b> du ${esc(fmtDay(g.du))} au ${esc(fmtDay(g.au))}<small>${g.pharmacies.length} pharmacies${g.source ? ' · source : ' + esc(g.source) : ''}</small></span>`;
+      const nInt = g.pharmacies.filter(p => p.interieur).length, villes = new Set(g.pharmacies.filter(p => p.interieur).map(p => p.commune)).size;
+      const detail = nInt ? `${g.pharmacies.length - nInt} à Abidjan · ${nInt} dans ${villes} villes de l'intérieur` : `${g.pharmacies.length} pharmacies`;
+      el.innerHTML = `${ic('cross')}<span><b>Pharmacies de garde</b> du ${esc(fmtDay(g.du))} au ${esc(fmtDay(g.au))}<small>${detail} · source : UNPPCI</small></span>`;
     } else {
       el.className = 'garde-banner warn';
       el.innerHTML = `${ic('info')}<span><b>Liste de garde ${stt === 'expired' ? 'expirée' : stt === 'future' ? 'pas encore en vigueur' : 'indisponible'}</b><small>${stt === 'expired' ? `Dernière liste : semaine du ${esc(fmtDay(g.du))}. ` : ''}Connectez-vous à internet pour recevoir la liste de la semaine. En attendant, les pharmacies ouvertes sont indiquées selon leurs horaires.</small></span>`;
@@ -1484,14 +1486,14 @@
   }
 
   function phCard(p) {
-    const ns = nearStop(p);
-    const meta = [p.street, p.commune || (p.garde && p.garde.commune)].filter(Boolean).join(' · ') || (ns ? `Près de l'arrêt ${ns.name}` : '');
+    const ns = p.approx ? null : nearStop(p);
+    const meta = [p.garde && p.garde.adresse || p.street, p.commune || (p.garde && p.garde.commune)].filter(Boolean).join(' · ') || (ns ? `Près de l'arrêt ${ns.name}` : '');
     const tags = [`<span class="st ${p.st}">${esc(statusLabel(p, true))}</span>`];
     if (p.garde && p.os.open === true) tags.push('<span class="st open">Ouverte</span>');
     return `<article class="ph-card${p.garde ? ' garde' : ''}" data-ph="${esc(p.id)}" tabindex="0">
       <div class="ph-top"><span class="ph-ic">${ic('cross')}</span>
         <div class="ph-main"><div class="ph-name">${esc(p.name)}</div><div class="ph-meta">${esc(meta)}</div></div>
-        <div class="ph-dist">${p.d != null ? `<b>${fmtDist(p.d)}</b><small>~${fmtMin(Core.walkMin(p.d * Core.CFG.DETOUR))} à pied</small>` : '<small>position<br>inconnue</small>'}</div>
+        <div class="ph-dist">${p.d != null ? (p.approx ? `<b>≈ ${fmtDist(p.d)}</b><small>centre-ville</small>` : `<b>${fmtDist(p.d)}</b><small>~${fmtMin(Core.walkMin(p.d * Core.CFG.DETOUR))} à pied</small>`) : '<small>position<br>inconnue</small>'}</div>
       </div>
       <div class="ph-tags">${tags.join('')}</div>
       <div class="ph-btns">
@@ -1509,7 +1511,7 @@
     const list = phFiltered();
     const top = list.filter(p => p.d != null).slice(0, 5);
     $('ph-board').innerHTML = top.length ? `<div class="board green"><div class="board-row head"><span>Pharmacie</span><span class="b-dist">Distance</span><span class="b-st">Statut</span></div>${top.map((p, i) =>
-      `<button class="board-row" style="animation-delay:${i * 80}ms" data-ph="${esc(p.id)}"><span class="b-name">${esc(p.name.replace(/^pharmacie\s+/i, '').replace(/^./, c => c.toUpperCase()))}</span><span class="b-dist">${fmtDist(p.d)}</span><span class="b-st ${p.st}">${esc(p.st === 'garde' ? 'GARDE' : p.st === 'open' ? 'OUVERTE' : p.st === 'closed' ? 'FERMÉE' : '—')}</span></button>`).join('')}</div>` : '';
+      `<button class="board-row" style="animation-delay:${i * 80}ms" data-ph="${esc(p.id)}"><span class="b-name">${esc(p.name.replace(/^pharmacie\s+/i, '').replace(/^./, c => c.toUpperCase()))}</span><span class="b-dist">${p.approx ? '≈' : ''}${fmtDist(p.d)}</span><span class="b-st ${p.st}">${esc(p.st === 'garde' ? 'GARDE' : p.st === 'open' ? 'OUVERTE' : p.st === 'closed' ? 'FERMÉE' : '—')}</span></button>`).join('')}</div>` : '';
     if (!list.length) {
       const total = PH_EMBED.length + (ph.cache ? ph.cache.list.length : 0);
       $('ph-list').innerHTML = `<div class="empty">${ic('cross')}<p><b>${ph.q ? 'Aucune pharmacie ne correspond' : f === 'garde' ? 'Aucune pharmacie de garde trouvée' : 'Aucune pharmacie trouvée'}</b></p><p>${!total ? 'Connectez-vous à internet puis touchez « Actualiser » pour charger les pharmacies autour de vous.' : f !== 'all' ? 'Essayez le filtre « Toutes ».' : 'Modifiez votre recherche.'}</p>${f !== 'all' ? '<button class="btn ghost sm" data-ph-all>Voir toutes les pharmacies</button>' : ''}</div>`;
@@ -1530,7 +1532,7 @@
     const p = g || o || n;
     $('ph-teaser-label').textContent = g ? 'Pharmacie de garde la plus proche' : o ? 'Pharmacie ouverte la plus proche' : 'Pharmacies';
     $('ph-teaser-name').textContent = p ? p.name : state.pos ? 'Voir les pharmacies autour de vous' : 'Pharmacies de garde et ouvertes';
-    $('ph-teaser-meta').textContent = p ? `${fmtDist(p.d)} · ${statusLabel(p, true)}` : '';
+    $('ph-teaser-meta').textContent = p ? `${p.approx ? '≈ ' : ''}${fmtDist(p.d)}${p.approx ? ' (centre-ville)' : ''} · ${statusLabel(p, true)}` : '';
     $('ph-teaser').dataset.ph = p ? p.id : '';
   }
 
@@ -1570,7 +1572,7 @@
     const call = $('pd-call');
     if (p.phone) { call.href = telHref(p.phone); call.removeAttribute('aria-disabled'); call.classList.remove('disabled'); }
     else { call.href = '#'; call.setAttribute('aria-disabled', 'true'); call.classList.add('disabled'); }
-    const ns = nearStop(p);
+    const ns = p.approx || (p.garde && p.garde.interieur) ? null : nearStop(p);
     const rows = [
       ['cross', 'Statut', esc(statusLabel(p, true)) + (p.garde ? ` <small style="text-transform:none;letter-spacing:0">(semaine du ${esc(fmtDay(week().du))} au ${esc(fmtDay(week().au))})</small>` : '')],
       p.phone && ['phone', 'Téléphone', [...new Set([p.phone, ...((p.garde && p.garde.tels) || [])].map(t => String(t).replace(/[^\d+]/g, '').replace(/^\+?225(?=\d{10}$)/, '')))]
@@ -1583,7 +1585,9 @@
     $('pd-info').innerHTML = rows.map(([i, l, v]) => `<div class="pd-row">${ic(i)}<div><small>${l}</small>${v}</div></div>`).join('');
     $('pd-walk').innerHTML = '';
     $('pd-bus').disabled = !Number.isFinite(p.lat);
-    $('pd-gmaps').disabled = !Number.isFinite(p.lat);
+    $('pd-gmaps').disabled = false;
+    $('pd-gmaps').lastChild.textContent = p.approx || !Number.isFinite(p.lat) ? 'Rechercher dans Google Maps' : 'Itinéraire à pied dans Google Maps';
+    $('pd-bus').hidden = !!(p.garde && p.garde.interieur);
     show('screen-pharma-detail');
   }
   function ensurePdMap() {
@@ -1596,7 +1600,10 @@
     pdLayer.clearLayers();
     pdUser = userMarker(pdMap, pdUser);
     L.marker([p.lat, p.lon], { icon: mkIcon('mk-ph' + (p.garde ? ' garde' : ''), 28), zIndexOffset: 900 }).bindPopup(`<b>${esc(p.name)}</b><br>${esc(statusLabel(p, true))}`).addTo(pdLayer);
-    if (state.pos) {
+    if (p.approx) {
+      pdMap.setView([p.lat, p.lon], 13);
+      $('pd-walk').innerHTML = `${ic('info')}<span>Position approximative : centre de ${esc(p.commune || 'la ville')}. Appelez la pharmacie pour l'adresse exacte.</span>`;
+    } else if (state.pos) {
       const crow = Core.haversine(state.pos[0], state.pos[1], p.lat, p.lon);
       const walkStyle = { color: isDark() ? '#3ccf78' : '#16994d', weight: 5, dashArray: '0 9', lineCap: 'round', interactive: false };
       const line = L.polyline([state.pos, [p.lat, p.lon]], walkStyle).addTo(pdLayer);
@@ -1618,7 +1625,11 @@
   $('pd-back').onclick = () => show(ph.back || 'screen-pharma');
   $('pd-share').innerHTML = ic('share');
   $('pd-call').addEventListener('click', e => { if ($('pd-call').classList.contains('disabled')) { e.preventDefault(); toast('Numéro de téléphone non renseigné.'); } });
-  $('pd-gmaps').onclick = () => { const p = ph.sel; if (p && Number.isFinite(p.lat)) openExternal(`https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}&travelmode=walking`); };
+  $('pd-gmaps').onclick = () => {
+    const p = ph.sel; if (!p) return;
+    if (p.approx || !Number.isFinite(p.lat)) openExternal(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([p.name, p.commune, "Côte d'Ivoire"].filter(Boolean).join(', '))}`);
+    else openExternal(`https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}&travelmode=walking`);
+  };
   $('pd-bus').onclick = () => {
     const p = ph.sel;
     if (!p || !Number.isFinite(p.lat)) return;

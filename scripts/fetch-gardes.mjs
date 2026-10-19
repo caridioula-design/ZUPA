@@ -16,6 +16,11 @@ const require = createRequire(import.meta.url);
 const G = require('./gardes-lib.cjs');
 
 const ROOT = new URL('..', import.meta.url).pathname;
+try { // noms de villes avec accents (www/data/villes.js, OpenStreetMap)
+  const ctx = { window: {} };
+  (await import('node:vm')).runInNewContext(readFileSync(join(ROOT, 'www/data/villes.js'), 'utf8'), ctx);
+  G.setVilles(ctx.window.ZUPA_VILLES || []);
+} catch (_) {}
 const OUT = join(ROOT, 'www/data/gardes.json');
 const PDF_DIR = join(ROOT, 'gardes-pdf');
 const TMP = mkdtempSync(join(tmpdir(), 'zupa-gardes-'));
@@ -50,11 +55,12 @@ function pdfToWeeks(buf, label) {
   const f = join(TMP, 'f' + Math.random().toString(36).slice(2) + '.pdf');
   writeFileSync(f, buf);
   const text = execFileSync('pdftotext', ['-layout', f, '-'], { maxBuffer: 64 << 20 }).toString('utf8');
-  if (/INTERIEUR|INTÉRIEUR/i.test(text.slice(0, 3000)) && !/SECTION D['’]ADJAME|SECTION DE COCODY/i.test(text)) throw new Error('liste de l\'intérieur du pays, ignorée');
-  const r = G.parseUnppciText(text);
+  const interieur = /INTERIEUR|INTÉRIEUR/i.test(text.slice(0, 3000)) && !/SECTION D['’]ADJAME|SECTION DE COCODY/i.test(text);
+  const r = interieur ? G.parseInterieurText(text) : G.parseUnppciText(text);
+  const zone = interieur ? 'interieur' : 'abidjan';
   const n = r.semaines.reduce((a, w) => a + w.pharmacies.length, 0);
-  notice(`PDF ${label}`, `${r.semaines.length} semaines, ${n} entrées (${r.semaines.map(w => `${w.du}→${w.au}: ${w.pharmacies.length}`).join(', ')})`);
-  return r.semaines.filter(w => w.pharmacies.length >= 30);
+  notice(`PDF ${label}`, `${interieur ? 'intérieur' : 'Abidjan'} : ${r.semaines.length} semaines, ${n} entrées (${r.semaines.map(w => `${w.du}→${w.au}: ${w.pharmacies.length}`).join(', ')})`);
+  return r.semaines.filter(w => w.pharmacies.length >= 20).map(w => Object.assign(w, { zone }));
 }
 
 const MOIS = ['JANVIER', 'FEVRIER', 'MARS', 'AVRIL', 'MAI', 'JUIN', 'JUILLET', 'AOUT', 'SEPTEMBRE', 'OCTOBRE', 'NOVEMBRE', 'DECEMBRE'];
@@ -83,17 +89,8 @@ async function fromUnppci() {
   notice('UNPPCI articles', found.map(a => `${a.id} : ${a.titre}`).join(' | ') || `aucun « Tour de garde » du mois parmi les articles ${max - 11} à ${max}`);
   const weeks = [];
   for (const a of found) {
-    const isGarde = c => (c.bouton && /GARDE/.test(c.ctx) && !/INTERIEUR/.test(c.ctx)) || /\/f_\d+\.pdf$/.test(c.url);
+    const isGarde = c => (c.bouton && /GARDE/.test(c.ctx) && !/SEMAINE/.test(c.ctx)) || /\/f_\d+\.pdf$/.test(c.url);
     const cands = G.unppciPdfCandidates(a.html).filter(isGarde);
-    // liste de l'intérieur : texte conservé dans le dépôt (gardes-pdf/interieur.txt) pour analyse
-    for (const c of G.unppciPdfCandidates(a.html).filter(c => c.bouton && /INTERIEUR/.test(c.ctx)).slice(0, 1)) {
-      try {
-        const f = join(TMP, 'int.pdf'); writeFileSync(f, await getPdf(c.url));
-        const txt = execFileSync('pdftotext', ['-layout', f, '-'], { maxBuffer: 64 << 20 }).toString('utf8');
-        writeFileSync(join(ROOT, 'gardes-pdf/interieur.txt'), txt);
-        notice('UNPPCI intérieur', `${c.ctx.trim()} : ${txt.length} caractères`);
-      } catch (e) { warn('UNPPCI intérieur', e.message); }
-    }
     notice(`UNPPCI article ${a.id}`, `PDF : ${cands.map(c => c.url.split('/').pop()).join(', ') || 'aucun'}`);
     if (!cands.length) {
       // diagnostic : comment sont faits les liens « GARDE … » (javascript:;)
@@ -125,7 +122,7 @@ async function fromHtml(label, url, parser) {
   const r = parser(await get(url));
   notice(label, `${r.pharmacies.length} pharmacies, période ${r.periode ? r.periode.du + '→' + r.periode.au : 'non trouvée'}`);
   if (!r.periode || r.pharmacies.length < 30) return [];
-  return [{ du: r.periode.du, au: r.periode.au, pharmacies: r.pharmacies }];
+  return [{ du: r.periode.du, au: r.periode.au, zone: 'abidjan', pharmacies: r.pharmacies }];
 }
 
 const sources = [
@@ -135,32 +132,33 @@ const sources = [
   ['annuaireci.com', () => fromHtml('annuaireci.com', 'https://annuaireci.com/pharmacies-de-garde/abidjan/', G.parseGenericHtml)]
 ];
 
-const byWeek = new Map(); // du -> { semaine, source }
+const byWeek = new Map(); // « zone|du » -> { semaine, source }
 const found = {};
 for (const [name, fn] of sources) {
   try {
     const weeks = await fn();
     found[name] = weeks;
     for (const w of weeks) {
-      if (w.au < today && w.au < addDays(today, -1)) continue;
-      const cur = byWeek.get(w.du);
+      if (w.au < addDays(today, -1)) continue;
+      const k = `${w.zone}|${w.du}`;
       // priorité à la première source (officielle) ; une source suivante ne complète que les semaines manquantes
-      if (!cur) byWeek.set(w.du, { semaine: w, source: name });
+      if (!byWeek.has(k)) byWeek.set(k, { semaine: w, source: name });
     }
   } catch (e) { warn(name, e.message); found[name] = []; }
 }
 function addDays(s, n) { const d = new Date(s + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
 
-// Contrôle croisé de la semaine en cours entre les sources
-const curDu = [...byWeek.keys()].find(du => du <= today && today <= byWeek.get(du).semaine.au);
-if (curDu) {
-  const key = n => G.pharmacyName(n).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
-  const ref = new Set(byWeek.get(curDu).semaine.pharmacies.map(p => key(p.nom)));
+// Contrôle croisé de la semaine en cours (Abidjan) entre les sources
+const curKey = [...byWeek.keys()].find(k => k.startsWith('abidjan|') && byWeek.get(k).semaine.du <= today && today <= byWeek.get(k).semaine.au);
+if (curKey) {
+  const ref0 = byWeek.get(curKey), curDu = ref0.semaine.du;
+  const key = n => G.pharmacyName(n).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  const ref = new Set(ref0.semaine.pharmacies.map(p => key(p.nom)));
   for (const [name, weeks] of Object.entries(found)) {
-    const w = weeks.find(x => x.du === curDu);
-    if (!w || name === byWeek.get(curDu).source) continue;
+    const w = weeks.find(x => x.du === curDu && x.zone === 'abidjan');
+    if (!w || name === ref0.source) continue;
     const common = w.pharmacies.filter(p => ref.has(key(p.nom))).length;
-    notice('Contrôle', `${name} : ${common}/${w.pharmacies.length} pharmacies communes avec ${byWeek.get(curDu).source} pour la semaine du ${curDu}`);
+    notice('Contrôle', `${name} : ${common}/${w.pharmacies.length} pharmacies communes avec ${ref0.source} pour la semaine du ${curDu}`);
   }
 }
 
@@ -168,10 +166,24 @@ if (curDu) {
 let old = null;
 try { old = JSON.parse(readFileSync(OUT, 'utf8')); } catch (_) {}
 for (const w of (old && Array.isArray(old.semaines) ? old.semaines : old && old.du ? [old] : [])) {
-  if (w && w.du && w.au >= today && !byWeek.has(w.du) && Array.isArray(w.pharmacies) && w.pharmacies.length) byWeek.set(w.du, { semaine: w, source: w.source || (old && old.source) || 'précédent' });
+  if (!w || !w.du || w.au < today || !Array.isArray(w.pharmacies)) continue;
+  for (const zone of ['abidjan', 'interieur']) {
+    const ph = w.pharmacies.filter(p => (zone === 'interieur') === !!p.interieur);
+    if (ph.length && !byWeek.has(`${zone}|${w.du}`)) byWeek.set(`${zone}|${w.du}`, { semaine: { du: w.du, au: w.au, zone, pharmacies: ph }, source: 'précédent' });
+  }
 }
 
-const semaines = [...byWeek.values()].map(({ semaine, source }) => ({ du: semaine.du, au: semaine.au, source, pharmacies: semaine.pharmacies }))
+// Une entrée par semaine : Abidjan puis intérieur
+const parDu = new Map();
+for (const [k, { semaine, source }] of byWeek) {
+  const cur = parDu.get(semaine.du) || { du: semaine.du, au: semaine.au, sources: [], pharmacies: [] };
+  cur.au = cur.au > semaine.au ? cur.au : semaine.au;
+  cur.sources.push(`${source} (${semaine.zone === 'interieur' ? 'intérieur' : 'Abidjan'})`);
+  if (semaine.zone === 'interieur') cur.pharmacies.push(...semaine.pharmacies.map(p => Object.assign({}, p, { interieur: true })));
+  else cur.pharmacies.unshift(...semaine.pharmacies);
+  parDu.set(semaine.du, cur);
+}
+const semaines = [...parDu.values()].map(w => ({ du: w.du, au: w.au, source: w.sources.sort().join(', '), pharmacies: w.pharmacies }))
   .sort((a, b) => a.du.localeCompare(b.du));
 if (!semaines.length) {
   warn('Pharmacies de garde', 'aucune liste récupérée : fichier inchangé');

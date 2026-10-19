@@ -37,7 +37,7 @@ jobs:
 
       - name: Publier www/data/gardes.json
         run: |
-          git add www/data/gardes.json gardes-pdf/RAPPORT.md gardes-pdf/interieur.txt 2>/dev/null || git add www/data/gardes.json gardes-pdf/RAPPORT.md
+          git add www/data/gardes.json gardes-pdf/RAPPORT.md
           if git diff --cached --quiet; then echo "Rien à publier"; exit 0; fi
           git config user.name "zupa-bot"
           git config user.email "zupa-bot@users.noreply.github.com"

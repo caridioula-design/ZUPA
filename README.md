@@ -14,8 +14,8 @@ ZUPA simplifie votre quotidien à Abidjan : itinéraires en bus SOTRA (avec corr
 - Correction manuelle de la position quand le GPS est imprécis.
 
 **Pharmacies**
-- Pharmacies autour de vous (OpenStreetMap), triées par distance.
-- Pharmacies de garde de la semaine, pharmacies ouvertes selon leurs horaires.
+- Pharmacies de toute la Côte d'Ivoire (OpenStreetMap), triées par distance.
+- Pharmacies de garde de la semaine à Abidjan et dans une trentaine de villes de l'intérieur (liste UNPPCI), pharmacies ouvertes selon leurs horaires.
 - Fiche détaillée : carte et trajet à pied, appel direct, itinéraire en bus jusqu'à la pharmacie, partage.
 
 ## Récupérer l'APK
@@ -35,7 +35,7 @@ Chaque lundi, la compilation se relance avec la liste à jour des pharmacies d'A
 
 Chaque jour à 5 h 30, le traitement GitHub « Pharmacies de garde » (onglet **Actions**) :
 
-1. télécharge le PDF mensuel officiel « Tour de garde » de l'[UNPPCI](https://www.unppci.org/) (toutes les semaines du mois, avec adresse, pharmacien et téléphones) ;
+1. télécharge les deux PDF mensuels officiels « Tour de garde » de l'[UNPPCI](https://www.unppci.org/) : Abidjan et villes de l'intérieur (toutes les semaines du mois, avec adresse, pharmacien et téléphones) ;
 2. lit aussi les PDF déposés dans le dossier `gardes-pdf/` (secours si le site de l'UNPPCI change) ;
 3. complète si besoin avec [pharmacies-de-garde.ci](https://www.pharmacies-de-garde.ci/liste-des-pharmacies-de-garde-a-abidjan-votre-permanence/) et [annuaireci.com](https://annuaireci.com/pharmacies-de-garde/abidjan/), et compare les listes ;
 4. publie le résultat dans `www/data/gardes.json` (semaine en cours et semaines suivantes).

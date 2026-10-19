@@ -248,11 +248,12 @@ out center tags;`;
           out.push(p);
         }
       }
-      if (!p) { // position inconnue : affichée sans distance
-        p = { id: 'g' + i, name: prettyName(e.nom), lat: null, lon: null, phone: e.tel || null, street: e.adresse || null, commune: e.commune || null, hours: null, operator: null };
+      if (!p) { // position inconnue : à l'intérieur, centre de la ville (approximatif) ; sinon sans distance
+        const vc = e.interieur ? communeCenter(e.commune) : null;
+        p = { id: 'g' + i, name: prettyName(e.nom), lat: vc ? vc[0] : null, lon: vc ? vc[1] : null, approx: !!vc, phone: e.tel || null, street: e.adresse || null, commune: e.commune || null, hours: null, operator: null };
         out.push(p);
       }
-      p.garde = { commune: e.commune || null, quartier: e.quartier || null, tel: e.tel || null,
+      p.garde = { interieur: !!e.interieur, commune: e.commune || null, quartier: e.quartier || null, tel: e.tel || null,
         tels: Array.isArray(e.tels) && e.tels.length ? e.tels : (e.tel ? [e.tel] : []), adresse: e.adresse || null, responsable: e.responsable || null };
       if (!p.phone && e.tel) p.phone = e.tel;
       if (!p.commune && e.commune) p.commune = e.commune;

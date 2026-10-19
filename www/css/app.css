@@ -354,3 +354,4 @@ body.dark .btn.green{color:#06210f}
 .spin-ic .ic{animation:spin .8s linear infinite}
 .btn.disabled{opacity:.5}
 a.btn{text-decoration:none}
+.pd-actions:has(#pd-bus[hidden]){grid-template-columns:1fr}

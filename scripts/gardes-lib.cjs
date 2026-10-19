@@ -22,7 +22,11 @@ const ACCENTS = { adjame: 'Adjamé', attecoube: 'Attécoubé', sante: 'Santé', 
   helene: 'Hélène', genevieve: 'Geneviève', therapie: 'Thérapie', securite: 'Sécurité', republique: 'République', etat: 'État',
   koumassi: 'Koumassi', bouet: 'Bouët', gendarmerie: 'Gendarmerie', ecoles: 'Écoles', prefecture: 'Préfecture', sejour: 'Séjour',
   deguerpi: 'Déguerpi', akouedo: 'Akouédo', akeikoi: 'Akéikoi', abobote: 'Abobotè', tresor: 'Trésor', etage: 'Étage', etages: 'Étages',
-  allee: 'Allée', ancien: 'Ancien', entree: 'Entrée', carre: 'Carré', resurrection: 'Résurrection', zenith: 'Zénith', medicale: 'Médicale', medical: 'Médical' };
+  allee: 'Allée', bouake: 'Bouaké', duekoue: 'Duékoué', danane: 'Danané', diegonefla: 'Diégonéfla', adzope: 'Adzopé', adiake: 'Adiaké',
+  bouafle: 'Bouaflé', tiassale: 'Tiassalé', seguela: 'Séguéla', odienne: 'Odienné', ferkessedougou: 'Ferkessédougou', soubre: 'Soubré',
+  beoumi: 'Béoumi', zuenoula: 'Zuénoula', oume: 'Oumé', akoupe: 'Akoupé', alepe: 'Alépé', guitry: 'Guitry', mbahiakro: "M'Bahiakro",
+  pedro: 'Pédro', agnibilekro: 'Agnibilékro', bettie: 'Bettié', sikensi: 'Sikensi', tiebissou: 'Tiébissou', didievi: 'Didiévi',
+  bangolo: 'Bangolo', kouibly: 'Kouibly', guiberoua: 'Guibéroua', gueyo: 'Guéyo', meagui: 'Méagui', buyo: 'Buyo', fresco: 'Fresco', ancien: 'Ancien', entree: 'Entrée', carre: 'Carré', resurrection: 'Résurrection', zenith: 'Zénith', medicale: 'Médicale', medical: 'Médical' };
 const accent = s => s.replace(/\p{L}+/gu, w => { const r = ACCENTS[w.toLowerCase()]; if (!r) return w; return w[0] === w[0].toUpperCase() ? r[0].toUpperCase() + r.slice(1) : r.toLowerCase(); });
 
 function titleCase(s) {
@@ -162,6 +166,63 @@ function parseUnppciText(text) {
   return { semaines: [...weeks.values()].sort((a, b) => a.du.localeCompare(b.du)) };
 }
 
+/* Liste UNPPCI « villes de l'intérieur » : nom de la ville en colonne de gauche, officines à droite */
+function parseInterieurText(text) {
+  const weeks = new Map();
+  let week = null, ville = '', cur = null;
+  const flush = () => {
+    if (cur && week && cur.ville) {
+      const e = parseEntry(cur.lines.join(' '));
+      e.commune = villeName(cur.ville);
+      e.quartier = null;
+      e.interieur = true;
+      const w = weeks.get(week.du);
+      if (!w.pharmacies.some(p => p.nom === e.nom && p.commune === e.commune)) w.pharmacies.push(e);
+    }
+    cur = null;
+  };
+  const ENTRY = /^(PH(AR)?CIE|PHIE|PHARMACIE)\b/i;
+  const rows = String(text).replace(/\f/g, '\n').split('\n');
+  for (let i = 0; i < rows.length; i++) {
+    const line = rows[i];
+    const s = line.trim();
+    if (!s) continue;
+    const lead = line.length - line.trimStart().length;
+    const wk = /SEMAINE DU/i.test(s) && weekFrom(s);
+    if (wk) {
+      flush(); week = wk; ville = '';
+      if (!weeks.has(wk.du)) weeks.set(wk.du, { du: wk.du, au: wk.au, pharmacies: [] });
+      continue;
+    }
+    if (/TOUR DE GARDE|^PERMANENCE/i.test(s)) { flush(); continue; }
+    // « BOUAKE         PHCIE AIR FRANCE / … » : ville + officine sur la même ligne
+    const m = /^([A-ZÀ-Ü][A-ZÀ-Ü0-9'’ .\-]{1,30}?)\s{2,}((?:PH(?:AR)?CIE|PHIE|PHARMACIE)\b.*)$/.exec(s);
+    if (lead < 6 && m) { flush(); ville = m[1].trim(); cur = { ville, lines: [m[2]] }; continue; }
+    if (ENTRY.test(s)) { flush(); cur = { ville, lines: [s] }; continue; }
+    // ville seule sur sa ligne (officines aux lignes suivantes)
+    let next = '';
+    for (let j = i + 1; j < rows.length; j++) { const n = rows[j].trim(); if (n) { next = n; break; } }
+    if (lead < 6 && s.length <= 30 && s === s.toUpperCase() && !/\d{2}\s\d{2}/.test(s) && !/T[EÉ]L\b/.test(s) && ENTRY.test(next)) { flush(); ville = s; continue; }
+    if (cur) cur.lines.push(s);
+  }
+  flush();
+  return { semaines: [...weeks.values()].sort((a, b) => a.du.localeCompare(b.du)) };
+}
+// Nom de ville avec accents : liste OpenStreetMap si fournie, sinon dictionnaire
+let VILLES = new Map();
+function setVilles(list) {
+  VILLES = new Map();
+  for (const r of list || []) {
+    const n = Array.isArray(r) ? r[0] : r.name, t = Array.isArray(r) ? r[1] : r.type;
+    const k = deacc(n).toUpperCase().replace(/[^A-Z0-9]+/g, ' ').trim();
+    if (k && (!VILLES.has(k) || /city|town/.test(t))) VILLES.set(k, n);
+  }
+}
+function villeName(v) {
+  const k = deacc(v).toUpperCase().replace(/[^A-Z0-9]+/g, ' ').trim();
+  return VILLES.get(k) || titleCase(v);
+}
+
 /* ---------- HTML ---------- */
 const decode = s => String(s).replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]+>/g, ' ')
   .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&#0?39;|&apos;|&#8217;|&rsquo;/g, "'").replace(/&quot;/g, '"')
@@ -242,4 +303,4 @@ function currentWeek(semaines, today) {
   return semaines.find(w => w.du <= t && t <= w.au) || semaines.find(w => w.du > t) || null;
 }
 
-module.exports = { parseUnppciText, parseEntry, pharmacyName, parsePdgHtml, parseGenericHtml, unppciPdfCandidates, currentWeek, periodFrom, weekFrom, communeOf, titleCase };
+module.exports = { parseInterieurText, setVilles, villeName, parseUnppciText, parseEntry, pharmacyName, parsePdgHtml, parseGenericHtml, unppciPdfCandidates, currentWeek, periodFrom, weekFrom, communeOf, titleCase };
