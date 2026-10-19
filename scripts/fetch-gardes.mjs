@@ -55,11 +55,23 @@ const deacc = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
 async function fromUnppci() {
   const home = await get('https://www.unppci.org/');
   const arts = [];
-  const re = /href=["']([^"']*\?p=articles&(?:amp;)?id=(\d+))["'][^>]*>([\s\S]{0,300}?)<\/a>/gi;
+  // chaque mention « Tour de garde » : on cherche l'identifiant d'article le plus proche (avant ou après)
+  const flat = home.replace(/&amp;/g, '&');
+  const reT = /TOURS?\s+DE\s+GARDE([^<]{0,80})/gi;
   let m;
-  while ((m = re.exec(home))) {
-    const txt = deacc(m[3].replace(/<[^>]+>/g, ' '));
-    if (/TOUR(S)? DE GARDE/.test(txt) && !/INTERIEUR/.test(txt)) arts.push({ id: +m[2], txt: txt.replace(/\s+/g, ' ').slice(0, 80) });
+  while ((m = reT.exec(flat))) {
+    const txt = deacc(m[0]).replace(/\s+/g, ' ');
+    if (/INTERIEUR/.test(txt)) continue;
+    const before = flat.slice(Math.max(0, m.index - 1500), m.index);
+    const after = flat.slice(m.index, m.index + 400);
+    const ids = [...before.matchAll(/[?&]id=(\d+)/g)].map(x => +x[1]);
+    const idA = (/[?&]id=(\d+)/.exec(after) || [])[1];
+    const id = ids.length ? ids[ids.length - 1] : idA ? +idA : null;
+    if (id) arts.push({ id, txt: txt.slice(0, 80) });
+  }
+  if (!arts.length) {
+    const i = deacc(flat).indexOf('GARDE');
+    warn('UNPPCI diagnostic', `page de ${flat.length} caractères ; extrait : ${i < 0 ? '« GARDE » absent' : flat.slice(Math.max(0, i - 300), i + 200).replace(/[\s]+/g, ' ').replace(/::/g, ':')}`);
   }
   // mois en cours et mois suivant en priorité, puis les plus récents
   const d = new Date(), wanted = [MOIS[d.getMonth()], MOIS[(d.getMonth() + 1) % 12]];

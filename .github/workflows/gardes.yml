@@ -37,9 +37,9 @@ jobs:
 
       - name: Publier www/data/gardes.json
         run: |
-          if git diff --quiet -- www/data/gardes.json gardes-pdf/RAPPORT.md; then echo "Rien à publier"; exit 0; fi
+          git add www/data/gardes.json gardes-pdf/RAPPORT.md
+          if git diff --cached --quiet; then echo "Rien à publier"; exit 0; fi
           git config user.name "zupa-bot"
           git config user.email "zupa-bot@users.noreply.github.com"
-          git add www/data/gardes.json gardes-pdf/RAPPORT.md
           git commit -m "Pharmacies de garde : mise à jour automatique"
           for i in 1 2 3; do git pull --rebase -q origin main && git push -q origin HEAD:main && break; sleep 5; done
