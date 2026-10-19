@@ -44,7 +44,7 @@ jobs:
         continue-on-error: true
 
       - name: Enregistrer les pharmacies actualisées dans le dépôt
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        if: github.ref == 'refs/heads/main'
         run: |
           if ! git diff --quiet -- www/data/pharmacies.js; then
             git config user.name "zupa-bot"
@@ -80,6 +80,19 @@ jobs:
           VERSION=$(node -p "require('../package.json').version")
           cp app/build/outputs/apk/release/app-release.apk "../dist/ZUPA-${VERSION}-signe.apk"
           cp app/build/outputs/bundle/release/app-release.aab "../dist/ZUPA-${VERSION}-playstore.aab"
+
+      - name: Vérification de l'APK
+        run: |
+          APK=$(ls dist/*-build*.apk | head -1)
+          AAPT=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 | sort -V | tail -1)
+          BADGE=$("$AAPT" dump badging "$APK")
+          echo "::notice title=APK::$(basename "$APK") — $(du -h "$APK" | cut -f1)"
+          echo "::notice title=Application::$(echo "$BADGE" | grep -E "^package:|^application-label:|^sdkVersion|^targetSdkVersion" | tr '\n' ' ')"
+          echo "::notice title=Permissions::$(echo "$BADGE" | grep uses-permission | sed "s/uses-permission: name=//" | tr '\n' ' ')"
+          echo "::notice title=Contenu web::$(unzip -l "$APK" | grep -c 'assets/public/') fichiers ; $(unzip -l "$APK" | grep -E 'assets/public/(index.html|data/bus.js|data/pharmacies.js|data/gardes.json)' | awk '{print $4"="$1}' | tr '\n' ' ')"
+          N=$(node -e "global.window={};require('vm').runInThisContext(require('fs').readFileSync('www/data/pharmacies.js','utf8'));const p=window.ZUPA_PHARMA;console.log(p.list.length+' pharmacies (base du '+p.updated+'), '+p.list.filter(x=>x.phone).length+' avec téléphone, '+p.list.filter(x=>x.hours).length+' avec horaires')")
+          echo "::notice title=Pharmacies::$N"
+          { echo "## ZUPA"; echo "- $(basename "$APK")"; echo "- $N"; } >> "$GITHUB_STEP_SUMMARY"
 
       - name: APK téléchargeable (onglet Actions)
         uses: actions/upload-artifact@v4
