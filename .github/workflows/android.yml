@@ -45,13 +45,14 @@ jobs:
 
       - name: Enregistrer les données actualisées dans le dépôt
         if: github.ref == 'refs/heads/main'
+        continue-on-error: true
         run: |
           git add www/data/pharmacies.js www/data/villes.js
           if ! git diff --cached --quiet; then
             git config user.name "zupa-bot"
             git config user.email "zupa-bot@users.noreply.github.com"
             git commit -m "Pharmacies et villes : mise à jour OpenStreetMap"
-            git pull --rebase -q origin main; git push || echo "Push impossible : données utilisées pour cet APK seulement"
+            if git pull --rebase -q -X theirs origin main && git push -q; then echo "Données publiées"; else git rebase --abort 2>/dev/null; echo "Publication impossible : données utilisées pour cet APK seulement"; fi
           fi
 
       - name: Copier l'application web dans le projet Android

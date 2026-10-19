@@ -72,7 +72,7 @@ out center tags;`;
   const queryPlaces = () => `[out:json][timeout:120];
 area["ISO3166-1"="CI"][admin_level=2]->.ci;
 node["place"~"^(city|town|village|suburb|quarter)$"]["name"](area.ci);
-out tags;`;
+out body qt;`;
   const queryAround = (lat, lon, m = 4000) => `[out:json][timeout:25];
 (node["amenity"="pharmacy"](around:${m},${lat},${lon});way["amenity"="pharmacy"](around:${m},${lat},${lon}););
 out center tags;`;
