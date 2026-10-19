@@ -355,3 +355,28 @@ body.dark .btn.green{color:#06210f}
 .btn.disabled{opacity:.5}
 a.btn{text-decoration:none}
 .pd-actions:has(#pd-bus[hidden]){grid-template-columns:1fr}
+
+/* ---------- Approche de l'arrêt ---------- */
+.loc-chip{--near:0;transition:background-color .6s ease,box-shadow .6s ease,border-color .6s ease;border-left:4px solid transparent}
+.loc-chip.near-stop{background:linear-gradient(90deg,rgba(22,163,74,calc(.06 + var(--near) * .28)),rgba(22,163,74,calc(.02 + var(--near) * .14))),var(--surface);border-left-color:rgba(22,163,74,calc(.25 + var(--near) * .75))}
+.loc-chip.near-stop .ic{color:rgb(calc(233 - var(--near) * 211),calc(114 + var(--near) * 49),calc(52 + var(--near) * 22))}
+.loc-chip.at-stop{border-left-color:var(--ok);animation:at-stop 1.2s ease-in-out infinite}
+.loc-chip.at-stop .ic{color:var(--ok)}
+.at-stop-txt{color:var(--ok)!important}
+@keyframes at-stop{0%,100%{background:rgba(22,163,74,.38);box-shadow:0 0 0 0 rgba(22,163,74,.55)}50%{background:rgba(22,163,74,.12);box-shadow:0 0 0 8px rgba(22,163,74,0)}}
+body.dark .loc-chip.at-stop .at-stop-txt{color:#4ade80!important}
+@media(prefers-reduced-motion:reduce){.loc-chip.at-stop{animation:none;background:rgba(22,163,74,.3)}}
+
+/* ---------- Paiya ---------- */
+.py-cats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.py-cat{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border-radius:14px;background:var(--surface);box-shadow:var(--shadow);font-size:.74rem;font-weight:600;color:var(--text-2);border:2px solid transparent}
+.py-cat .ic{width:24px;height:24px;color:var(--c)}
+.py-cat small{font-size:.66rem;color:var(--text-3);font-weight:500}
+.py-cat.on{border-color:var(--c);color:var(--text);background:color-mix(in srgb,var(--c) 10%,var(--surface))}
+.py-list{display:flex;flex-direction:column;gap:12px}
+.py-card{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);padding:14px;cursor:pointer;border-left:5px solid var(--c);transition:transform .15s}
+.py-card:active{transform:scale(.99)}
+.py-card .ph-ic{background:color-mix(in srgb,var(--c) 14%,transparent);color:var(--c)}
+.py-card .ph-btns .btn.green{background:var(--c)}
+.py-card .ph-btns .btn.ghost{background:color-mix(in srgb,var(--c) 12%,transparent);color:var(--c)}
+.mk-py span{background:var(--c,#E97234);border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)}

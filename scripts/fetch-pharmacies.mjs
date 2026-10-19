@@ -51,3 +51,15 @@ window.ZUPA_VILLES = ${JSON.stringify(places)};
 `);
   console.log(`::notice title=Villes OSM::${places.length} lieux`);
 } else console.log(`::warning title=Villes OSM::${places.length} reçus : fichier conservé`);
+
+// Paiya : hôtels, restaurants, toilettes publiques, commerces du Grand Abidjan
+const PY = require('../www/js/paiya-core.js');
+const yj = await overpass(PY.queryBBox());
+const lieux = yj ? PY.fromOsm(yj) : [];
+if (lieux.length >= 200) {
+  const n = c => lieux.filter(p => p.cat === c).length;
+  writeFileSync(out('paiya.js'), `/* ZUPA — Paiya : hôtels, restaurants, toilettes, commerces du Grand Abidjan (© contributeurs OpenStreetMap, ODbL) */
+window.ZUPA_PAIYA = ${JSON.stringify({ updated: new Date().toISOString(), list: lieux })};
+`);
+  console.log(`::notice title=Paiya OSM::${lieux.length} lieux (hôtels ${n('hotel')}, restaurants ${n('resto')}, toilettes ${n('wc')}, commerces ${n('shop')})`);
+} else console.log(`::warning title=Paiya OSM::${lieux.length} reçus : fichier conservé`);

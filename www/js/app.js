@@ -39,6 +39,11 @@
     route: 'M19 15.18V7c0-2.21-1.79-4-4-4s-4 1.79-4 4v10c0 1.1-.9 2-2 2s-2-.9-2-2V8.82C8.16 8.4 9 7.3 9 6c0-1.66-1.34-3-3-3S3 4.34 3 6c0 1.3.84 2.4 2 2.82V17c0 2.21 1.79 4 4 4s4-1.79 4-4V7c0-1.1.9-2 2-2s2 .9 2 2v8.18A2.996 2.996 0 0 0 18 21c1.66 0 3-1.34 3-3 0-1.3-.84-2.4-2-2.82z',
     refresh: 'M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z',
     info: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z',
+    explore: 'M12 10.9c-.61 0-1.1.49-1.1 1.1s.49 1.1 1.1 1.1c.61 0 1.1-.49 1.1-1.1s-.49-1.1-1.1-1.1zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm2.19 12.19L6 18l3.81-8.19L18 6l-3.81 8.19z',
+    hotel: 'M7 13c1.66 0 3-1.34 3-3S8.66 7 7 7s-3 1.34-3 3 1.34 3 3 3zm12-6h-8v7H3V5H1v15h2v-3h18v3h2v-9c0-2.21-1.79-4-4-4z',
+    resto: 'M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z',
+    wc: 'M5.5 22v-7.5H4V9c0-1.1.9-2 2-2h3c1.1 0 2 .9 2 2v5.5H9.5V22h-4zM18 22v-6h3l-2.54-7.63A2.01 2.01 0 0 0 16.56 7h-.12a2 2 0 0 0-1.9 1.37L12 16h3v6h3zM7.5 6c1.11 0 2-.89 2-2s-.89-2-2-2-2 .89-2 2 .89 2 2 2zm9 0c1.11 0 2-.89 2-2s-.89-2-2-2-2 .89-2 2 .89 2 2 2z',
+    shop: 'M20 4H4v2h16V4zm1 10v-2l-1-5H4l-1 5v2h1v6h10v-6h4v6h2v-6h1zm-9 4H6v-4h6v4z',
     clock: 'M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z'
   };
   const ic = n => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONS[n]}"/></svg>`;
@@ -122,7 +127,7 @@
       s.classList.toggle('active', a);
       s.setAttribute('aria-hidden', String(!a));
     });
-    const tab = { 'screen-results': 'screen-home', 'screen-addstop': 'screen-home', 'screen-fixpos': 'screen-home', 'screen-pharma-detail': 'screen-pharma' }[id] || id;
+    const tab = { 'screen-results': 'screen-home', 'screen-addstop': 'screen-home', 'screen-fixpos': 'screen-home', 'screen-pharma-detail': (typeof ph !== 'undefined' && ph.kind === 'paiya') ? 'screen-paiya' : 'screen-pharma' }[id] || id;
     document.querySelectorAll('[data-nav]').forEach(b => b.classList.toggle('active', b.dataset.nav === tab));
     $(id).scrollTop = 0;
     closeSuggests();
@@ -134,6 +139,7 @@
       if (id === 'screen-addstop') ensureAsMap();
       if (id === 'screen-fixpos') ensureFpMap();
       if (id === 'screen-pharma') renderPharma();
+      if (id === 'screen-paiya') renderPaiya();
       if (id === 'screen-pharma-detail') ensurePdMap();
     });
   }
@@ -340,8 +346,23 @@
     finally { geoBusy = false; }
   }
 
+  /* Le bandeau se colore en vert à mesure que l'on approche de l'arrêt le plus proche (500 m -> 25 m),
+     puis clignote en vert quand on est à l'arrêt. */
+  const AT_STOP_KM = 0.03, FAR_KM = 0.5;
+  let wasAtStop = false;
+  function stopGlow(el, near) {
+    const d = near ? near.d : Infinity;
+    const k = d >= FAR_KM ? 0 : d <= AT_STOP_KM ? 1 : 1 - (d - AT_STOP_KM) / (FAR_KM - AT_STOP_KM);
+    const at = d <= AT_STOP_KM;
+    el.classList.toggle('at-stop', at);
+    el.classList.toggle('near-stop', k > 0 && !at);
+    el.style.setProperty('--near', k.toFixed(3));
+    if (at && !wasAtStop) vibrate([120, 80, 120]);
+    wasAtStop = at;
+  }
   function renderLoc() {
     const el = $('loc-chip');
+    el.classList.remove('at-stop', 'near-stop'); el.style.removeProperty('--near');
     const actions = `<span class="loc-actions"><button class="link" data-geo="retry">Réessayer</button><button class="link" data-geo="stop">Choisir un arrêt</button><button class="link" data-geo="help">Aide GPS</button></span>`;
     if (!state.pos) {
       if (state.geoError) {
@@ -354,9 +375,14 @@
       return;
     }
     const near = Core.nearbyStops(D, state.pos[0], state.pos[1], 3, 1)[0];
-    const nearTxt = near ? `Arrêt le plus proche : ${esc(near.stop.label)} · ${fmtDist(near.d)}` : 'Aucun arrêt de bus à moins de 3 km';
+    const atStop = near && near.d <= AT_STOP_KM;
+    const nearTxt = !near ? 'Aucun arrêt de bus à moins de 3 km'
+      : atStop ? `<b class="at-stop-txt">Vous êtes à l'arrêt ${esc(near.stop.label)}</b>`
+      : `Arrêt le plus proche : ${esc(near.stop.label)} · ${fmtDist(near.d)}`;
+    stopGlow(el, near);
     if (state.manual) {
       el.className = 'loc-chip';
+      stopGlow(el, near);
       el.innerHTML = `${ic('pin')}<span>Position <b>choisie sur la carte</b><br><small>${nearTxt}</small><span class="loc-actions"><button class="link" data-geo="fix">Modifier</button><button class="link" data-geo="gps">Revenir au GPS</button></span></span>`;
       return;
     }
@@ -371,6 +397,7 @@
       ? `<br><small class="warn-txt">Position approximative : le navigateur n'a pas accès à la « position exacte ».</small>`
       : (!state.posStale && acc > 150 ? `<br><small class="warn-txt">Précision faible : vérifiez votre position ou corrigez-la.</small>` : '');
     el.className = 'loc-chip' + (state.approx || acc > 150 ? ' warn' : '');
+    stopGlow(el, near);
     el.innerHTML = `${ic('pin')}<span>${where}${state.posStale ? ' <small>(mise à jour…)</small>' : quality}<br><small>${nearTxt}</small>${warn}<span class="loc-actions"><button class="link" data-geo="fix">${acc > 50 || state.posStale ? 'Position inexacte ? Corriger' : 'Corriger'}</button>${state.approx || acc > 150 ? '<button class="link" data-geo="help">Améliorer le GPS</button>' : ''}</span></span>`;
   }
   $('loc-chip').addEventListener('click', e => {
@@ -1566,14 +1593,27 @@
   function openPharmacy(id, from) {
     const p = allPharmacies().find(x => x.id === id);
     if (!p) { toast('Pharmacie introuvable.', 'error'); return; }
-    ph.sel = p; ph.back = from && from !== 'screen-pharma-detail' ? from : 'screen-pharma';
+    openDetail(p, from, 'pharma');
+  }
+  /* Fiche détaillée commune aux pharmacies et aux lieux Paiya */
+  function openDetail(p, from, kind) {
+    const home = kind === 'paiya' ? 'screen-paiya' : 'screen-pharma';
+    ph.sel = p; ph.kind = kind; ph.back = from && from !== 'screen-pharma-detail' ? from : home;
     $('pd-name').textContent = p.name;
     $('pd-status').textContent = statusLabel(p, true);
     const call = $('pd-call');
     if (p.phone) { call.href = telHref(p.phone); call.removeAttribute('aria-disabled'); call.classList.remove('disabled'); }
     else { call.href = '#'; call.setAttribute('aria-disabled', 'true'); call.classList.add('disabled'); }
     const ns = p.approx || (p.garde && p.garde.interieur) ? null : nearStop(p);
-    const rows = [
+    const rows = kind === 'paiya' ? [
+      [PY_ICON[p.cat] || 'explore', 'Type', esc(p.sub || '')],
+      p.hours && ['clock', 'Statut', esc(statusLabel(p, true))],
+      p.phone && ['phone', 'Téléphone', String(p.phone).split(/[;,/]/).map(t => t.trim()).filter(Boolean).map(t => `<a href="${esc(telHref(t))}">${esc(fmtPhone(t))}</a>`).join('<br>')],
+      (p.street || p.commune) && ['pin', 'Adresse', esc([p.street, p.commune].filter(Boolean).join(' · '))],
+      ns && ['bus', 'Arrêt de bus le plus proche', `${esc(ns.name)} · ${fmtDist(ns.d)}`],
+      p.hours && ['clock', 'Horaires', esc(p.hours)],
+      p.web && ['share', 'Site web', `<a href="${esc(/^https?:/.test(p.web) ? p.web : 'https://' + p.web)}" data-ext>${esc(p.web.replace(/^https?:\/\//, '').slice(0, 40))}</a>`]
+    ].filter(Boolean) : [
       ['cross', 'Statut', esc(statusLabel(p, true)) + (p.garde ? ` <small style="text-transform:none;letter-spacing:0">(semaine du ${esc(fmtDay(week().du))} au ${esc(fmtDay(week().au))})</small>` : '')],
       p.phone && ['phone', 'Téléphone', [...new Set([p.phone, ...((p.garde && p.garde.tels) || [])].map(t => String(t).replace(/[^\d+]/g, '').replace(/^\+?225(?=\d{10}$)/, '')))]
         .map(t => `<a href="${esc(telHref(t))}">${esc(fmtPhone(t))}</a>`).join('<br>')],
@@ -1588,18 +1628,24 @@
     $('pd-gmaps').disabled = false;
     $('pd-gmaps').lastChild.textContent = p.approx || !Number.isFinite(p.lat) ? 'Rechercher dans Google Maps' : 'Itinéraire à pied dans Google Maps';
     $('pd-bus').hidden = !!(p.garde && p.garde.interieur);
+    $('pd-status').textContent = kind === 'paiya' ? [p.sub, p.hours ? statusLabel(p, true) : ''].filter(Boolean).join(' · ') : statusLabel(p, true);
+    $('pd-note').textContent = kind === 'paiya'
+      ? 'Informations issues d\'OpenStreetMap : elles peuvent être incomplètes. Appelez avant de vous déplacer si possible.'
+      : 'Vérifiez par téléphone avant de vous déplacer : les informations proviennent d\'OpenStreetMap et de la liste de garde publiée.';
+    $('screen-pharma-detail').classList.toggle('py', kind === 'paiya');
+    $('screen-pharma-detail').style.setProperty('--c', kind === 'paiya' ? PY_COLOR[p.cat] : '');
     show('screen-pharma-detail');
   }
   function ensurePdMap() {
     const p = ph.sel;
-    if (!p) { show('screen-pharma'); return; }
-    if (!Number.isFinite(p.lat)) { $('pd-map').innerHTML = '<div class="map-off">Position de cette pharmacie inconnue</div>'; pdMap = null; return; }
+    if (!p) { show(ph.kind === 'paiya' ? 'screen-paiya' : 'screen-pharma'); return; }
+    if (!Number.isFinite(p.lat)) { $('pd-map').innerHTML = '<div class="map-off">Position inconnue</div>'; pdMap = null; return; }
     if (!hasL) { mapOff('pd-map'); return; }
     if (!pdMap || !pdMap.getContainer().isConnected) { pdMap = baseMap($('pd-map')); pdLayer = L.layerGroup().addTo(pdMap); pdUser = null; }
     pdMap.invalidateSize();
     pdLayer.clearLayers();
     pdUser = userMarker(pdMap, pdUser);
-    L.marker([p.lat, p.lon], { icon: mkIcon('mk-ph' + (p.garde ? ' garde' : ''), 28), zIndexOffset: 900 }).bindPopup(`<b>${esc(p.name)}</b><br>${esc(statusLabel(p, true))}`).addTo(pdLayer);
+    L.marker([p.lat, p.lon], { icon: ph.kind === 'paiya' ? mkIcon('mk-py', 24, PY_COLOR[p.cat]) : mkIcon('mk-ph' + (p.garde ? ' garde' : ''), 28), zIndexOffset: 900 }).bindPopup(`<b>${esc(p.name)}</b><br>${esc(statusLabel(p, true))}`).addTo(pdLayer);
     if (p.approx) {
       pdMap.setView([p.lat, p.lon], 13);
       $('pd-walk').innerHTML = `${ic('info')}<span>Position approximative : centre de ${esc(p.commune || 'la ville')}. Appelez la pharmacie pour l'adresse exacte.</span>`;
@@ -1645,6 +1691,110 @@
     try { await navigator.clipboard.writeText(text); toast('Informations copiées.', 'success'); } catch (_) { toast(text, 'info', 8000); }
   };
 
+  /* =====================================================================
+     PAIYA : hôtels, restaurants, toilettes publiques, commerces
+     ===================================================================== */
+  const PYC = PaiyaCore;
+  const PY_ICON = { hotel: 'hotel', resto: 'resto', wc: 'wc', shop: 'shop' };
+  const PY_COLOR = { hotel: '#6d4bd8', resto: '#E97234', wc: '#0e9bb5', shop: '#d1347a' };
+  const PY_EMBED = (window.ZUPA_PAIYA && Array.isArray(window.ZUPA_PAIYA.list)) ? window.ZUPA_PAIYA.list : [];
+  const py = { cat: store.get('pyCat', 'resto'), q: '', shown: 20, cache: store.get('pyCache', null), loading: false, lastTry: 0 };
+
+  function allPlaces() {
+    const m = new Map();
+    for (const p of PY_EMBED) m.set(p.id, p);
+    for (const p of (py.cache && py.cache.list) || []) m.set(p.id, p);
+    const now = new Date();
+    return [...m.values()].map(p0 => {
+      const p = Object.assign({}, p0);
+      p.d = state.pos ? Core.haversine(state.pos[0], state.pos[1], p.lat, p.lon) : null;
+      p.os = PC.openingStatus(p.hours, now);
+      p.st = p.os.open === true ? 'open' : p.os.open === false ? 'closed' : 'unk';
+      return p;
+    });
+  }
+  async function refreshPaiya(force) {
+    if (!state.pos || py.loading) return;
+    const c = py.cache;
+    const fresh = c && c.center && Date.now() - c.t < 3 * 24 * 3600e3 && Core.haversine(c.center[0], c.center[1], state.pos[0], state.pos[1]) < 1;
+    const embedded = PY_EMBED.some(p => Core.haversine(p.lat, p.lon, state.pos[0], state.pos[1]) < 2);
+    if (!force && (fresh || embedded || Date.now() - py.lastTry < 60e3)) return;
+    py.loading = true; py.lastTry = Date.now();
+    $('py-refresh').classList.add('spin-ic');
+    const q = PYC.queryAround(state.pos[0], state.pos[1], 3000);
+    let got = null;
+    for (const url of CONFIG.overpass || []) {
+      try {
+        const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 30000);
+        const r = await fetch(url, { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, signal: ctl.signal });
+        clearTimeout(t);
+        if (r.ok) { got = PYC.fromOsm(await r.json()); break; }
+      } catch (_) {}
+    }
+    py.loading = false;
+    $('py-refresh').classList.remove('spin-ic');
+    if (got) {
+      const keep = (c && c.list || []).filter(p => !got.some(g => g.id === p.id));
+      py.cache = { t: Date.now(), center: state.pos.slice(), list: got.concat(keep).slice(0, 4000) };
+      store.set('pyCache', py.cache);
+      if (current === 'screen-paiya') renderPaiya();
+      if (force) toast(`${got.length} lieux trouvés autour de vous.`, 'success');
+    } else if (force) toast('Actualisation impossible : vérifiez votre connexion internet.', 'error');
+  }
+
+  function renderPaiya() {
+    const all = allPlaces();
+    const near = p => p.d == null || p.d <= 15;
+    const counts = Object.fromEntries(PYC.ORDER.map(c => [c, all.filter(p => p.cat === c && near(p)).length]));
+    $('py-cats').innerHTML = PYC.ORDER.map(c => `<button class="py-cat${py.cat === c ? ' on' : ''}" role="tab" aria-selected="${py.cat === c}" data-cat="${c}" style="--c:${PY_COLOR[c]}">${ic(PY_ICON[c])}${esc(PYC.CATS[c].label)}<small>${counts[c] || 0}</small></button>`).join('');
+    $('py-sub').textContent = state.pos ? (state.placeName ? `Autour de ${state.placeName}` : 'Autour de vous') : 'Position inconnue : triés par nom';
+    let list = all.filter(p => p.cat === py.cat);
+    const q = PC.norm(py.q);
+    if (q) list = list.filter(p => PC.norm([p.name, p.sub, p.street, p.commune].filter(Boolean).join(' ')).includes(q));
+    list.sort((a, b) => (a.d == null) - (b.d == null) || (a.d ?? 0) - (b.d ?? 0) || a.name.localeCompare(b.name, 'fr'));
+    const col = PY_COLOR[py.cat];
+    if (!list.length) {
+      $('py-list').innerHTML = `<div class="empty">${ic(PY_ICON[py.cat])}<p><b>Aucun lieu trouvé</b></p><p>${q ? 'Modifiez votre recherche.' : 'Connectez-vous à internet puis touchez « Actualiser » pour charger les lieux autour de vous.'}</p></div>`;
+      $('py-more').hidden = true;
+    } else {
+      $('py-list').innerHTML = list.slice(0, py.shown).map(p => `<article class="py-card" data-py="${esc(p.id)}" tabindex="0" style="--c:${col}">
+        <div class="ph-top"><span class="ph-ic">${ic(PY_ICON[p.cat])}</span>
+          <div class="ph-main"><div class="ph-name">${esc(p.name)}</div><div class="ph-meta">${esc([p.sub, p.street || p.commune].filter(Boolean).join(' · '))}</div></div>
+          <div class="ph-dist">${p.d != null ? `<b>${fmtDist(p.d)}</b><small>~${fmtMin(Core.walkMin(p.d * Core.CFG.DETOUR))} à pied</small>` : ''}</div>
+        </div>
+        ${p.hours ? `<div class="ph-tags"><span class="st ${p.st}">${esc(statusLabel(p, true))}</span></div>` : ''}
+        <div class="ph-btns">
+          <button class="btn green" data-py-go="${esc(p.id)}">${ic('route')}Itinéraire</button>
+          ${p.phone ? `<a class="btn ghost" href="${esc(telHref(String(p.phone).split(/[;,/]/)[0]))}" data-ph-call>${ic('phone')}Appeler</a>` : `<button class="btn ghost" data-py-go="${esc(p.id)}">${ic('info')}Détails</button>`}
+        </div>
+      </article>`).join('');
+      $('py-more').hidden = list.length <= py.shown;
+      $('py-more').textContent = `Afficher plus (${list.length - py.shown})`;
+    }
+    const upd = window.ZUPA_PAIYA && window.ZUPA_PAIYA.updated;
+    $('py-note').textContent = `Données © OpenStreetMap${upd ? ' · base du ' + new Date(upd).toLocaleDateString('fr-FR') : ''}${py.cache ? ' · actualisée le ' + new Date(py.cache.t).toLocaleDateString('fr-FR') : ''}`;
+    if (state.pos) refreshPaiya(false);
+  }
+  $('py-cats').addEventListener('click', e => {
+    const b = e.target.closest('[data-cat]'); if (!b) return;
+    py.cat = b.dataset.cat; py.shown = 20; store.set('pyCat', py.cat); renderPaiya();
+    $('screen-paiya').scrollTop = 0;
+  });
+  $('py-q').addEventListener('input', debounce(() => { py.q = $('py-q').value; py.shown = 20; renderPaiya(); }, 150));
+  $('py-more').onclick = () => { py.shown += 20; renderPaiya(); };
+  $('py-refresh').innerHTML = ic('refresh');
+  $('py-refresh').onclick = () => { if (!state.pos) { toast('Position inconnue : activez la localisation.', 'error'); return; } refreshPaiya(true); };
+  $('py-list').addEventListener('click', e => {
+    if (e.target.closest('[data-ph-call]')) return;
+    const el = e.target.closest('[data-py-go]') || e.target.closest('[data-py]');
+    if (!el) return;
+    const id = el.dataset.pyGo || el.dataset.py;
+    const p = allPlaces().find(x => x.id === id);
+    if (p) openDetail(p, 'screen-paiya', 'paiya');
+  });
+  $('py-list').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('.py-card')) e.target.click(); });
+  document.addEventListener('click', e => { const a = e.target.closest('a[data-ext]'); if (a) { e.preventDefault(); openExternal(a.href); } });
+
   /* ---------- Navigation globale ---------- */
   document.querySelectorAll('[data-icon]').forEach(el => { el.outerHTML = ic(el.dataset.icon); });
   document.querySelectorAll('[data-go]').forEach(b => { if (b.classList.contains('icon-btn')) b.innerHTML = ic('back'); });
@@ -1674,7 +1824,7 @@
     const map = {
       'screen-results': state.resBack || 'screen-home', 'screen-track': state.lastSearch ? 'screen-results' : 'screen-home',
       'screen-addstop': asBackTo === 'screen-addstop' ? 'screen-profile' : asBackTo, 'screen-fixpos': fpBack,
-      'screen-pharma-detail': ph.back || 'screen-pharma', 'screen-pharma': 'screen-home', 'screen-profile': 'screen-home'
+      'screen-pharma-detail': ph.back || 'screen-pharma', 'screen-pharma': 'screen-home', 'screen-paiya': 'screen-home', 'screen-profile': 'screen-home'
     };
     const to = map[current];
     if (!to || to === current) return false;

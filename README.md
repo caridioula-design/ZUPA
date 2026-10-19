@@ -18,6 +18,13 @@ ZUPA simplifie votre quotidien à Abidjan : itinéraires en bus SOTRA (avec corr
 - Pharmacies de garde de la semaine à Abidjan et dans une trentaine de villes de l'intérieur (liste UNPPCI), pharmacies ouvertes selon leurs horaires.
 - Fiche détaillée : carte et trajet à pied, appel direct, itinéraire en bus jusqu'à la pharmacie, partage.
 
+**Paiya**
+- Hôtels, restaurants et maquis, toilettes publiques et commerces autour de vous (OpenStreetMap), en cartes triées par distance.
+- Grand Abidjan intégré à l'application ; ailleurs, actualisation automatique autour de vous (internet requis).
+- Fiche : carte et trajet à pied, appel, itinéraire en bus, horaires et statut ouvert / fermé.
+
+**Approche de l'arrêt** : le bandeau de position se colore progressivement en vert à moins de 500 m de l'arrêt le plus proche, puis clignote en vert une fois à l'arrêt.
+
 ## Récupérer l'APK
 
 Chaque modification de la branche `main` lance la compilation sur GitHub (onglet **Actions**, environ 5 minutes) :

@@ -47,7 +47,7 @@ jobs:
         if: github.ref == 'refs/heads/main'
         continue-on-error: true
         run: |
-          git add www/data/pharmacies.js www/data/villes.js
+          git add www/data/pharmacies.js www/data/villes.js www/data/paiya.js
           if ! git diff --cached --quiet; then
             git config user.name "zupa-bot"
             git config user.email "zupa-bot@users.noreply.github.com"

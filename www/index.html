@@ -213,7 +213,24 @@
     </div>
     <button class="btn ghost block" id="pd-gmaps"><span data-icon="walk"></span>Itinéraire à pied dans Google Maps</button>
     <div class="card pd-info" id="pd-info"></div>
-    <p class="foot-note">Vérifiez par téléphone avant de vous déplacer : les informations proviennent d'OpenStreetMap et de la liste de garde publiée.</p>
+    <p class="foot-note" id="pd-note">Vérifiez par téléphone avant de vous déplacer : les informations proviennent d'OpenStreetMap et de la liste de garde publiée.</p>
+  </section>
+
+  <!-- ================= PAIYA ================= -->
+  <section class="screen py" id="screen-paiya" aria-label="Paiya">
+    <div class="topbar">
+      <div class="topbar-text"><div class="title">Paiya</div><div class="subtitle" id="py-sub">Autour de vous</div></div>
+      <button class="icon-btn" id="py-refresh" aria-label="Actualiser"></button>
+    </div>
+    <div class="py-cats" id="py-cats" role="tablist" aria-label="Catégories"></div>
+    <div class="ph-search">
+      <span data-icon="search"></span>
+      <input id="py-q" type="search" autocomplete="off" placeholder="Nom, type, quartier…" aria-label="Rechercher">
+    </div>
+    <div id="py-list" class="py-list"></div>
+    <button class="btn ghost block" id="py-more" hidden>Afficher plus</button>
+    <div class="ad-slot">Espace publicitaire</div>
+    <p class="foot-note" id="py-note"></p>
   </section>
 
   <!-- ================= PROFIL ================= -->
@@ -267,6 +284,7 @@
 <nav class="navbar" aria-label="Navigation principale">
   <button class="nav-btn active" data-nav="screen-home"><span data-icon="bus"></span>Bus</button>
   <button class="nav-btn" data-nav="screen-pharma"><span data-icon="cross"></span>Pharmacies</button>
+  <button class="nav-btn" data-nav="screen-paiya"><span data-icon="explore"></span>Paiya</button>
   <button class="nav-btn" data-nav="screen-track" id="nav-track"><span data-icon="route"></span>Trajet<span class="badge" id="nav-badge" hidden></span></button>
   <button class="nav-btn" data-nav="screen-profile"><span data-icon="user"></span>Profil</button>
 </nav>
@@ -278,8 +296,10 @@
 <script src="data/bus.js"></script>
 <script src="data/pharmacies.js"></script>
 <script src="data/villes.js"></script>
+<script src="data/paiya.js"></script>
 <script src="js/core.js"></script>
 <script src="js/pharma-core.js"></script>
+<script src="js/paiya-core.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
