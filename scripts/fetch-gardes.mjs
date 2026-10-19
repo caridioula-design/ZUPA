@@ -21,8 +21,16 @@ const PDF_DIR = join(ROOT, 'gardes-pdf');
 const TMP = mkdtempSync(join(tmpdir(), 'zupa-gardes-'));
 const UA = { 'User-Agent': 'Mozilla/5.0 (Linux; Android 14) ZUPA/1.0 (+https://github.com/caridioula-design/ZUPA)', 'Accept-Language': 'fr-FR,fr;q=0.9' };
 const today = new Date().toISOString().slice(0, 10);
-const notice = (title, msg) => console.log(`::notice title=${title}::${String(msg).replace(/\r?\n/g, ' ')}`);
-const warn = (title, msg) => console.log(`::warning title=${title}::${String(msg).replace(/\r?\n/g, ' ')}`);
+const REPORT = [];
+const notice = (title, msg) => { REPORT.push(`- **${title}** : ${msg}`); console.log(`::notice title=${title}::${String(msg).replace(/\r?\n/g, ' ')}`); };
+const warn = (title, msg) => { REPORT.push(`- ⚠️ **${title}** : ${msg}`); console.log(`::warning title=${title}::${String(msg).replace(/\r?\n/g, ' ')}`); };
+const REPORT_FILE = join(ROOT, 'gardes-pdf/RAPPORT.md');
+function writeReport() {
+  const body = REPORT.join('\n');
+  const old = existsSync(REPORT_FILE) ? readFileSync(REPORT_FILE, 'utf8') : '';
+  if (old.includes(body)) return; // rien de nouveau
+  writeFileSync(REPORT_FILE, `# Dernière récupération des pharmacies de garde\n\n${new Date().toISOString().slice(0, 16).replace('T', ' ')} UTC\n\n${body}\n`);
+}
 
 async function get(url, binary = false) {
   const r = await fetch(url, { headers: UA, redirect: 'follow', signal: AbortSignal.timeout(60000) });
@@ -136,6 +144,7 @@ const semaines = [...byWeek.values()].map(({ semaine, source }) => ({ du: semain
   .sort((a, b) => a.du.localeCompare(b.du));
 if (!semaines.length) {
   warn('Pharmacies de garde', 'aucune liste récupérée : fichier inchangé');
+  writeReport();
   process.exit(0);
 }
 const cur = G.currentWeek(semaines, today) || semaines[semaines.length - 1];
@@ -149,6 +158,7 @@ const out = {
 const json = JSON.stringify(out, null, 1);
 const prev = existsSync(OUT) ? readFileSync(OUT, 'utf8') : '';
 const strip = s => s.replace(/"maj": "[^"]*",?/, '');
-if (strip(prev) === strip(json)) { notice('Pharmacies de garde', 'aucun changement'); process.exit(0); }
+if (strip(prev) === strip(json)) { notice('Pharmacies de garde', `aucun changement (${semaines.map(w => `${w.du}→${w.au} : ${w.pharmacies.length}, ${w.source}`).join(' ; ')})`); writeReport(); process.exit(0); }
 writeFileSync(OUT, json + '\n');
 notice('Pharmacies de garde', `${semaines.length} semaine(s) : ${semaines.map(w => `${w.du}→${w.au} (${w.pharmacies.length}, ${w.source})`).join(' ; ')}`);
+writeReport();
