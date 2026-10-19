@@ -11,8 +11,24 @@ const PharmaCore = (() => {
   const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
     .toLowerCase().replace(/[’'`]/g, ' ').replace(/[^a-z0-9]+/g, ' ').trim();
   // « Pharmacie de la Paix » ≈ « Pharmacie la Paix » ≈ « PHCIE DE LA PAIX »
-  const STOP = new Set(['pharmacie', 'pharmacy', 'phcie', 'pharma', 'ph', 'de', 'du', 'des', 'la', 'le', 'les', 'l', 'd', 'et', 'grande', 'nouvelle']);
+  const STOP = new Set(['pharmacie', 'pharmacy', 'phcie', 'phie', 'pharma', 'ph', 'de', 'du', 'des', 'la', 'le', 'les', 'l', 'd', 'et']);
   const nameKey = s => norm(s).split(' ').filter(w => w && !STOP.has(w)).join(' ');
+
+  // Centres approximatifs des communes du Grand Abidjan (pour départager les homonymes)
+  const COMMUNES = {
+    abobo: [5.420, -4.020], adjame: [5.360, -4.023], attecoube: [5.335, -4.040], cocody: [5.360, -3.980],
+    'deux plateaux': [5.375, -3.995], riviera: [5.365, -3.955], angre: [5.395, -3.985], koumassi: [5.295, -3.950],
+    marcory: [5.305, -3.985], plateau: [5.324, -4.020], 'port bouet': [5.255, -3.930], treichville: [5.295, -4.010],
+    yopougon: [5.345, -4.080], bingerville: [5.355, -3.890], anyama: [5.495, -4.050], songon: [5.320, -4.260]
+  };
+  const communeCenter = c => { const k = norm(c); if (!k) return null; for (const n in COMMUNES) if (k.includes(n)) return COMMUNES[n]; return null; };
+  /* « PHCIE DU BANCO » -> « Pharmacie du Banco » */
+  function prettyName(n) {
+    let s = String(n || '').trim().replace(/\s+/g, ' ');
+    if (s && s === s.toUpperCase()) s = s.toLowerCase().replace(/(^|[\s'’(-])(\p{L})/gu, (m, a, b) => a + b.toUpperCase()).replace(/\b(De|Du|Des|La|Le|Les|Et|D'|L')\b/g, w => w.toLowerCase());
+    s = s.replace(/^(ph(ar)?cie|phie|pharma)\.?\s+/i, 'Pharmacie ');
+    return /pharma|phcie/i.test(s) ? s.replace(/^./, c => c.toUpperCase()) : 'Pharmacie ' + s;
+  }
 
   const RAD = Math.PI / 180;
   const haversine = (a, b, c, d) => {
@@ -147,18 +163,30 @@ out center tags;`;
         else if (cands.length > 1) {
           // homonymes : on prend la plus proche des coordonnées données, sinon celle de la bonne commune
           if (Number.isFinite(e.lat)) p = cands.slice().sort((a, b) => haversine(a.lat, a.lon, e.lat, e.lon) - haversine(b.lat, b.lon, e.lat, e.lon))[0];
-          else if (e.commune) p = cands.find(c => norm(c.commune).includes(norm(e.commune))) || null;
+          else if (e.commune) {
+            p = cands.find(c => c.commune && norm(c.commune).includes(norm(e.commune))) || null;
+            const cc = !p && communeCenter(e.commune);
+            if (cc) { // la plus proche du centre de la commune, si elle est à moins de 4 km
+              const best = cands.map(c => ({ c, d: haversine(c.lat, c.lon, cc[0], cc[1]) })).sort((a, b) => a.d - b.d)[0];
+              if (best && best.d < 4) p = best.c;
+            }
+          }
         }
+      }
+      // garde-fou : une pharmacie trouvée par son nom mais loin de la commune indiquée n'est pas la bonne
+      if (p && !e.osm && !Number.isFinite(e.lat) && e.commune && !(p.commune && norm(p.commune).includes(norm(e.commune)))) {
+        const cc = communeCenter(e.commune);
+        if (cc && Number.isFinite(p.lat) && haversine(p.lat, p.lon, cc[0], cc[1]) > 5) p = null;
       }
       if (!p && Number.isFinite(e.lat) && Number.isFinite(e.lon)) {
         p = out.find(c => haversine(c.lat, c.lon, e.lat, e.lon) < 0.05) || null;
         if (!p) {
-          p = { id: 'g' + i, name: /pharma/i.test(e.nom) ? e.nom : 'Pharmacie ' + e.nom, lat: e.lat, lon: e.lon, phone: e.tel || null, street: e.adresse || null, commune: e.commune || null, hours: null, operator: null };
+          p = { id: 'g' + i, name: prettyName(e.nom), lat: e.lat, lon: e.lon, phone: e.tel || null, street: e.adresse || null, commune: e.commune || null, hours: null, operator: null };
           out.push(p);
         }
       }
       if (!p) { // position inconnue : affichée sans distance
-        p = { id: 'g' + i, name: /pharma/i.test(e.nom) ? e.nom : 'Pharmacie ' + e.nom, lat: null, lon: null, phone: e.tel || null, street: e.adresse || null, commune: e.commune || null, hours: null, operator: null };
+        p = { id: 'g' + i, name: prettyName(e.nom), lat: null, lon: null, phone: e.tel || null, street: e.adresse || null, commune: e.commune || null, hours: null, operator: null };
         out.push(p);
       }
       p.garde = { commune: e.commune || null, tel: e.tel || null };
@@ -197,6 +225,6 @@ out center tags;`;
     return out;
   }
 
-  return { BBOX, norm, nameKey, haversine, queryBBox, queryAround, fromOsm, openingStatus, fmtHM, gardeState, applyGardes, mergeLists, parseGardeText, dayStr };
+  return { BBOX, norm, nameKey, prettyName, haversine, queryBBox, queryAround, fromOsm, openingStatus, fmtHM, gardeState, applyGardes, mergeLists, parseGardeText, dayStr };
 })();
 if (typeof module !== 'undefined') module.exports = PharmaCore;

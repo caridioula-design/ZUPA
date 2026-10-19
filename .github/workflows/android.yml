@@ -17,20 +17,20 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 40
     env:
       ZUPA_BUILD: ${{ github.run_number }}
       KEYSTORE_B64: ${{ secrets.ZUPA_KEYSTORE_BASE64 }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 21
@@ -95,7 +95,7 @@ jobs:
           { echo "## ZUPA"; echo "- $(basename "$APK")"; echo "- $N"; } >> "$GITHUB_STEP_SUMMARY"
 
       - name: APK téléchargeable (onglet Actions)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ZUPA-apk
           path: dist/*
