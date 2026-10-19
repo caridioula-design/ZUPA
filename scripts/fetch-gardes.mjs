@@ -51,41 +51,34 @@ function pdfToWeeks(buf, label) {
 const MOIS = ['JANVIER', 'FEVRIER', 'MARS', 'AVRIL', 'MAI', 'JUIN', 'JUILLET', 'AOUT', 'SEPTEMBRE', 'OCTOBRE', 'NOVEMBRE', 'DECEMBRE'];
 const deacc = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
 
-/* 1. UNPPCI */
+/* 1. UNPPCI : les articles sont numérotés (?p=articles&id=N) ; on parcourt les plus récents
+   et on garde ceux dont le titre est « Tour de garde » du mois en cours ou du mois suivant. */
 async function fromUnppci() {
-  const home = await get('https://www.unppci.org/');
-  const arts = [];
-  // chaque mention « Tour de garde » : on cherche l'identifiant d'article le plus proche (avant ou après)
-  const flat = home.replace(/&amp;/g, '&');
-  const reT = /TOURS?\s+DE\s+GARDE([^<]{0,80})/gi;
-  let m;
-  while ((m = reT.exec(flat))) {
-    const txt = deacc(m[0]).replace(/\s+/g, ' ');
-    if (/INTERIEUR/.test(txt)) continue;
-    const before = flat.slice(Math.max(0, m.index - 1500), m.index);
-    const after = flat.slice(m.index, m.index + 400);
-    const ids = [...before.matchAll(/[?&]id=(\d+)/g)].map(x => +x[1]);
-    const idA = (/[?&]id=(\d+)/.exec(after) || [])[1];
-    const id = ids.length ? ids[ids.length - 1] : idA ? +idA : null;
-    if (id) arts.push({ id, txt: txt.slice(0, 80) });
+  const home = (await get('https://www.unppci.org/')).replace(/&amp;/g, '&');
+  const ids = [...home.matchAll(/[?&]p=articles&id=(\d+)/g)].map(x => +x[1]);
+  if (!ids.length) throw new Error('aucun article trouvé sur la page d\'accueil');
+  const max = Math.max(...ids);
+  const d = new Date(), y = d.getFullYear();
+  const wanted = [[MOIS[d.getMonth()], y], [MOIS[(d.getMonth() + 1) % 12], d.getMonth() === 11 ? y + 1 : y]];
+  const found = [];
+  for (let id = max; id > max - 12 && found.length < 2; id--) {
+    let html;
+    try { html = await get(`https://www.unppci.org/?p=articles&id=${id}`); } catch (_) { continue; }
+    const head = deacc(((/<title[^>]*>([\s\S]*?)<\/title>/i.exec(html) || [])[1] || '') + ' ' +
+      ((html.match(/<h[1-3][^>]*>[\s\S]*?<\/h[1-3]>/gi) || []).join(' '))).replace(/<[^>]+>/g, ' ').replace(/&#0?39;|&rsquo;/g, "'").replace(/\s+/g, ' ');
+    const t = /TOURS? DE GARDE[^|]{0,60}/.exec(head);
+    if (!t || /INTERIEUR/.test(t[0])) continue;
+    if (!wanted.some(([m, yy]) => t[0].includes(m) && t[0].includes(String(yy)))) continue;
+    found.push({ id, html, titre: t[0].trim() });
   }
-  if (!arts.length) {
-    const i = deacc(flat).indexOf('GARDE');
-    warn('UNPPCI diagnostic', `page de ${flat.length} caractères ; extrait : ${i < 0 ? '« GARDE » absent' : flat.slice(Math.max(0, i - 300), i + 200).replace(/[\s]+/g, ' ').replace(/::/g, ':')}`);
-  }
-  // mois en cours et mois suivant en priorité, puis les plus récents
-  const d = new Date(), wanted = [MOIS[d.getMonth()], MOIS[(d.getMonth() + 1) % 12]];
-  const uniq = [...new Map(arts.map(a => [a.id, a])).values()]
-    .sort((a, b) => (wanted.some(w => b.txt.includes(w)) - wanted.some(w => a.txt.includes(w))) || b.id - a.id).slice(0, 3);
-  notice('UNPPCI articles', uniq.map(a => `${a.id}: ${a.txt}`).join(' | ') || 'aucun article « Tour de garde » trouvé');
+  notice('UNPPCI articles', found.map(a => `${a.id} : ${a.titre}`).join(' | ') || `aucun « Tour de garde » du mois parmi les articles ${max - 11} à ${max}`);
   const weeks = [];
-  for (const a of uniq) {
-    const html = await get(`https://www.unppci.org/?p=articles&id=${a.id}`);
-    const cands = G.unppciPdfCandidates(html);
-    notice(`UNPPCI article ${a.id}`, `PDF trouvés : ${cands.map(c => c.url.split('/').pop()).join(', ') || 'aucun'}`);
-    for (const c of cands.slice(0, 4)) {
+  for (const a of found) {
+    const cands = G.unppciPdfCandidates(a.html).sort((x, y) => /\/f_\d+\.pdf$/.test(y.url) - /\/f_\d+\.pdf$/.test(x.url));
+    notice(`UNPPCI article ${a.id}`, `PDF : ${cands.map(c => c.url.split('/').pop()).join(', ') || 'aucun'}`);
+    for (const c of cands.filter(c => /\/f_\d+\.pdf$/.test(c.url)).slice(0, 6)) {
       try { weeks.push(...pdfToWeeks(await get(c.url, true), c.url.split('/').pop())); }
-      catch (e) { warn('UNPPCI PDF', `${c.url} : ${e.message}`); }
+      catch (e) { warn('UNPPCI PDF', `${c.url.split('/').pop()} : ${e.message}`); }
     }
   }
   return weeks;
