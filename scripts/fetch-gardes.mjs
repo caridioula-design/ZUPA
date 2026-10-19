@@ -76,6 +76,13 @@ async function fromUnppci() {
   for (const a of found) {
     const cands = G.unppciPdfCandidates(a.html).sort((x, y) => /\/f_\d+\.pdf$/.test(y.url) - /\/f_\d+\.pdf$/.test(x.url));
     notice(`UNPPCI article ${a.id}`, `PDF : ${cands.map(c => c.url.split('/').pop()).join(', ') || 'aucun'}`);
+    if (!cands.some(c => /\/f_\d+\.pdf$/.test(c.url))) {
+      // diagnostic : comment sont faits les liens « GARDE … » (javascript:;)
+      const i = deacc(a.html).search(/GARDE\s+(OCTOBRE|NOVEMBRE|DECEMBRE|JANVIER|FEVRIER|MARS|AVRIL|MAI|JUIN|JUILLET|AOUT|SEPTEMBRE)/);
+      const snip = i < 0 ? '' : a.html.slice(Math.max(0, i - 700), i + 300);
+      const scripts = (a.html.match(/<script[^>]*>[\s\S]*?<\/script>/gi) || []).map(x => x.replace(/\s+/g, ' ')).filter(x => /pdf|upload|download|telecharg|window\.open|location/i.test(x)).map(x => x.slice(0, 400));
+      warn('UNPPCI diagnostic', `liens : ${snip.replace(/\s+/g, ' ').replace(/::/g, ':')} || scripts : ${scripts.join(' ## ').replace(/::/g, ':') || 'aucun'}`);
+    }
     for (const c of cands.filter(c => /\/f_\d+\.pdf$/.test(c.url)).slice(0, 6)) {
       try { weeks.push(...pdfToWeeks(await get(c.url, true), c.url.split('/').pop())); }
       catch (e) { warn('UNPPCI PDF', `${c.url.split('/').pop()} : ${e.message}`); }
