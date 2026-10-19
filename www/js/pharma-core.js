@@ -12,7 +12,14 @@ const PharmaCore = (() => {
     .toLowerCase().replace(/[’'`]/g, ' ').replace(/[^a-z0-9]+/g, ' ').trim();
   // « Pharmacie de la Paix » ≈ « Pharmacie la Paix » ≈ « PHCIE DE LA PAIX »
   const STOP = new Set(['pharmacie', 'pharmacy', 'phcie', 'phie', 'pharma', 'ph', 'de', 'du', 'des', 'la', 'le', 'les', 'l', 'd', 'et']);
-  const nameKey = s => norm(s).split(' ').filter(w => w && !STOP.has(w)).join(' ');
+  const ALIAS = { st: 'saint', ste: 'sainte', sts: 'saints', gde: '', grande: '', nlle: '', nvlle: '', nouvelle: '', nouv: '', sarl: '', sarlu: '', u: '', ex: '', ii: '2', iii: '3' };
+  // mots trop courants pour identifier une officine
+  const GENERIC = new Set(['saint', 'sainte', 'saints', 'notre', 'dame', 'pharmacien', 'laboratoire', 'centrale', 'principale', 'officine', 'sante',
+    'abobo', 'adjame', 'attecoube', 'cocody', 'koumassi', 'marcory', 'plateau', 'port', 'bouet', 'treichville', 'yopougon', 'bingerville', 'anyama', 'songon']);
+  const stem = w => (w.length > 4 && w.endsWith('s') ? w.slice(0, -1) : w);
+  const distinct = key => new Set(String(key).split(' ').filter(w => w && (w.length > 1 || /\d/.test(w)) && !GENERIC.has(w)).map(stem));
+  const nameKey = s => norm(String(s || '').replace(/\((?:ex\b)[^)]*\)/gi, ' ')).split(' ')
+    .map(w => (w in ALIAS ? ALIAS[w] : w)).filter(w => w && !STOP.has(w)).join(' ');
 
   // Centres approximatifs des communes du Grand Abidjan (pour départager les homonymes)
   const COMMUNES = {
@@ -138,7 +145,17 @@ out center tags;`;
   /* ---------- Pharmacies de garde ----------
      gardes.json : { du: "AAAA-MM-JJ", au: "AAAA-MM-JJ", source, maj, pharmacies: [{ nom, commune, tel, lat?, lon?, osm? }] } */
   const dayStr = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  function gardeState(g, date = new Date()) {
+  /* gardes.json peut contenir plusieurs semaines : { semaines: [{ du, au, pharmacies }] } -> semaine en cours (ou prochaine) */
+  function pickWeek(g, date = new Date()) {
+    if (!g) return null;
+    if (!Array.isArray(g.semaines) || !g.semaines.length) return g;
+    const t = dayStr(date);
+    const ws = g.semaines.filter(w => w && w.du && w.au && Array.isArray(w.pharmacies)).sort((a, b) => a.du.localeCompare(b.du));
+    const w = ws.find(x => x.du <= t && t <= x.au) || ws.find(x => x.du > t) || ws[ws.length - 1];
+    return w ? Object.assign({ source: g.source, maj: g.maj }, w) : g;
+  }
+  function gardeState(g0, date = new Date()) {
+    const g = pickWeek(g0, date);
     if (!g || !g.du || !g.au || !Array.isArray(g.pharmacies) || !g.pharmacies.length) return 'none';
     const t = dayStr(date);
     if (t < g.du) return 'future';
@@ -148,7 +165,8 @@ out center tags;`;
 
   /* Associe les pharmacies de garde aux pharmacies connues (par identifiant OSM, nom ou position).
      Retourne la liste complète enrichie de .garde (et les pharmacies de garde inconnues ajoutées). */
-  function applyGardes(list, g) {
+  function applyGardes(list, g0) {
+    const g = pickWeek(g0);
     const out = list.map(p => Object.assign({}, p, { garde: null }));
     if (!g || !Array.isArray(g.pharmacies)) return out;
     const byId = new Map(out.map(p => [p.id, p]));
@@ -173,6 +191,25 @@ out center tags;`;
           }
         }
       }
+      // rapprochement souple, sur les mots distinctifs et dans la commune indiquée
+      // (« Sts Côme et Damien » ≈ « St Côme et Damien », « du Boulevard Carde » ≈ « et Laboratoire du Boulevard Carde »)
+      if (!p && k && e.commune) {
+        const cc = communeCenter(e.commune);
+        const A = distinct(k);
+        let best = null, bs = 0;
+        if (A.size) for (const c of out) {
+          if (!Number.isFinite(c.lat) || c.garde) continue;
+          const inCommune = (c.commune && norm(c.commune).includes(norm(e.commune))) || (cc && haversine(c.lat, c.lon, cc[0], cc[1]) < 4);
+          if (!inCommune) continue;
+          const B = distinct(nameKey(c.name));
+          if (!B.size) continue;
+          const inter = [...A].filter(w => B.has(w)).length;
+          let score = inter / Math.max(A.size, B.size);
+          if (A.size >= 2 && inter === A.size) score = Math.max(score, 0.8); // tous les mots de la liste sont dans le nom OSM
+          if (score > bs) { bs = score; best = c; }
+        }
+        if (best && bs >= 0.75) p = best;
+      }
       // garde-fou : une pharmacie trouvée par son nom mais loin de la commune indiquée n'est pas la bonne
       if (p && !e.osm && !Number.isFinite(e.lat) && e.commune && !(p.commune && norm(p.commune).includes(norm(e.commune)))) {
         const cc = communeCenter(e.commune);
@@ -189,9 +226,12 @@ out center tags;`;
         p = { id: 'g' + i, name: prettyName(e.nom), lat: null, lon: null, phone: e.tel || null, street: e.adresse || null, commune: e.commune || null, hours: null, operator: null };
         out.push(p);
       }
-      p.garde = { commune: e.commune || null, tel: e.tel || null };
+      p.garde = { commune: e.commune || null, quartier: e.quartier || null, tel: e.tel || null,
+        tels: Array.isArray(e.tels) && e.tels.length ? e.tels : (e.tel ? [e.tel] : []), adresse: e.adresse || null, responsable: e.responsable || null };
       if (!p.phone && e.tel) p.phone = e.tel;
       if (!p.commune && e.commune) p.commune = e.commune;
+      if (!p.street && e.adresse) p.street = e.adresse;
+      if (!p.operator && e.responsable) p.operator = e.responsable;
     });
     return out;
   }
@@ -225,6 +265,6 @@ out center tags;`;
     return out;
   }
 
-  return { BBOX, norm, nameKey, prettyName, haversine, queryBBox, queryAround, fromOsm, openingStatus, fmtHM, gardeState, applyGardes, mergeLists, parseGardeText, dayStr };
+  return { BBOX, norm, nameKey, prettyName, pickWeek, haversine, queryBBox, queryAround, fromOsm, openingStatus, fmtHM, gardeState, applyGardes, mergeLists, parseGardeText, dayStr };
 })();
 if (typeof module !== 'undefined') module.exports = PharmaCore;

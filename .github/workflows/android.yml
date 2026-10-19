@@ -51,7 +51,7 @@ jobs:
             git config user.email "zupa-bot@users.noreply.github.com"
             git add www/data/pharmacies.js
             git commit -m "Pharmacies : mise à jour OpenStreetMap"
-            git push || echo "Push impossible (branche protégée ?) : données utilisées pour cet APK seulement"
+            git pull --rebase -q origin main; git push || echo "Push impossible (branche protégée ?) : données utilisées pour cet APK seulement"
           fi
 
       - name: Copier l'application web dans le projet Android

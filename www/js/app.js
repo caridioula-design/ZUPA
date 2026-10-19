@@ -1377,6 +1377,7 @@
     return d.length === 10 ? d.replace(/(\d{2})(?=\d)/g, '$1 ').trim() : t;
   };
   const gardeOn = () => PC.gardeState(ph.gardes) === 'current';
+  const week = () => PC.pickWeek(ph.gardes);
   const fmtDay = s => { const d = new Date(s + 'T12:00:00'); return isNaN(d) ? s : d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }); };
 
   function allPharmacies() {
@@ -1416,8 +1417,8 @@
     const cands = [ph.gardes];
     cands.push(await fetchJson('data/gardes.json', 4000));
     if (CONFIG.gardesUrl) cands.push(await fetchJson(CONFIG.gardesUrl + (CONFIG.gardesUrl.includes('?') ? '&' : '?') + 't=' + Date.now(), 8000));
-    const valid = cands.filter(g => g && g.du && g.au && Array.isArray(g.pharmacies) && g.pharmacies.length);
-    const rank = g => (PC.gardeState(g) === 'current' ? '2' : PC.gardeState(g) === 'future' ? '1' : '0') + g.au + (g.maj || '');
+    const valid = cands.filter(g => { const w = PC.pickWeek(g); return w && w.du && w.au && Array.isArray(w.pharmacies) && w.pharmacies.length; });
+    const rank = g => { const w = PC.pickWeek(g); return (PC.gardeState(g) === 'current' ? '2' : PC.gardeState(g) === 'future' ? '1' : '0') + w.au + (g.maj || ''); };
     const best = valid.sort((a, b) => rank(b).localeCompare(rank(a)))[0] || null;
     if (best && JSON.stringify(best) !== JSON.stringify(ph.gardes)) { ph.gardes = best; store.set('gardes', best); }
     if (!ph.filter) ph.filter = gardeOn() ? 'garde' : 'all';
@@ -1471,7 +1472,7 @@
 
   function renderGardeBanner() {
     const el = $('ph-garde');
-    const g = ph.gardes, stt = PC.gardeState(g);
+    const g = week(), stt = PC.gardeState(ph.gardes);
     if (stt === 'current') {
       el.className = 'garde-banner';
       el.innerHTML = `${ic('cross')}<span><b>Pharmacies de garde</b> du ${esc(fmtDay(g.du))} au ${esc(fmtDay(g.au))}<small>${g.pharmacies.length} pharmacies${g.source ? ' · source : ' + esc(g.source) : ''}</small></span>`;
@@ -1570,12 +1571,13 @@
     else { call.href = '#'; call.setAttribute('aria-disabled', 'true'); call.classList.add('disabled'); }
     const ns = nearStop(p);
     const rows = [
-      ['cross', 'Statut', esc(statusLabel(p, true)) + (p.garde ? ` <small style="text-transform:none;letter-spacing:0">(semaine du ${esc(fmtDay(ph.gardes.du))} au ${esc(fmtDay(ph.gardes.au))})</small>` : '')],
-      p.phone && ['phone', 'Téléphone', `<a href="${esc(telHref(p.phone))}">${esc(fmtPhone(p.phone))}</a>`],
-      (p.street || p.commune) && ['pin', 'Adresse', esc([p.street, p.commune].filter(Boolean).join(', '))],
+      ['cross', 'Statut', esc(statusLabel(p, true)) + (p.garde ? ` <small style="text-transform:none;letter-spacing:0">(semaine du ${esc(fmtDay(week().du))} au ${esc(fmtDay(week().au))})</small>` : '')],
+      p.phone && ['phone', 'Téléphone', [...new Set([p.phone, ...((p.garde && p.garde.tels) || [])].map(t => String(t).replace(/[^\d+]/g, '').replace(/^\+?225(?=\d{10}$)/, '')))]
+        .map(t => `<a href="${esc(telHref(t))}">${esc(fmtPhone(t))}</a>`).join('<br>')],
+      (p.street || p.commune || (p.garde && p.garde.adresse)) && ['pin', 'Adresse', esc([(p.garde && p.garde.adresse) || p.street, p.garde && p.garde.quartier, p.commune].filter(Boolean).join(' · '))],
       ns && ['bus', 'Arrêt de bus le plus proche', `${esc(ns.name)} · ${fmtDist(ns.d)}`],
       p.hours && ['clock', 'Horaires', esc(p.hours)],
-      p.operator && ['user', 'Responsable', esc(p.operator)]
+      p.operator && ['user', 'Pharmacien', esc(p.operator)]
     ].filter(Boolean);
     $('pd-info').innerHTML = rows.map(([i, l, v]) => `<div class="pd-row">${ic(i)}<div><small>${l}</small>${v}</div></div>`).join('');
     $('pd-walk').innerHTML = '';

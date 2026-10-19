@@ -31,13 +31,18 @@ Nouvelle version : changez `version` dans `package.json` (ex. `1.1.0`) et `versi
 
 Chaque lundi, la compilation se relance avec la liste à jour des pharmacies d'Abidjan.
 
-## Mettre à jour les pharmacies de garde (chaque semaine)
+## Pharmacies de garde (automatique)
 
-1. Ouvrez `tools/gardes.html` dans un navigateur (sur ordinateur, depuis une copie du dépôt).
-2. Indiquez la période, collez la liste officielle (une pharmacie par ligne), cliquez sur « Analyser » puis « Télécharger gardes.json ».
-3. Sur GitHub, remplacez `www/data/gardes.json` par ce fichier.
+Chaque jour à 5 h 30, le traitement GitHub « Pharmacies de garde » (onglet **Actions**) :
 
-L'application lit ce fichier au démarrage depuis l'adresse `gardesUrl` de `www/js/config.js`. **Cette adresse doit être publique** : si le dépôt reste privé, hébergez `gardes.json` ailleurs (dépôt public dédié, GitHub Pages…) et modifiez `gardesUrl`. Dans tous les cas, la liste est intégrée au prochain APK.
+1. télécharge le PDF mensuel officiel « Tour de garde » de l'[UNPPCI](https://www.unppci.org/) (toutes les semaines du mois, avec adresse, pharmacien et téléphones) ;
+2. lit aussi les PDF déposés dans le dossier `gardes-pdf/` (secours si le site de l'UNPPCI change) ;
+3. complète si besoin avec [pharmacies-de-garde.ci](https://www.pharmacies-de-garde.ci/liste-des-pharmacies-de-garde-a-abidjan-votre-permanence/) et [annuaireci.com](https://annuaireci.com/pharmacies-de-garde/abidjan/), et compare les listes ;
+4. publie le résultat dans `www/data/gardes.json` (semaine en cours et semaines suivantes).
+
+L'application lit ce fichier à chaque démarrage (adresse `gardesUrl` de `www/js/config.js`) et passe d'elle-même à la semaine suivante le samedi. Le compte rendu de chaque exécution (nombre de pharmacies par source) apparaît dans les annotations du traitement.
+
+**En cas de problème** : déposez le PDF du mois dans `gardes-pdf/` (Add file › Upload files) ; le traitement se relance aussitôt. L'outil manuel `tools/gardes.html` reste disponible pour saisir une liste à la main.
 
 ## Mettre à jour les lignes de bus
 

@@ -1,0 +1,45 @@
+name: Pharmacies de garde
+
+on:
+  schedule:
+    - cron: '30 5 * * *'     # chaque jour à 5 h 30 (heure d'Abidjan)
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'gardes-pdf/**'
+      - 'scripts/fetch-gardes.mjs'
+      - 'scripts/gardes-lib.cjs'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gardes
+  cancel-in-progress: false
+
+jobs:
+  gardes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Outil de lecture des PDF
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+
+      - name: Récupérer les listes (UNPPCI, pharmacies-de-garde.ci, annuaireci.com)
+        run: node scripts/fetch-gardes.mjs
+
+      - name: Publier www/data/gardes.json
+        run: |
+          if git diff --quiet -- www/data/gardes.json; then echo "Liste inchangée"; exit 0; fi
+          git config user.name "zupa-bot"
+          git config user.email "zupa-bot@users.noreply.github.com"
+          git add www/data/gardes.json
+          git commit -m "Pharmacies de garde : mise à jour automatique"
+          for i in 1 2 3; do git pull --rebase -q origin main && git push -q origin HEAD:main && break; sleep 5; done
