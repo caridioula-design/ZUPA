@@ -85,6 +85,15 @@ async function fromUnppci() {
   for (const a of found) {
     const isGarde = c => (c.bouton && /GARDE/.test(c.ctx) && !/INTERIEUR/.test(c.ctx)) || /\/f_\d+\.pdf$/.test(c.url);
     const cands = G.unppciPdfCandidates(a.html).filter(isGarde);
+    // liste de l'intérieur : texte conservé dans le dépôt (gardes-pdf/interieur.txt) pour analyse
+    for (const c of G.unppciPdfCandidates(a.html).filter(c => c.bouton && /INTERIEUR/.test(c.ctx)).slice(0, 1)) {
+      try {
+        const f = join(TMP, 'int.pdf'); writeFileSync(f, await getPdf(c.url));
+        const txt = execFileSync('pdftotext', ['-layout', f, '-'], { maxBuffer: 64 << 20 }).toString('utf8');
+        writeFileSync(join(ROOT, 'gardes-pdf/interieur.txt'), txt);
+        notice('UNPPCI intérieur', `${c.ctx.trim()} : ${txt.length} caractères`);
+      } catch (e) { warn('UNPPCI intérieur', e.message); }
+    }
     notice(`UNPPCI article ${a.id}`, `PDF : ${cands.map(c => c.url.split('/').pop()).join(', ') || 'aucun'}`);
     if (!cands.length) {
       // diagnostic : comment sont faits les liens « GARDE … » (javascript:;)
