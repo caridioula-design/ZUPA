@@ -67,41 +67,48 @@
     <p class="foot-note" id="data-note"></p>
   </section>
 
-  <!-- ================= RÉSULTATS ================= -->
-  <section class="screen" id="screen-results" aria-label="Itinéraires">
-    <div class="topbar">
+  <!-- ================= RÉSULTATS (carte plein écran) ================= -->
+  <section class="screen immersive" id="screen-results" aria-label="Itinéraires">
+    <div class="imm-map" id="res-map"></div>
+    <div class="imm-top">
       <button class="icon-btn" id="res-back" aria-label="Retour"></button>
-      <div class="topbar-text"><div class="title">Itinéraires</div><div class="subtitle" id="res-sub"></div></div>
+      <div class="imm-title"><div class="title">Itinéraires</div><div class="subtitle" id="res-sub"></div></div>
       <button class="icon-btn" id="fav-toggle" aria-label="Ajouter la destination aux favoris"></button>
     </div>
-    <div class="map-wrap"><div class="map" id="res-map"></div></div>
-    <div id="res-list"></div>
-    <div class="ad-slot">Espace publicitaire</div>
+    <div class="sheet" id="res-sheet">
+      <button class="sheet-grab" type="button" aria-label="Agrandir ou réduire"><span></span></button>
+      <div class="sheet-body">
+        <div id="res-list"></div>
+        <div class="ad-slot">Espace publicitaire</div>
+      </div>
+    </div>
   </section>
 
-  <!-- ================= SUIVI ================= -->
-  <section class="screen" id="screen-track" aria-label="Suivi du trajet">
-    <div class="topbar">
+  <!-- ================= SUIVI (carte plein écran) ================= -->
+  <section class="screen immersive" id="screen-track" aria-label="Suivi du trajet">
+    <div class="imm-map" id="trk-map"></div>
+    <div class="imm-top">
       <button class="icon-btn" data-go="screen-results" aria-label="Retour aux itinéraires"></button>
-      <div class="topbar-text"><div class="title">Suivi du trajet</div><div class="subtitle" id="trk-sub"></div></div>
+      <div class="next-card imm-next" aria-live="polite">
+        <div class="next-label" id="trk-label">Prochain arrêt</div>
+        <div class="next-name" id="trk-next">—</div>
+        <div class="next-hint" id="trk-hint"></div>
+        <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="trk-progress"><div class="progress-bar" id="trk-bar"></div></div>
+        <div class="progress-meta"><span id="trk-count"></span><span id="trk-eta"></span></div>
+      </div>
     </div>
-    <div class="next-card" aria-live="polite">
-      <div class="next-label" id="trk-label">Prochain arrêt</div>
-      <div class="next-name" id="trk-next">—</div>
-      <div class="next-hint" id="trk-hint"></div>
-      <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="trk-progress"><div class="progress-bar" id="trk-bar"></div></div>
-      <div class="progress-meta"><span id="trk-count"></span><span id="trk-eta"></span></div>
+    <div class="sheet" id="trk-sheet">
+      <button class="sheet-grab" type="button" aria-label="Agrandir ou réduire"><span></span></button>
+      <div class="sheet-body">
+        <div class="subtitle trk-sub" id="trk-sub"></div>
+        <div class="trk-controls">
+          <button class="btn ghost" id="trk-prev">Précédent</button>
+          <button class="btn primary" id="trk-step">Arrêt suivant</button>
+        </div>
+        <ol class="timeline" id="trk-list"></ol>
+        <button class="btn danger block" id="trk-stop">Terminer le trajet</button>
+      </div>
     </div>
-    <div class="map-wrap" id="trk-map-wrap">
-      <div class="map" id="trk-map"></div>
-      <button class="map-btn" id="trk-full" aria-label="Plein écran"></button>
-    </div>
-    <div class="trk-controls">
-      <button class="btn ghost" id="trk-prev">Précédent</button>
-      <button class="btn primary" id="trk-step">Arrêt suivant</button>
-    </div>
-    <ol class="timeline" id="trk-list"></ol>
-    <button class="btn danger block" id="trk-stop">Terminer le trajet</button>
   </section>
 
   <!-- ================= NOUVEL ARRÊT ================= -->
@@ -198,22 +205,27 @@
     <p class="foot-note" id="ph-note"></p>
   </section>
 
-  <!-- ================= DÉTAIL PHARMACIE ================= -->
-  <section class="screen ph" id="screen-pharma-detail" aria-label="Détail de la pharmacie">
-    <div class="topbar">
+  <!-- ================= DÉTAIL PHARMACIE / LIEU (carte plein écran) ================= -->
+  <section class="screen immersive ph" id="screen-pharma-detail" aria-label="Détail du lieu">
+    <div class="imm-map" id="pd-map"></div>
+    <div class="imm-top">
       <button class="icon-btn" id="pd-back" aria-label="Retour"></button>
-      <div class="topbar-text"><div class="title" id="pd-name">Pharmacie</div><div class="subtitle" id="pd-status"></div></div>
+      <div class="imm-title"><div class="title" id="pd-name">Pharmacie</div><div class="subtitle" id="pd-status"></div></div>
       <button class="icon-btn" id="pd-share" aria-label="Partager"></button>
     </div>
-    <div class="map-wrap"><div class="map" id="pd-map"></div></div>
-    <div class="pd-walk" id="pd-walk"></div>
-    <div class="pd-actions">
-      <a class="btn green" id="pd-call" href="#"><span data-icon="phone"></span>Appeler</a>
-      <button class="btn primary" id="pd-bus"><span data-icon="bus"></span>Y aller en bus</button>
+    <div class="sheet" id="pd-sheet">
+      <button class="sheet-grab" type="button" aria-label="Agrandir ou réduire"><span></span></button>
+      <div class="sheet-body">
+        <div class="pd-walk" id="pd-walk"></div>
+        <div class="pd-actions">
+          <a class="btn green" id="pd-call" href="#"><span data-icon="phone"></span>Appeler</a>
+          <button class="btn primary" id="pd-bus"><span data-icon="bus"></span>Y aller en bus</button>
+        </div>
+        <button class="btn ghost block" id="pd-gmaps"><span data-icon="walk"></span>Itinéraire à pied dans Google Maps</button>
+        <div class="card pd-info" id="pd-info"></div>
+        <p class="foot-note" id="pd-note">Vérifiez par téléphone avant de vous déplacer : les informations proviennent d'OpenStreetMap et de la liste de garde publiée.</p>
+      </div>
     </div>
-    <button class="btn ghost block" id="pd-gmaps"><span data-icon="walk"></span>Itinéraire à pied dans Google Maps</button>
-    <div class="card pd-info" id="pd-info"></div>
-    <p class="foot-note" id="pd-note">Vérifiez par téléphone avant de vous déplacer : les informations proviennent d'OpenStreetMap et de la liste de garde publiée.</p>
   </section>
 
   <!-- ================= PAIYA ================= -->

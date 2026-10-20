@@ -131,6 +131,7 @@
     document.querySelectorAll('[data-nav]').forEach(b => b.classList.toggle('active', b.dataset.nav === tab));
     $(id).scrollTop = 0;
     closeSuggests();
+    if (sheets[id]) sheets[id].snapTo(sheets[id].idx);
     requestAnimationFrame(() => {
       if (id === 'screen-home') renderHome();
       if (id === 'screen-results') ensureResMap();
@@ -142,6 +143,59 @@
       if (id === 'screen-paiya') renderPaiya();
       if (id === 'screen-pharma-detail') ensurePdMap();
     });
+  }
+
+  /* ---------- Panneau coulissant sur carte plein écran ---------- */
+  const sheets = {};
+  function makeSheet(screenId, sheetId, snaps, init) {
+    const scr = $(screenId), sh = $(sheetId), grab = sh.querySelector('.sheet-grab'), body = sh.querySelector('.sheet-body');
+    const api = { idx: init, snaps };
+    const H = () => scr.clientHeight || window.innerHeight;
+    const full = () => H() * snaps[snaps.length - 1];
+    function apply(off) {
+      const f = full();
+      off = Math.max(0, Math.min(f - H() * snaps[0], off));
+      sh.style.height = f + 'px';
+      sh.style.transform = `translateY(${off}px)`;
+      scr.style.setProperty('--sheet-vis', Math.round(f - off) + 'px');
+      body.style.paddingBottom = Math.round(off + 16) + 'px';
+      api.off = off;
+    }
+    api.snapTo = i => { api.idx = Math.max(0, Math.min(snaps.length - 1, i)); apply(full() - H() * snaps[api.idx]); };
+    api.visible = () => full() - (api.off || 0);
+    let startY = 0, startOff = 0, lastY = 0, lastT = 0, vel = 0, moved = false, drag = false;
+    grab.addEventListener('pointerdown', e => {
+      drag = true; moved = false; startY = lastY = e.clientY; startOff = api.off || 0; lastT = performance.now(); vel = 0;
+      sh.classList.add('dragging'); grab.setPointerCapture(e.pointerId);
+    });
+    grab.addEventListener('pointermove', e => {
+      if (!drag) return;
+      const now = performance.now();
+      vel = (e.clientY - lastY) / Math.max(1, now - lastT); lastY = e.clientY; lastT = now;
+      if (Math.abs(e.clientY - startY) > 4) moved = true;
+      apply(startOff + e.clientY - startY);
+    });
+    const end = () => {
+      if (!drag) return;
+      drag = false; sh.classList.remove('dragging');
+      if (!moved) { api.snapTo(api.idx >= snaps.length - 1 ? 0 : api.idx + 1); return; }
+      const vis = api.visible() / H() - vel * 0.25; // un geste rapide porte plus loin
+      let best = 0; snaps.forEach((v, i) => { if (Math.abs(v - vis) < Math.abs(snaps[best] - vis)) best = i; });
+      api.snapTo(best);
+    };
+    grab.addEventListener('pointerup', end);
+    grab.addEventListener('pointercancel', end);
+    window.addEventListener('resize', () => { if (current === screenId) api.snapTo(api.idx); });
+    sheets[screenId] = api;
+    return api;
+  }
+  /* Cadre la carte sur la partie visible (entre la barre du haut et le panneau) */
+  function fitVisible(map, pts, maxZoom = 17) {
+    const scr = map.getContainer().closest('.screen');
+    const top = scr ? (scr.querySelector('.imm-top') || {}).offsetHeight || 0 : 0;
+    const sh = scr && sheets[scr.id];
+    const bottom = sh ? sh.visible() : 0;
+    map.fitBounds(pts, { paddingTopLeft: [28, top + 30], paddingBottomRight: [28, bottom + 24], maxZoom });
   }
 
   /* ---------- Thème ---------- */
@@ -264,20 +318,96 @@
   }
   function mapOff(id) { $(id).innerHTML = '<div class="map-off">Carte indisponible (pas de connexion)</div>'; }
 
+  /* Itinéraire à pied : on interroge deux calculateurs piétons (Valhalla et OSRM avec variantes)
+     et on garde le plus court. Si tous proposent un détour absurde, on garde la ligne droite. */
   const walkCache = new Map();
+  function decodePolyline(str, precision) {
+    const f = Math.pow(10, precision); let i = 0, lat = 0, lon = 0; const out = [];
+    while (i < str.length) {
+      for (const k of [0, 1]) {
+        let b, shift = 0, res = 0;
+        do { b = str.charCodeAt(i++) - 63; res |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+        const d = (res & 1) ? ~(res >> 1) : (res >> 1);
+        if (k === 0) lat += d; else lon += d;
+      }
+      out.push([lat / f, lon / f]);
+    }
+    return out;
+  }
+  const lineKm = c => { let km = 0; for (let i = 1; i < c.length; i++) km += Core.haversine(c[i - 1][0], c[i - 1][1], c[i][0], c[i][1]); return km; };
+  async function getJson(url, ms) {
+    const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), ms);
+    try { const r = await fetch(url, { signal: ctl.signal }); return r.ok ? await r.json() : null; } catch (_) { return null; } finally { clearTimeout(t); }
+  }
+  async function walkOsrm(a, b) {
+    const j = await getJson(`https://routing.openstreetmap.de/routed-foot/route/v1/foot/${a.lon},${a.lat};${b.lon},${b.lat}?overview=full&geometries=geojson&alternatives=3`, 7000);
+    return (j && j.routes || []).map(r => ({ coords: r.geometry.coordinates.map(([x, y]) => [y, x]), km: r.distance / 1000, src: 'osrm' }));
+  }
+  async function walkValhalla(a, b) {
+    const q = { locations: [{ lat: a.lat, lon: a.lon }, { lat: b.lat, lon: b.lon }], costing: 'pedestrian', directions_options: { language: 'fr-FR', units: 'kilometers' } };
+    const j = await getJson('https://valhalla1.openstreetmap.de/route?json=' + encodeURIComponent(JSON.stringify(q)), 7000);
+    const leg = j && j.trip && j.trip.legs && j.trip.legs[0];
+    if (!leg) return [];
+    return [{ coords: decodePolyline(leg.shape, 6), km: j.trip.summary.length, src: 'valhalla', steps: (leg.maneuvers || []).map(m => ({ txt: m.instruction, km: m.length })) }];
+  }
   async function fetchWalk(a, b) {
-    const k = [a.lat, a.lon, b.lat, b.lon].map(v => v.toFixed(4)).join(',');
+    const k = [a.lat, a.lon, b.lat, b.lon].map(v => (+v).toFixed(4)).join(',');
     if (walkCache.has(k)) return walkCache.get(k);
-    try {
-      const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 6000);
-      const r = await fetch(`https://routing.openstreetmap.de/routed-foot/route/v1/foot/${a.lon},${a.lat};${b.lon},${b.lat}?overview=full&geometries=geojson`, { signal: ctl.signal });
-      clearTimeout(t);
-      if (!r.ok) throw new Error(r.status);
-      const j = await r.json();
-      const c = j.routes && j.routes[0] ? j.routes[0].geometry.coordinates.map(([x, y]) => [y, x]) : null;
-      walkCache.set(k, c);
-      return c;
-    } catch (_) { return null; }
+    const crow = Core.haversine(a.lat, a.lon, b.lat, b.lon);
+    const res = await Promise.allSettled([walkValhalla(a, b), walkOsrm(a, b)]);
+    const cands = res.flatMap(r => r.status === 'fulfilled' ? r.value : []).filter(c => c.coords.length > 1)
+      .map(c => {
+        // les deux extrémités sont recollées au point exact (départ réel et arrêt)
+        const coords = [[a.lat, a.lon], ...c.coords, [b.lat, b.lon]];
+        return Object.assign(c, { coords, km: lineKm(coords) });
+      })
+      .sort((x, y) => x.km - y.km);
+    let best = cands[0] || null;
+    // détour absurde (le point a été accroché à une route éloignée) : ligne droite
+    if (best && best.km > Math.max(crow * 3, crow + 0.6)) best = null;
+    if (best) walkCache.set(k, best);
+    return best;
+  }
+
+  /* Flèches de direction le long d'un tracé (tous les `every` mètres) */
+  function bearing(p, q) {
+    const y = Math.sin((q[1] - p[1]) * Math.PI / 180) * Math.cos(q[0] * Math.PI / 180);
+    const x = Math.cos(p[0] * Math.PI / 180) * Math.sin(q[0] * Math.PI / 180) - Math.sin(p[0] * Math.PI / 180) * Math.cos(q[0] * Math.PI / 180) * Math.cos((q[1] - p[1]) * Math.PI / 180);
+    return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+  }
+  function addArrows(group, ll, color, every, size = 16, stroke = '#fff') {
+    if (!ll || ll.length < 2) return;
+    let next = every / 2, acc = 0;
+    for (let i = 1; i < ll.length; i++) {
+      const seg = Core.haversine(ll[i - 1][0], ll[i - 1][1], ll[i][0], ll[i][1]) * 1000;
+      if (seg <= 0) continue;
+      const brg = bearing(ll[i - 1], ll[i]);
+      while (acc + seg >= next) {
+        const t = (next - acc) / seg;
+        const pos = [ll[i - 1][0] + (ll[i][0] - ll[i - 1][0]) * t, ll[i - 1][1] + (ll[i][1] - ll[i - 1][1]) * t];
+        L.marker(pos, { interactive: false, keyboard: false, zIndexOffset: 400, icon: L.divIcon({ className: 'dir-arrow', iconSize: [size, size], iconAnchor: [size / 2, size / 2],
+          html: `<svg viewBox="0 0 24 24" style="transform:rotate(${brg.toFixed(0)}deg)"><path d="M12 3 20 19 12 15 4 19Z" fill="${color}" stroke="${stroke}" stroke-width="2" stroke-linejoin="round"/></svg>` }) }).addTo(group);
+        next += every;
+      }
+      acc += seg;
+    }
+  }
+  /* Tronçon à pied : ligne droite immédiate, remplacée par le plus court chemin piéton dès qu'il est connu */
+  function drawWalk(layer, a, b, style, arrowColor, onKm) {
+    const g = L.layerGroup().addTo(layer);
+    const crowKm = Core.haversine(a.lat, a.lon, b.lat, b.lon);
+    const paint = (ll, km) => {
+      g.clearLayers();
+      L.polyline(ll, style).addTo(g);
+      addArrows(g, ll, arrowColor, Math.max(35, km * 1000 / 8), 15);
+    };
+    paint([[a.lat, a.lon], [b.lat, b.lon]], crowKm);
+    if (crowKm < 15) fetchWalk(a, b).then(w => {
+      if (!w || !layer.hasLayer(g)) return;
+      paint(w.coords, w.km);
+      if (onKm) onKm(w.km, w);
+    });
+    return g;
   }
 
   function drawRoute(map, layer, r, origin, fit, dest) {
@@ -289,20 +419,22 @@
     const small = L.layerGroup();
     const pts = [];
     const first = r.legs[0].board;
+    const walkCol = dark ? G.blueDark : G.blue;
     if (origin && r.walkStartKm > 0.02) {
-      const wl = L.polyline([[origin.lat, origin.lon], [first.lat, first.lon]], walkStyle).addTo(layer);
+      drawWalk(layer, origin, first, walkStyle, walkCol);
       pts.push([origin.lat, origin.lon]);
-      fetchWalk(origin, first).then(c => { if (c && layer.hasLayer(wl)) wl.setLatLngs(c); });
     }
     r.legs.forEach((leg, li) => {
       const ll = leg.stops.map(s => [s.lat, s.lon]);
       const col = lineColor(leg.line.num);
       if (li > 0 && leg.walkBeforeKm > 0.02) {
         const p = r.legs[li - 1].alight;
-        L.polyline([[p.lat, p.lon], [leg.board.lat, leg.board.lon]], walkStyle).addTo(layer);
+        drawWalk(layer, p, leg.board, walkStyle, walkCol);
       }
       L.polyline(ll, { color: casing, weight: 10, opacity: dark ? .7 : 1, lineJoin: 'round', interactive: false }).addTo(layer);
       L.polyline(ll, { color: col, weight: 6, lineJoin: 'round', interactive: false }).addTo(layer);
+      const legKm = leg.line.cum[leg.to] - leg.line.cum[leg.from];
+      addArrows(layer, ll, col, Math.max(220, legKm * 1000 / 10), 18);
       leg.stops.forEach((s, k) => {
         if (k === 0 || k === leg.stops.length - 1) return;
         L.circleMarker([s.lat, s.lon], { radius: 3.5, color: col, weight: 2, fillColor: '#fff', fillOpacity: 1 })
@@ -322,11 +454,11 @@
     } else {
       L.marker([last.lat, last.lon], { icon: mkIcon('mk-stop', 18, lineColor(r.legs[r.legs.length - 1].line.num)), zIndexOffset: 500 })
         .bindPopup(`<b>Descendez ici</b><br>${esc(last.name)}`).addTo(layer);
-      L.polyline([[last.lat, last.lon], [dest.lat, dest.lon]], walkStyle).addTo(layer);
+      drawWalk(layer, last, dest, walkStyle, walkCol);
       L.marker([dest.lat, dest.lon], { icon: pinIcon(), zIndexOffset: 800 }).bindPopup(`<b>${esc(dest.label)}</b>`).addTo(layer);
       pts.push([dest.lat, dest.lon]);
     }
-    if (fit && pts.length) map.fitBounds(pts, { padding: [36, 36], maxZoom: 17 });
+    if (fit && pts.length) fitVisible(map, pts);
   }
 
   /* ---------- Géolocalisation ---------- */
@@ -855,7 +987,7 @@
     const t = e.target.closest('[data-track]');
     if (t) { startTracking(+t.dataset.track); return; }
     const c = e.target.closest('.route-card');
-    if (c) { selectRoute(+c.dataset.i); $('screen-results').scrollTo({ top: 0, behavior: 'smooth' }); }
+    if (c) { selectRoute(+c.dataset.i); sheets['screen-results'] && sheets['screen-results'].snapTo(0); }
   });
   $('res-list').addEventListener('keydown', e => {
     const c = e.target.closest('.route-card');
@@ -1029,7 +1161,10 @@
       const sub = p.kind !== 'stop' ? hint(p) : (j === t.idx ? 'Vous êtes ici' : '');
       return `<li class="${cls}" data-j="${j}" style="--c:${lineColor(p.line)}"><span class="tl-dot"></span><div><div class="tl-name">${esc(p.name)}</div>${sub ? `<div class="tl-sub">${esc(sub)}</div>` : ''}</div></li>`;
     }).join('');
-    if (scroll && t.idx >= 0) { const li = $('trk-list').children[t.idx]; li && li.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+    if (scroll && t.idx >= 0) { // défile seulement dans le panneau, pas l'écran
+      const li = $('trk-list').children[t.idx], body = $('trk-sheet').querySelector('.sheet-body');
+      if (li) body.scrollTo({ top: Math.max(0, li.offsetTop - body.clientHeight / 3), behavior: 'smooth' });
+    }
 
     if (trkMap) {
       if (fit) drawRoute(trkMap, trkLayer, t.r, t.origin.stopId ? null : t.origin, true, t.destObj);
@@ -1069,15 +1204,7 @@
   $('trk-prev').onclick = () => { if (!state.tracking) return; state.tracking.arrived = false; setIdx(state.tracking.idx - 1, false); };
   $('trk-list').addEventListener('click', e => { const li = e.target.closest('[data-j]'); if (li && state.tracking) { state.tracking.arrived = false; setIdx(+li.dataset.j, false); } });
   $('trk-stop').onclick = () => { if (confirm('Terminer le suivi de ce trajet ?')) endTracking(); };
-  $('trk-full').innerHTML = ic('full');
-  function exitFull() { const w = $('trk-map-wrap'); if (!w.classList.contains('full')) return; w.classList.remove('full'); $('trk-full').innerHTML = ic('full'); setTimeout(() => trkMap && trkMap.invalidateSize(), 50); }
-  $('trk-full').onclick = () => {
-    const w = $('trk-map-wrap');
-    if (w.classList.contains('full')) { exitFull(); return; }
-    w.classList.add('full'); $('trk-full').innerHTML = ic('fullExit');
-    setTimeout(() => trkMap && trkMap.invalidateSize(), 50);
-  };
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') exitFull(); });
+  function exitFull() {}
 
   /* ---------- Profil ---------- */
   function renderProfile() {
@@ -1647,21 +1774,16 @@
     pdUser = userMarker(pdMap, pdUser);
     L.marker([p.lat, p.lon], { icon: ph.kind === 'paiya' ? mkIcon('mk-py', 24, PY_COLOR[p.cat]) : mkIcon('mk-ph' + (p.garde ? ' garde' : ''), 28), zIndexOffset: 900 }).bindPopup(`<b>${esc(p.name)}</b><br>${esc(statusLabel(p, true))}`).addTo(pdLayer);
     if (p.approx) {
-      pdMap.setView([p.lat, p.lon], 13);
+      pdMap.setView([p.lat, p.lon], 14);
       $('pd-walk').innerHTML = `${ic('info')}<span>Position approximative : centre de ${esc(p.commune || 'la ville')}. Appelez la pharmacie pour l'adresse exacte.</span>`;
     } else if (state.pos) {
       const crow = Core.haversine(state.pos[0], state.pos[1], p.lat, p.lon);
-      const walkStyle = { color: isDark() ? '#3ccf78' : '#16994d', weight: 5, dashArray: '0 9', lineCap: 'round', interactive: false };
-      const line = L.polyline([state.pos, [p.lat, p.lon]], walkStyle).addTo(pdLayer);
-      pdMap.fitBounds([state.pos, [p.lat, p.lon]], { padding: [40, 40], maxZoom: 17 });
+      const wcol = ph.kind === 'paiya' ? PY_COLOR[p.cat] : (isDark() ? '#3ccf78' : '#16994d');
+      const walkStyle = { color: wcol, weight: 5, dashArray: '0 9', lineCap: 'round', interactive: false };
+      fitVisible(pdMap, [state.pos, [p.lat, p.lon]]);
       const setWalk = km => { $('pd-walk').innerHTML = `${ic('walk')}<span><b>${fmtDist(km)}</b> à pied · environ <b>${fmtMin(Core.walkMin(km))}</b></span>`; };
       setWalk(crow * Core.CFG.DETOUR);
-      if (crow < 15) fetchWalk({ lat: state.pos[0], lon: state.pos[1] }, p).then(c => {
-        if (!c || ph.sel !== p || !pdLayer.hasLayer(line)) return;
-        line.setLatLngs(c);
-        let km = 0; for (let i = 1; i < c.length; i++) km += Core.haversine(c[i - 1][0], c[i - 1][1], c[i][0], c[i][1]);
-        setWalk(km);
-      });
+      drawWalk(pdLayer, { lat: state.pos[0], lon: state.pos[1] }, p, walkStyle, wcol, km => { if (ph.sel === p) setWalk(km); });
     } else {
       pdMap.setView([p.lat, p.lon], 16);
       $('pd-walk').innerHTML = `${ic('info')}<span>Activez la localisation pour voir le trajet.</span>`;
@@ -1850,6 +1972,11 @@
   } catch (_) {}
 
   /* ---------- Démarrage ---------- */
+  // un écran à carte plein écran ne doit jamais défiler lui-même
+  document.querySelectorAll('.screen.immersive').forEach(el => el.addEventListener('scroll', () => { if (el.scrollTop) el.scrollTop = 0; }));
+  makeSheet('screen-results', 'res-sheet', [0.3, 0.55, 0.9], 1);
+  makeSheet('screen-track', 'trk-sheet', [0.22, 0.5, 0.88], 0);
+  makeSheet('screen-pharma-detail', 'pd-sheet', [0.3, 0.55, 0.9], 1);
   applyTheme();
   if ($('app-version')) $('app-version').textContent = CONFIG.version || '1.0.0';
   $('data-note').textContent = `${D.lines.length} trajets · ${D.stops.length} arrêts · Durées estimées, hors trafic.`;

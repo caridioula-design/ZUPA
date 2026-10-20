@@ -380,3 +380,28 @@ body.dark .loc-chip.at-stop .at-stop-txt{color:#4ade80!important}
 .py-card .ph-btns .btn.green{background:var(--c)}
 .py-card .ph-btns .btn.ghost{background:color-mix(in srgb,var(--c) 12%,transparent);color:var(--c)}
 .mk-py span{background:var(--c,#E97234);border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+
+/* ---------- Cartes plein écran avec panneau coulissant ---------- */
+.screen.immersive{padding:0;overflow:hidden}
+.imm-map{position:absolute;inset:0;z-index:0;background:var(--surface-2)}
+.imm-top{position:absolute;left:12px;right:12px;top:calc(10px + env(safe-area-inset-top));z-index:650;display:flex;gap:10px;align-items:flex-start;pointer-events:none}
+.imm-top>*{pointer-events:auto}
+.imm-title{flex:1;min-width:0;background:var(--surface);border-radius:14px;padding:7px 14px;box-shadow:0 2px 10px rgba(0,0,0,.18);min-height:42px;display:flex;flex-direction:column;justify-content:center}
+.imm-title .title{font-size:1.02rem;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.imm-top .icon-btn{box-shadow:0 2px 10px rgba(0,0,0,.18)}
+.imm-next{flex:1;min-width:0;margin:0;padding:12px 14px;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.imm-next .next-name{font-size:1.25rem}
+.imm-next .progress{margin-top:10px}
+.trk-sub{margin:2px 0 12px;white-space:normal}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:700;background:var(--bg);border-radius:22px 22px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.2);display:flex;flex-direction:column;transform:translateY(100%);transition:transform .3s cubic-bezier(.2,.8,.2,1);will-change:transform}
+.sheet.dragging{transition:none}
+.sheet-grab{flex-shrink:0;height:30px;width:100%;display:grid;place-items:center;cursor:grab;touch-action:none}
+.sheet-grab span{width:42px;height:5px;border-radius:3px;background:var(--text-3);opacity:.45}
+.sheet-body{position:relative;flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:0 16px 16px;-webkit-overflow-scrolling:touch}
+.immersive .leaflet-bottom{bottom:var(--sheet-vis,40%);transition:bottom .3s cubic-bezier(.2,.8,.2,1)}
+.immersive .leaflet-top{top:calc(64px + env(safe-area-inset-top))}
+.immersive .map-off{position:absolute;inset:0}
+/* flèches de direction sur les tracés */
+.dir-arrow{pointer-events:none}
+.dir-arrow svg{display:block;width:100%;height:100%;filter:drop-shadow(0 1px 1px rgba(0,0,0,.35))}
+#screen-track .leaflet-top{top:calc(178px + env(safe-area-inset-top))}
