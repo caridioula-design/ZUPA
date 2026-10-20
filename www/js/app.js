@@ -669,6 +669,23 @@
     if (at && !wasAtStop) vibrate([120, 80, 120]);
     wasAtStop = at;
   }
+  /* ---------- Défilement horizontal des noms trop longs (bulle en direct, ligne sélectionnée) ----------
+     Le texte va et vient lentement, avec une pause à chaque bout ; rien ne bouge s'il tient en entier. */
+  function marquee(host) {
+    if (!host) return;
+    const inner = host.querySelector('.mq-in'); if (!inner) return;
+    requestAnimationFrame(() => {
+      const over = inner.scrollWidth - host.clientWidth;
+      if (over > 4) {
+        host.classList.add('mq');
+        host.style.setProperty('--mq-d', `-${over + 14}px`);
+        host.style.setProperty('--mq-t', `${Math.max(5, Math.min(16, (over + 14) / 22 + 2.5)).toFixed(1)}s`);
+      } else host.classList.remove('mq');
+    });
+  }
+  const marqueeAll = root => (root || document).querySelectorAll('.mq-host').forEach(marquee);
+  window.addEventListener('resize', debounce(() => marqueeAll(), 200));
+
   /* ---------- Activité en direct (style « Live Activities » / Dynamic Island) ----------
      Capsule noire en haut de l'onglet Bus : distance jusqu'à l'arrêt, mise à jour à chaque mesure GPS.
      Cible : arrêt de départ ou prochain arrêt pendant un trajet suivi, sinon l'arrêt le plus proche.
@@ -683,6 +700,7 @@
     if (h[1] === 'before') { if (ref.previousElementSibling !== box) ref.before(box); }
     else if (ref.nextElementSibling !== box) ref.after(box);
     live.key = '';
+    setTimeout(() => marquee($('live-name')), 60);
   }
   const DEST_TTL = 3 * 3600e3;
   const isFollowed = (kind, id) => !!(live.dest && live.dest.kind === kind && live.dest.id === id && Date.now() - live.dest.t < DEST_TTL);
@@ -778,7 +796,8 @@
       $('live-ic').innerHTML = ic(icn); box.querySelector('.live-end').innerHTML = ic(icn);
     }
     $('live-kicker').textContent = at ? (tg.kind ? 'Vous y êtes' : tg.act === 'track' && state.tracking && state.tracking.idx >= 0 ? 'Arrêt atteint' : 'Vous êtes à l’arrêt') : tg.kicker;
-    $('live-name').textContent = tg.p.name;
+    const ln = $('live-name');
+    if (ln.dataset.n !== tg.p.name) { ln.dataset.n = tg.p.name; ln.innerHTML = `<span class="mq-in">${esc(tg.p.name)}</span>`; marquee(ln); }
     if (at) { cancelAnimationFrame(live.raf); live.shown = d; $('live-dist').textContent = 'Ici'; $('live-unit').textContent = ''; }
     else tweenDist($('live-dist'), d);
     $('live-fill').style.width = (k * 100).toFixed(1) + '%'; box.style.setProperty('--fill', (k * 100).toFixed(1) + '%');
@@ -807,6 +826,7 @@
     $('live-dir-txt').textContent = txt;
   }
   $('live-pill').addEventListener('click', () => {
+    setTimeout(() => marquee($('live-name')), 480);
     live.open = !live.open;
     $('live').classList.toggle('open', live.open);
     $('live-pill').setAttribute('aria-expanded', String(live.open));
@@ -2139,7 +2159,7 @@
     const tel = p.phone || (p.garde && p.garde.tels && p.garde.tels[0]);
     return `<div class="py-row ph-row${p.st === 'garde' ? ' garde' : ''}${fol ? ' following' : ''}" data-ph="${esc(p.id)}" role="button" tabindex="0" aria-pressed="${fol}">
       <span class="py-ic">${ic('cross')}</span>
-      <span class="py-main"><b><span>${esc(p.name)}</span></b><small>${esc(meta)}</small></span>
+      <span class="py-main"><b>${fol ? `<span class="mq-host"><span class="mq-in">${esc(p.name)}</span></span>` : `<span>${esc(p.name)}</span>`}</b><small>${esc(meta)}</small></span>
       <span class="py-d">${p.d != null ? `<b>${p.approx ? '≈ ' : ''}${fmtDist(p.d)}</b>` : ''}${st}</span>
       ${tel ? `<a class="ph-call" href="${esc(telHref(tel))}" data-ph-call aria-label="Appeler ${esc(p.name)}">${ic('phone')}</a>` : '<span class="ph-call off" aria-hidden="true"></span>'}
       <button class="py-more-btn" type="button" data-ph-go="${esc(p.id)}" aria-label="Fiche et carte de ${esc(p.name)}">${ic('chevron')}</button>
@@ -2179,6 +2199,7 @@
     } else {
       $('ph-list').classList.remove('is-empty');
       $('ph-list').innerHTML = list.slice(0, ph.shown).map(phCard).join('');
+      marqueeAll($('ph-list'));
       $('ph-more').hidden = list.length <= ph.shown;
       $('ph-more').textContent = `Afficher plus (${list.length - ph.shown})`;
     }
@@ -2564,13 +2585,14 @@
         const fol = isFollowed('paiya', p.id);
         return `<div class="py-row${fol ? ' following' : ''}" data-py="${esc(p.id)}" role="button" tabindex="0" aria-pressed="${fol}">
           <span class="py-ic">${ic(PY_ICON[p.cat])}</span>
-          <span class="py-main"><b><span>${esc(p.name)}</span>${p.community ? `<em class="py-tag${p.pending ? ' wait' : ''}">${p.pending ? 'en attente' : 'ZUPA'}</em>` : ''}</b><small>${esc([p.sub, p.street || p.commune].filter(Boolean).join(' · '))}</small></span>
+          <span class="py-main"><b>${fol ? `<span class="mq-host"><span class="mq-in">${esc(p.name)}</span></span>` : `<span>${esc(p.name)}</span>`}${p.community ? `<em class="py-tag${p.pending ? ' wait' : ''}">${p.pending ? 'en attente' : 'ZUPA'}</em>` : ''}</b><small>${esc([p.sub, p.street || p.commune].filter(Boolean).join(' · '))}</small></span>
           <span class="py-d">${p.d != null ? `<b>${fmtDist(p.d)}</b>` : ''}${fol ? '<small class="py-st follow">suivi</small>' : status || (p.d != null ? `<small>${fmtMin(Core.walkMin(p.d * Core.CFG.DETOUR))} à pied</small>` : '')}</span>
           <button class="py-more-btn" type="button" data-py-go="${esc(p.id)}" aria-label="Fiche et carte de ${esc(p.name)}">${ic('chevron')}</button>
         </div>`;
       }).join('');
       $('py-more').hidden = list.length <= py.shown;
       $('py-more').textContent = `Afficher plus (${list.length - py.shown})`;
+      marqueeAll($('py-list'));
     }
     const upd = window.ZUPA_PAIYA && window.ZUPA_PAIYA.updated;
     $('py-note').textContent = `Données © OpenStreetMap${upd ? ' · base du ' + new Date(upd).toLocaleDateString('fr-FR') : ''}${py.cache ? ' · actualisée le ' + new Date(py.cache.t).toLocaleDateString('fr-FR') : ''}`;
@@ -3312,8 +3334,9 @@
     $('py-pop').hidden = !rows.length;
     $('py-rail').innerHTML = rows.map((r, i) => {
       const p = popPlace(r), d = state.pos ? Core.haversine(state.pos[0], state.pos[1], p.lat, p.lon) : null;
-      return `<button class="pop-card${isFollowed('paiya', p.id) ? ' following' : ''}" data-pop="${esc(r.place_id)}" style="--c:${PY_COLOR[r.cat]}"><span class="pop-rank">${i + 1}</span><span class="pop-ic">${ic(PY_ICON[r.cat])}</span><b>${esc(p.name)}</b><small>${ic('fire')}${r.visites} visites${d != null ? ' · ' + fmtDist(d) : ''}</small></button>`;
+      return `<button class="pop-card${isFollowed('paiya', p.id) ? ' following' : ''}" data-pop="${esc(r.place_id)}" style="--c:${PY_COLOR[r.cat]}"><span class="pop-rank">${i + 1}</span><span class="pop-ic">${ic(PY_ICON[r.cat])}</span>${isFollowed('paiya', p.id) ? `<b class="mq-host"><span class="mq-in">${esc(p.name)}</span></b>` : `<b>${esc(p.name)}</b>`}<small>${ic('fire')}${r.visites} visites${d != null ? ' · ' + fmtDist(d) : ''}</small></button>`;
     }).join('');
+    marqueeAll($('py-rail'));
   }
   $('py-rail').addEventListener('click', e => {
     const c = e.target.closest('[data-pop]'); if (!c) return;

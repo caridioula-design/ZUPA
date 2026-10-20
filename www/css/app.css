@@ -831,3 +831,14 @@ body.dark #screen-pharma{--ink:#34d399;--mint:#0f2a20}
 .pd-msg{font-size:1.02rem;font-weight:600;font-style:italic;color:var(--text)}
 @media(prefers-reduced-motion:reduce){.pos-pin{animation:none}}
 .share-panel>*{flex-shrink:0}
+
+/* ---------- Noms trop longs : défilement horizontal ---------- */
+.mq-host{display:block;overflow:hidden;white-space:nowrap;min-width:0;text-overflow:ellipsis}
+.mq-in{display:inline-block;white-space:nowrap;max-width:none}
+.mq{text-overflow:clip!important;-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 10px,#000 calc(100% - 14px),transparent);mask-image:linear-gradient(90deg,transparent 0,#000 10px,#000 calc(100% - 14px),transparent)}
+.mq .mq-in{display:inline-block;padding-left:4px;animation:mq-go var(--mq-t,8s) ease-in-out infinite alternate;will-change:transform}
+@keyframes mq-go{0%,18%{transform:translateX(0)}82%,100%{transform:translateX(var(--mq-d,0))}}
+.live-c b.mq{display:block}
+.ph-rows .py-main b>span.mq-host{display:block;-webkit-line-clamp:unset;white-space:nowrap}
+.pop-card b.mq-host{display:block;-webkit-line-clamp:unset}
+@media(prefers-reduced-motion:reduce){.mq .mq-in{animation:none;white-space:normal}.mq{-webkit-mask-image:none;mask-image:none}.mq-host.mq{white-space:normal}}
