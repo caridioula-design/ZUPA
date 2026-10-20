@@ -1,6 +1,6 @@
 {
  "source": "UNPPCI (Abidjan), UNPPCI (intérieur)",
- "maj": "2026-10-19",
+ "maj": "2026-10-20",
  "du": "2026-10-17",
  "au": "2026-10-23",
  "pharmacies": [
@@ -1988,7 +1988,7 @@
     "0565483088"
    ],
    "adresse": null,
-   "commune": "Hire",
+   "commune": "Hiré",
    "quartier": null,
    "interieur": true
   },
@@ -2162,7 +2162,7 @@
     "0707822327"
    ],
    "adresse": "Ex Carrefour S.i.b, en Face de Ministere de l'Enseignement Technique et de la Formation Professionnelle",
-   "commune": "San Pédro",
+   "commune": "San-Pédro",
    "quartier": null,
    "interieur": true
   },
@@ -2175,7 +2175,7 @@
     "0708944057"
    ],
    "adresse": "Quartier Lac, en Face des Grandes Endemies",
-   "commune": "San Pédro",
+   "commune": "San-Pédro",
    "quartier": null,
    "interieur": true
   },
@@ -2188,7 +2188,7 @@
     "0707012451"
    ],
    "adresse": "A la Gare de San Pédro, Apres la Gare Aicha Ni Mori",
-   "commune": "San Pédro",
+   "commune": "San-Pédro",
    "quartier": null,
    "interieur": true
   },
@@ -2201,7 +2201,7 @@
     "0747488056"
    ],
    "adresse": "Marché du Bardot, en Face de la Station Total",
-   "commune": "San Pédro",
+   "commune": "San-Pédro",
    "quartier": null,
    "interieur": true
   },
@@ -2214,7 +2214,7 @@
     "0709257777"
    ],
    "adresse": "Bardot, en Face de l'Ho Sebroko",
-   "commune": "San Pédro",
+   "commune": "San-Pédro",
    "quartier": null,
    "interieur": true
   },
@@ -2226,7 +2226,7 @@
     "0715646464"
    ],
    "adresse": "Jb Quartier Cathedrale, en Face du Lycee Lucien Yebarth",
-   "commune": "San Pédro",
+   "commune": "San-Pédro",
    "quartier": null,
    "interieur": true
   },
@@ -4366,7 +4366,7 @@
       "0565483088"
      ],
      "adresse": null,
-     "commune": "Hire",
+     "commune": "Hiré",
      "quartier": null,
      "interieur": true
     },
@@ -4540,7 +4540,7 @@
       "0707822327"
      ],
      "adresse": "Ex Carrefour S.i.b, en Face de Ministere de l'Enseignement Technique et de la Formation Professionnelle",
-     "commune": "San Pédro",
+     "commune": "San-Pédro",
      "quartier": null,
      "interieur": true
     },
@@ -4553,7 +4553,7 @@
       "0708944057"
      ],
      "adresse": "Quartier Lac, en Face des Grandes Endemies",
-     "commune": "San Pédro",
+     "commune": "San-Pédro",
      "quartier": null,
      "interieur": true
     },
@@ -4566,7 +4566,7 @@
       "0707012451"
      ],
      "adresse": "A la Gare de San Pédro, Apres la Gare Aicha Ni Mori",
-     "commune": "San Pédro",
+     "commune": "San-Pédro",
      "quartier": null,
      "interieur": true
     },
@@ -4579,7 +4579,7 @@
       "0747488056"
      ],
      "adresse": "Marché du Bardot, en Face de la Station Total",
-     "commune": "San Pédro",
+     "commune": "San-Pédro",
      "quartier": null,
      "interieur": true
     },
@@ -4592,7 +4592,7 @@
       "0709257777"
      ],
      "adresse": "Bardot, en Face de l'Ho Sebroko",
-     "commune": "San Pédro",
+     "commune": "San-Pédro",
      "quartier": null,
      "interieur": true
     },
@@ -4604,7 +4604,7 @@
       "0715646464"
      ],
      "adresse": "Jb Quartier Cathedrale, en Face du Lycee Lucien Yebarth",
-     "commune": "San Pédro",
+     "commune": "San-Pédro",
      "quartier": null,
      "interieur": true
     },
@@ -6794,7 +6794,7 @@
       "0710578378"
      ],
      "adresse": null,
-     "commune": "Hire",
+     "commune": "Hiré",
      "quartier": null,
      "interieur": true
     },
@@ -6973,7 +6973,7 @@
       "0777741813"
      ],
      "adresse": "En Face de la Préfecture de Police, près de Sococe",
-     "commune": "San Pédro",
+     "commune": "San-Pédro",
      "quartier": null,
      "interieur": true
     },
@@ -6985,7 +6985,7 @@
       "0767078462"
      ],
      "adresse": "Apres la Pharmacie du Lac, près de l'Église Christianisme Céleste",
-     "commune": "San Pédro",
+     "commune": "San-Pédro",
      "quartier": null,
      "interieur": true
     },
@@ -6998,7 +6998,7 @@
       "0747287654"
      ],
      "adresse": "Quartier Sotref, sur la Route de l'Abattoir",
-     "commune": "San Pédro",
+     "commune": "San-Pédro",
      "quartier": null,
      "interieur": true
     },
@@ -7011,7 +7011,7 @@
       "0575602166"
      ],
      "adresse": "Près de la CNPS et du Ccdo",
-     "commune": "San Pédro",
+     "commune": "San-Pédro",
      "quartier": null,
      "interieur": true
     },
@@ -7024,7 +7024,7 @@
       "0102270913"
      ],
      "adresse": "Quartier Belle Ville, Terminus des Taxis Apres la Maternite",
-     "commune": "San Pédro",
+     "commune": "San-Pédro",
      "quartier": null,
      "interieur": true
     },
@@ -7038,7 +7038,7 @@
       "0748370992"
      ],
      "adresse": "Route de l'Universite Non Loin du Chr de San Pédro",
-     "commune": "San Pédro",
+     "commune": "San-Pédro",
      "quartier": null,
      "interieur": true
     },
@@ -9162,7 +9162,7 @@
       "0711116775"
      ],
      "adresse": null,
-     "commune": "Hire",
+     "commune": "Hiré",
      "quartier": null,
      "interieur": true
     },
@@ -9335,7 +9335,7 @@
       "0789262425"
      ],
      "adresse": "Quartier Cité, en Face du Chr, au Rond-Point Mosquee de la Zone Cité",
-     "commune": "San Pédro",
+     "commune": "San-Pédro",
      "quartier": null,
      "interieur": true
     },
@@ -9348,7 +9348,7 @@
       "0749795658"
      ],
      "adresse": "Quartier Jules Ferry A 50 M de l'Ho Manzan",
-     "commune": "San Pédro",
+     "commune": "San-Pédro",
      "quartier": null,
      "interieur": true
     },
@@ -9361,7 +9361,7 @@
       "0142999870"
      ],
      "adresse": "Seweke 1, près du Rond-Point de la Gare",
-     "commune": "San Pédro",
+     "commune": "San-Pédro",
      "quartier": null,
      "interieur": true
     },
@@ -9374,7 +9374,7 @@
       "0102861454"
      ],
      "adresse": "Au Marché, Carrefour Salade",
-     "commune": "San Pédro",
+     "commune": "San-Pédro",
      "quartier": null,
      "interieur": true
     },
@@ -9387,7 +9387,7 @@
       "0100403030"
      ],
      "adresse": "Quartier Belleville (Ex Zimbabwe) au Carrefour ''Prend Mon Gbö''",
-     "commune": "San Pédro",
+     "commune": "San-Pédro",
      "quartier": null,
      "interieur": true
     },
@@ -9399,7 +9399,7 @@
       "0788178417"
      ],
      "adresse": "Route Bereby, Carrefour Universite",
-     "commune": "San Pédro",
+     "commune": "San-Pédro",
      "quartier": null,
      "interieur": true
     },
