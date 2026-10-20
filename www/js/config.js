@@ -10,6 +10,9 @@ window.ZUPA_CONFIG = {
   // Ces deux valeurs peuvent aussi être fournies par les secrets GitHub ZUPA_SUPABASE_URL et ZUPA_SUPABASE_KEY.
   supabaseUrl: 'https://nxayxkrrwpdhnqznjzhb.supabase.co',
   supabaseKey: 'sb_publishable_L5_kBI28iwPKV0OD-JugBA_VevMSUXe', // clé publique : lecture et ajout seulement
+  // Espace publicitaire de l'écran Trajet : lien de contact pour les commerçants (ex. 'https://wa.me/2250700000000').
+  // Vide = pas d'encart « Votre commerce ici ? ».
+  adsContact: '',
   // Serveurs OpenStreetMap utilisés pour actualiser les pharmacies autour de l'utilisateur
   overpass: [
     'https://overpass-api.de/api/interpreter',

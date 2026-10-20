@@ -692,12 +692,13 @@
      Elle verdit à l'approche (500 m -> 30 m) et clignote en vert à l'arrêt. Un appui l'agrandit. */
   const live = { open: false, shown: null, raf: 0, key: '', dest: store.get('liveDest', null) };
   const CARD = ['le nord', 'le nord-est', "l'est", 'le sud-est', 'le sud', 'le sud-ouest', "l'ouest", 'le nord-ouest'];
-  const LIVE_HOST = { 'screen-home': ['loc-chip', 'before'], 'screen-pharma': ['ph-filter', 'after'], 'screen-paiya': ['py-cats', 'after'] };
+  const LIVE_HOST = { 'screen-home': ['loc-chip', 'before'], 'screen-pharma': ['ph-filter', 'after'], 'screen-paiya': ['py-cats', 'after'], 'screen-track': ['trk-live-slot', 'in'] };
   function placeLive(id) { // la même bulle passe d'un onglet à l'autre
     const h = LIVE_HOST[id], box = $('live');
     if (!h) return;
     const ref = $(h[0]);
-    if (h[1] === 'before') { if (ref.previousElementSibling !== box) ref.before(box); }
+    if (h[1] === 'in') { if (box.parentNode !== ref) ref.appendChild(box); }
+    else if (h[1] === 'before') { if (ref.previousElementSibling !== box) ref.before(box); }
     else if (ref.nextElementSibling !== box) ref.after(box);
     live.key = '';
     setTimeout(() => marquee($('live-name')), 60);
@@ -748,9 +749,10 @@
     if (current === 'screen-paiya') return placeTarget('paiya');
     const t = state.tracking;
     if (t && !t.arrived) {
-      if (t.idx < 0) { const p = t.pts[0]; return { kicker: 'Votre arrêt de départ', p, line: p.line, veh: p.veh, act: 'track', far: FAR_KM, at: AT_STOP_KM }; }
+      const n = t.pts.length, prog = `<span class="live-prog">${Math.max(0, t.idx + 1)}/${n} arrêts · ~${fmtMin(remainingMin(t))} restantes</span>`;
+      if (t.idx < 0) { const p = t.pts[0]; return { kicker: 'Votre arrêt de départ', p, line: p.line, veh: p.veh, act: 'track', far: FAR_KM, at: AT_STOP_KM, tags: lineBadge(p.line, true) + prog, hint: `Montez dans le ${p.veh} ${p.line}` }; }
       const nx = t.pts[t.idx + 1];
-      if (nx) return { kicker: nx.kind === 'alight' ? 'Descente à' : 'Prochain arrêt', p: nx, line: nx.line, veh: nx.veh, act: 'track', far: 1.5, at: 0.06 };
+      if (nx) return { kicker: nx.kind === 'alight' ? 'Descendez à' : nx.kind !== 'stop' ? 'Correspondance à' : 'Prochain arrêt', p: nx, line: nx.line, veh: nx.veh, act: 'track', far: 1.5, at: 0.06, tags: lineBadge(nx.line, true) + prog, hint: nx.kind !== 'stop' ? hint(nx) : null };
     }
     const near = Core.nearbyStops(D, state.pos[0], state.pos[1], 3, 1)[0];
     if (!near) return null;
@@ -803,6 +805,7 @@
     $('live-fill').style.width = (k * 100).toFixed(1) + '%'; box.style.setProperty('--fill', (k * 100).toFixed(1) + '%');
     const walk = Core.walkMin(d * Core.CFG.DETOUR);
     $('live-walk').textContent = at ? (state.posStale ? 'Position en cours de mise à jour' : 'Vous y êtes')
+      : tg.hint ? tg.hint
       : tg.act === 'track' && state.tracking && state.tracking.idx >= 0 ? `${tg.veh || 'Bus'} ${tg.line || ''}`.trim()
       : `~${fmtMin(walk)} à pied`;
     $('live-dir-txt').parentNode.hidden = at;
@@ -810,6 +813,8 @@
     $('live-lines').innerHTML = tg.tags || (tg.stop ? linesHtml(tg.stop) : tg.line ? lineBadge(tg.line, true) : '');
     $('live-act').textContent = tg.kind ? (tg.p.phone ? 'Itinéraire et appel' : 'Itinéraire') : tg.act === 'track' ? 'Ouvrir le suivi du trajet' : 'Partir de cet arrêt';
     $('live-clear').hidden = !tg.dest;
+    $('live-act').hidden = current === 'screen-track'; // déjà sur le suivi : pas de bouton inutile
+    box.classList.toggle('on-map', current === 'screen-track');
     live.tg = tg;
     if (at && !wasAtStop) vibrate([120, 80, 120]);
     wasAtStop = at;
@@ -1611,6 +1616,8 @@
 
   function ensureTrkMap() {
     if (!state.tracking) return;
+    if (!live.open) { live.open = true; $('live').classList.add('open'); $('live-pill').setAttribute('aria-expanded', 'true'); }
+    renderTrkAd();
     if (!hasL) { mapOff('trk-map'); return; }
     if (!trkMap) {
       trkMap = baseMap($('trk-map'), {
@@ -1634,12 +1641,81 @@
     if (trkFollow && state.pos) setTimeout(() => { trkMap.setView(visibleCenter(trkMap, state.pos, Math.max(trkMap.getZoom(), 17)), Math.max(trkMap.getZoom(), 17)); applyHeading(); }, 400);
   }
 
+  // les boutons de la carte (boussole) restent sous la bulle, quelle que soit sa hauteur
+  try {
+    const top = document.querySelector('#screen-track .imm-top');
+    new ResizeObserver(() => $('screen-track').style.setProperty('--imm-top-h', top.getBoundingClientRect().bottom - $('screen-track').getBoundingClientRect().top + 'px')).observe(top);
+  } catch (_) {}
+
+  /* ---------- Espace publicitaire « À l'arrivée » (écran Trajet) ----------
+     1. publications sponsorisées des commerces proches de la destination (table publications) ;
+     2. la destination elle-même si c'est un lieu ; 3. les lieux les plus visités ou proches de l'arrivée.
+     Les diapositives défilent toutes seules ; tout ce qui est payé porte la mention « Sponsorisé ». */
+  const ads = { list: [], i: 0, timer: 0, key: '' };
+  async function fetchPubs(lat, lon) {
+    if (!sbOn()) return [];
+    const dl = 0.05, r = await sb(`/rest/v1/publications?select=id,place_id,nom,cat,lat,lon,titre,texte,tel,rayon_m,priorite&lat=gte.${(lat - dl).toFixed(4)}&lat=lte.${(lat + dl).toFixed(4)}&lon=gte.${(lon - dl).toFixed(4)}&lon=lte.${(lon + dl).toFixed(4)}&order=priorite.desc&limit=20`);
+    if (!r.ok || !Array.isArray(r.data)) return [];
+    return r.data.filter(x => Core.haversine(lat, lon, x.lat, x.lon) * 1000 <= (x.rayon_m || 600));
+  }
+  async function renderTrkAd() {
+    const t = state.tracking, box = $('trk-ad');
+    if (!t) { box.hidden = true; return; }
+    const d = t.destObj && Number.isFinite(t.destObj.lat) ? t.destObj : t.pts[t.pts.length - 1];
+    const key = `${d.lat},${d.lon}`;
+    if (ads.key === key && ads.list.length) return;
+    ads.key = key;
+    const slides = [];
+    const pubs = await fetchPubs(d.lat, d.lon);
+    pubs.forEach(x => slides.push({ kind: 'pub', x }));
+    const destPlace = t.destObj && t.destObj.place ? placesBase().find(p => Core.haversine(p.lat, p.lon, d.lat, d.lon) < 0.03 && p.name === t.destObj.label) : null;
+    if (destPlace) slides.push({ kind: 'dest', p: withStatus(destPlace) });
+    const popIds = new Set(((pop.list && pop.list.rows) || []).map(r => r.place_id));
+    const near = placesBase().filter(p => p !== destPlace && (p.cat === 'resto' || p.cat === 'shop' || p.cat === 'hotel') && p.name !== PYC.CATS[p.cat].one && Math.abs(p.lat - d.lat) < 0.005 && Math.abs(p.lon - d.lon) < 0.005)
+      .map(p => [p, Core.haversine(p.lat, p.lon, d.lat, d.lon)]).filter(([, k]) => k < 0.4)
+      .sort((a, b) => (popIds.has(b[0].id) - popIds.has(a[0].id)) || a[1] - b[1]).slice(0, 3);
+    near.forEach(([p, k]) => slides.push({ kind: 'near', p: withStatus(p), k, popular: popIds.has(p.id) }));
+    if (CONFIG.adsContact) slides.push({ kind: 'house' });
+    ads.list = slides; ads.i = 0;
+    if (!slides.length) { box.hidden = true; return; }
+    box.hidden = false;
+    $('trk-ad-rail').innerHTML = slides.map((sl, i) => {
+      if (sl.kind === 'pub') { const x = sl.x, c = PY_COLOR[x.cat] || 'var(--brand)';
+        return `<article class="ad-slide pub" data-ad="${i}" style="--c:${c}"><span class="ad-ic">${ic(PY_ICON[x.cat] || (x.cat === 'pharma' ? 'cross' : 'explore'))}</span><span class="ad-main"><small class="ad-tag">Sponsorisé · ${esc(x.nom)}</small><b>${esc(x.titre)}</b>${x.texte ? `<small>${esc(x.texte)}</small>` : ''}</span>${x.tel ? `<a class="ad-call" href="${esc(telHref(x.tel))}" data-ph-call aria-label="Appeler ${esc(x.nom)}">${ic('phone')}</a>` : ''}</article>`; }
+      if (sl.kind === 'dest') { const p = sl.p;
+        return `<article class="ad-slide" data-ad="${i}" style="--c:${PY_COLOR[p.cat] || 'var(--brand)'}"><span class="ad-ic">${ic(PY_ICON[p.cat] || 'pin')}</span><span class="ad-main"><small class="ad-tag">Votre destination</small><b>${esc(p.name)}</b><small>${esc([p.sub, p.hours ? pyStatus(p, true) : ''].filter(Boolean).join(' · '))}</small></span>${p.phone ? `<a class="ad-call" href="${esc(telHref(String(p.phone).split(/[;,/]/)[0]))}" data-ph-call aria-label="Appeler">${ic('phone')}</a>` : ''}</article>`; }
+      if (sl.kind === 'near') { const p = sl.p;
+        return `<article class="ad-slide" data-ad="${i}" style="--c:${PY_COLOR[p.cat]}"><span class="ad-ic">${ic(PY_ICON[p.cat])}</span><span class="ad-main"><small class="ad-tag">${sl.popular ? 'Très visité · ' : ''}Près de votre arrivée · ${fmtDist(sl.k)}</small><b>${esc(p.name)}</b><small>${esc(p.sub || '')}</small></span></article>`; }
+      return `<article class="ad-slide house" data-ad="${i}"><span class="ad-ic">${ic('explore')}</span><span class="ad-main"><small class="ad-tag">Publicité</small><b>Votre commerce ici ?</b><small>Faites-vous connaître des voyageurs qui arrivent près de chez vous.</small></span></article>`;
+    }).join('');
+    $('trk-ad-dots').innerHTML = slides.length > 1 ? slides.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('') : '';
+    clearInterval(ads.timer);
+    if (slides.length > 1) ads.timer = setInterval(() => { if (current === 'screen-track' && !ads.hold) adGo(ads.i + 1); }, 6000);
+  }
+  function adGo(i) {
+    const rail = $('trk-ad-rail'), n = ads.list.length; if (!n) return;
+    ads.i = (i + n) % n;
+    rail.scrollTo({ left: rail.clientWidth * ads.i, behavior: 'smooth' });
+    $('trk-ad-dots').querySelectorAll('i').forEach((d, k) => d.classList.toggle('on', k === ads.i));
+  }
+  $('trk-ad-rail').addEventListener('scroll', debounce(() => { const r = $('trk-ad-rail'); ads.i = Math.round(r.scrollLeft / Math.max(1, r.clientWidth)); $('trk-ad-dots').querySelectorAll('i').forEach((d, k) => d.classList.toggle('on', k === ads.i)); }, 80), { passive: true });
+  $('trk-ad-rail').addEventListener('pointerdown', () => { ads.hold = true; clearTimeout(ads.holdT); ads.holdT = setTimeout(() => { ads.hold = false; }, 12000); });
+  $('trk-ad-rail').addEventListener('click', e => {
+    if (e.target.closest('[data-ph-call]')) return;
+    const el = e.target.closest('[data-ad]'); if (!el) return;
+    const sl = ads.list[+el.dataset.ad]; if (!sl) return;
+    if (sl.kind === 'pub') { const x = sl.x, b = x.place_id && placesBase().find(p => p.id === x.place_id); openDetail(withStatus(b || { id: 'ad' + x.id, cat: PYC.CATS[x.cat] ? x.cat : 'shop', name: x.nom, sub: x.titre, lat: x.lat, lon: x.lon, phone: x.tel || undefined, note: x.texte || '' }), 'screen-track', 'paiya'); }
+    else if (sl.kind === 'dest' || sl.kind === 'near') openDetail(sl.p, 'screen-track', 'paiya');
+    else if (sl.kind === 'house' && CONFIG.adsContact) openExternal(CONFIG.adsContact);
+  });
+
   function syncNavFab() {
     if (!trkMap || !trkMap._locate) return;
     trkMap._locate.classList.toggle('on', trkFollow);
     trkMap._locate.innerHTML = ic(trkFollow && trkRotate ? 'navigation' : 'locate');
   }
   function endTracking() {
+    clearInterval(ads.timer); ads.list = []; ads.key = ''; $('trk-ad').hidden = true;
     if (!state.tracking) return;
     state.tracking = null;
     releaseWakeLock();
@@ -3445,7 +3521,7 @@
   document.querySelectorAll('.screen.immersive').forEach(el => el.addEventListener('scroll', () => { if (el.scrollTop) el.scrollTop = 0; }));
   loadOfflineMap();
   makeSheet('screen-results', 'res-sheet', [0.3, 0.55, 0.9], 1);
-  makeSheet('screen-track', 'trk-sheet', [0.22, 0.5, 0.88], 0);
+  makeSheet('screen-track', 'trk-sheet', [0.34, 0.55, 0.88], 0);
   makeSheet('screen-pharma-detail', 'pd-sheet', [0.3, 0.55, 0.9], 1);
   applyTheme();
   if ($('app-version')) $('app-version').textContent = CONFIG.version || '1.0.0';

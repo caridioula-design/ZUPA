@@ -22,5 +22,7 @@ const blq = await call('/rest/v1/rpc/bloques_liste', { method: 'POST', body: JSO
 out.push(blq.s === 404 ? 'BLOCAGE NON INSTALLÉ : relancez supabase/amis.sql' : 'blocage OK');
 const psh = await call('/rest/v1/rpc/position_partager', { method: 'POST', body: JSON.stringify({ p_secret: '00000000-0000-4000-8000-0000000000ff', p_codes: [], p_message: 'test', p_lat: 5.3, p_lon: -4 }) });
 out.push(psh.s === 404 ? 'POSITION NON INSTALLÉE : relancez supabase/amis.sql' : 'envoi de position OK');
-const ok = psh.s !== 404 && blq.s !== 404 && popu.s === 200 && read.s === 200 && dev.s >= 400 && bad.s === 400 && upd.s >= 400;
+const pub = await call('/rest/v1/publications?select=id&limit=1');
+out.push(pub.s === 200 ? 'publications OK' : pub.s === 404 ? 'PUBLICATIONS NON INSTALLÉES : exécutez supabase/pubs.sql' : 'publications : ' + pub.s);
+const ok = pub.s === 200 && psh.s !== 404 && blq.s !== 404 && popu.s === 200 && read.s === 200 && dev.s >= 400 && bad.s === 400 && upd.s >= 400;
 note(ok ? 'notice' : 'warning', out.join(' · '));

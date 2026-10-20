@@ -42,3 +42,26 @@ La table `signalements` contient le motif de chaque signalement.
 - **Visites** : l'identifiant change chaque jour (empreinte appareil + date) et n'est relié à aucun profil. Rien n'est compté près des lieux confidentiels de l'utilisateur. Un lieu n'apparaît qu'à partir de 3 visites sur 30 jours, et les visites de plus de 60 jours sont supprimées.
 - **Lieux confidentiels** (domicile, travail…) : ils ne quittent jamais le téléphone et ne passent par aucune de ces fonctions.
 - **« Effacer mes données en ligne »** (Profil) supprime le profil, les amitiés, les lieux échangés et les lieux publics ajoutés depuis ce téléphone.
+
+## Publications sponsorisées (`pubs.sql`)
+
+L'écran Trajet affiche un espace « À l'arrivée ». Il montre :
+1. les **publications sponsorisées** des commerces proches de la destination du voyageur ;
+2. la destination elle-même, si c'est un lieu ;
+3. les lieux les plus visités ou les plus proches de l'arrivée.
+
+Pour publier une annonce pour un commerçant qui paie : **Table Editor › publications › Insert row**.
+- `nom` : le nom du commerce.
+- `cat` : resto, shop, hotel, pharma ou autre.
+- `lat` et `lon` : la position du commerce (clic droit sur Google Maps › copier les coordonnées).
+- `titre` : 60 caractères au maximum, par exemple « Happy hour jusqu'à 21 h ».
+- `texte` : 160 caractères au maximum, facultatif.
+- `tel` : facultatif.
+- `rayon_m` : l'annonce est montrée aux voyageurs dont la destination est à moins de cette distance (600 m par défaut).
+- `debut` et `fin` : les dates de diffusion.
+- `priorite` : plus le nombre est grand, plus l'annonce passe en premier.
+- `actif` : décochez pour suspendre l'annonce.
+
+Le public peut seulement lire les annonces actives et en cours. Personne ne peut en ajouter ni en modifier depuis l'application. Chaque annonce porte la mention « Sponsorisé ».
+
+Pour afficher l'encart « Votre commerce ici ? », renseignez `adsContact` dans `www/js/config.js`, par exemple un lien WhatsApp `https://wa.me/225XXXXXXXXXX`.

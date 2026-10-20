@@ -111,7 +111,8 @@
     <div class="imm-map" id="trk-map"></div>
     <div class="imm-top">
       <button class="icon-btn" data-go="screen-results" aria-label="Retour aux itinéraires"></button>
-      <div class="next-card imm-next" aria-live="polite">
+      <div class="trk-live-slot" id="trk-live-slot"></div>
+      <div class="next-card imm-next" aria-live="polite" hidden>
         <div class="next-label" id="trk-label">Prochain arrêt</div>
         <div class="next-name" id="trk-next">—</div>
         <div class="next-hint" id="trk-hint"></div>
@@ -123,6 +124,10 @@
       <button class="sheet-grab" type="button" aria-label="Agrandir ou réduire"><span></span></button>
       <div class="sheet-body">
         <div class="subtitle trk-sub" id="trk-sub"></div>
+        <section class="trk-ad" id="trk-ad" hidden aria-label="À l'arrivée">
+          <div class="trk-ad-rail" id="trk-ad-rail"></div>
+          <div class="trk-ad-dots" id="trk-ad-dots"></div>
+        </section>
         <div class="trk-controls">
           <button class="btn ghost" id="trk-prev">Précédent</button>
           <button class="btn primary" id="trk-step">Arrêt suivant</button>

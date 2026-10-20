@@ -393,7 +393,7 @@ body.dark .loc-chip.at-stop .at-stop-txt{color:#4ade80!important}
 /* flèches de direction sur les tracés */
 .dir-arrow{pointer-events:none}
 .dir-arrow svg{display:block;width:100%;height:100%;filter:drop-shadow(0 1px 1px rgba(0,0,0,.35))}
-#screen-track .leaflet-top{top:calc(178px + env(safe-area-inset-top))}
+#screen-track .leaflet-top{top:calc(var(--imm-top-h, 96px) + 8px);transition:top .3s cubic-bezier(.16,1,.3,1)}
 
 /* ---------- Position : cône de direction, boussole, mode navigation ---------- */
 .mk-user{overflow:visible}
@@ -842,3 +842,28 @@ body.dark #screen-pharma{--ink:#34d399;--mint:#0f2a20}
 .ph-rows .py-main b>span.mq-host{display:block;-webkit-line-clamp:unset;white-space:nowrap}
 .pop-card b.mq-host{display:block;-webkit-line-clamp:unset}
 @media(prefers-reduced-motion:reduce){.mq .mq-in{animation:none;white-space:normal}.mq{-webkit-mask-image:none;mask-image:none}.mq-host.mq{white-space:normal}}
+
+/* ---------- Écran Trajet : bulle en direct + espace « À l'arrivée » ---------- */
+.trk-live-slot{flex:1;min-width:0}
+.imm-top .live{position:relative;top:auto;margin:0}
+.live.on-map{box-shadow:0 12px 30px rgba(0,0,0,.35),0 0 0 calc(var(--near) * 2px) rgba(34,197,94,calc(.2 + var(--near) * .8))}
+.live-prog{font-size:.78rem;color:rgba(255,255,255,.8);align-self:center;margin-left:4px}
+.live-lines:has(.live-prog){align-items:center}
+.trk-ad{margin:10px 0 12px}
+.trk-ad-rail{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;border-radius:18px}
+.trk-ad-rail::-webkit-scrollbar{display:none}
+.ad-slide{flex:0 0 100%;scroll-snap-align:start;display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:18px;background:color-mix(in srgb,var(--c,var(--brand)) 10%,var(--surface));border:1px solid color-mix(in srgb,var(--c,var(--brand)) 22%,transparent);cursor:pointer;min-height:76px}
+.ad-slide.pub{background:linear-gradient(120deg,color-mix(in srgb,var(--c) 18%,var(--surface)),var(--surface) 75%)}
+.ad-ic{flex:none;width:44px;height:44px;border-radius:14px;display:grid;place-items:center;background:var(--c,var(--brand));color:#fff}
+.ad-ic .ic{width:22px;height:22px}
+.ad-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;line-height:1.25}
+.ad-main b{font-size:.98rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ad-main small{font-size:.78rem;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ad-main .ad-tag{font-size:.66rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text-3)}
+.ad-slide.pub .ad-tag{color:color-mix(in srgb,var(--c) 70%,var(--text))}
+.ad-call{flex:none;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--c,var(--brand));color:#fff}
+.ad-call .ic{width:20px;height:20px}
+.ad-slide.house{--c:#3f4a5a}
+.trk-ad-dots{display:flex;justify-content:center;gap:6px;margin-top:8px}
+.trk-ad-dots i{width:6px;height:6px;border-radius:3px;background:var(--border);transition:width .3s,background-color .3s}
+.trk-ad-dots i.on{width:18px;background:var(--brand)}
