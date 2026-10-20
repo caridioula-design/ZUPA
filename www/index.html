@@ -28,6 +28,7 @@
 
     <!-- Activité en direct : distance jusqu'à l'arrêt, mise à jour en continu -->
     <div class="live" id="live" hidden>
+      <button class="live-back" id="live-back" type="button" hidden aria-label="Retour aux itinéraires"><span data-icon="back"></span></button>
       <svg class="live-ecg" viewBox="0 0 400 40" preserveAspectRatio="none" aria-hidden="true"><path d="M0 24h150l9-12 11 22 11-30 9 20h40l7-7 7 7h156"/></svg>
       <button class="live-pill" id="live-pill" type="button" aria-expanded="false" aria-controls="live-more">
         <span class="live-ic" id="live-ic"><span data-icon="bus"></span></span>
@@ -110,7 +111,6 @@
   <section class="screen immersive" id="screen-track" aria-label="Suivi du trajet">
     <div class="imm-map" id="trk-map"></div>
     <div class="imm-top">
-      <button class="icon-btn" data-go="screen-results" aria-label="Retour aux itinéraires"></button>
       <div class="trk-live-slot" id="trk-live-slot"></div>
       <div class="next-card imm-next" aria-live="polite" hidden>
         <div class="next-label" id="trk-label">Prochain arrêt</div>

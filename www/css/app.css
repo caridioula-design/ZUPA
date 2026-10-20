@@ -867,3 +867,10 @@ body.dark #screen-pharma{--ink:#34d399;--mint:#0f2a20}
 .trk-ad-dots{display:flex;justify-content:center;gap:6px;margin-top:8px}
 .trk-ad-dots i{width:6px;height:6px;border-radius:3px;background:var(--border);transition:width .3s,background-color .3s}
 .trk-ad-dots i.on{width:18px;background:var(--brand)}
+
+/* ---------- Retour intégré à la bulle (écran Trajet) ---------- */
+.live-back{position:absolute;left:9px;top:9px;z-index:3;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.14);color:#fff;border:0}
+.live-back .ic{width:22px;height:22px}
+.live-back:active{background:rgba(255,255,255,.26)}
+.live.on-map .live-pill{padding-left:58px}
+.live.on-map .live-in{padding-left:16px}

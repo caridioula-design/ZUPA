@@ -815,6 +815,7 @@
     $('live-clear').hidden = !tg.dest;
     $('live-act').hidden = current === 'screen-track'; // déjà sur le suivi : pas de bouton inutile
     box.classList.toggle('on-map', current === 'screen-track');
+    $('live-back').hidden = current !== 'screen-track';
     live.tg = tg;
     if (at && !wasAtStop) vibrate([120, 80, 120]);
     wasAtStop = at;
@@ -845,6 +846,8 @@
       last = y;
     }, { passive: true });
   });
+  // sur le Trajet, le retour est intégré à la bulle (il ne la gêne plus)
+  $('live-back').addEventListener('click', () => show(navStack.length > 1 ? navStack[navStack.length - 2] : (state.lastSearch ? 'screen-results' : 'screen-home')));
   $('live-clear').addEventListener('click', () => {
     live.dest = null; store.set('liveDest', null);
     if (current === 'screen-pharma') renderPharma(); else if (current === 'screen-paiya') renderPaiya();
@@ -3503,7 +3506,7 @@
     if (!$('act-sheet').hidden) { closeActions(); return true; }
     if (!$('pos-sheet').hidden) { closePos(); return true; }
     if (!$('grp-sheet').hidden) { closeGroupEditor(); return true; }
-    if (live.open && LIVE_HOST[current]) { live.open = false; $('live').classList.remove('open'); $('live-pill').setAttribute('aria-expanded', 'false'); return true; }
+    if (live.open && LIVE_HOST[current] && current !== 'screen-track') { live.open = false; $('live').classList.remove('open'); $('live-pill').setAttribute('aria-expanded', 'false'); return true; }
     const to = navStack.length > 1 ? navStack[navStack.length - 2] : current !== 'screen-home' ? 'screen-home' : null;
     if (!to) return false;
     show(to);
