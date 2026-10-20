@@ -44,6 +44,7 @@
     resto: 'M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z',
     wc: 'M5.5 22v-7.5H4V9c0-1.1.9-2 2-2h3c1.1 0 2 .9 2 2v5.5H9.5V22h-4zM18 22v-6h3l-2.54-7.63A2.01 2.01 0 0 0 16.56 7h-.12a2 2 0 0 0-1.9 1.37L12 16h3v6h3zM7.5 6c1.11 0 2-.89 2-2s-.89-2-2-2-2 .89-2 2 .89 2 2 2zm9 0c1.11 0 2-.89 2-2s-.89-2-2-2-2 .89-2 2 .89 2 2 2z',
     shop: 'M20 4H4v2h16V4zm1 10v-2l-1-5H4l-1 5v2h1v6h10v-6h4v6h2v-6h1zm-9 4H6v-4h6v4z',
+    navigation: 'M12 2 4.5 20.29l.71.71L12 18l6.79 3 .71-.71z',
     clock: 'M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z'
   };
   const ic = n => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONS[n]}"/></svg>`;
@@ -217,7 +218,7 @@
   /* ---------- Cartes (Leaflet) ---------- */
   const hasL = typeof L !== 'undefined';
   let resMap = null, resLayer = null, resUser = null;
-  let trkMap = null, trkLayer = null, trkUser = null, trkCur = null, trkFollow = true;
+  let trkMap = null, trkLayer = null, trkUser = null, trkCur = null, trkFollow = true, trkRotate = true;
   /* Fonds de carte sans clé API, du plus « Google Maps » au plus simple.
      Si un fond ne répond pas (erreurs de tuiles), on passe automatiquement au suivant. */
   const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
@@ -260,10 +261,107 @@
   const pinIcon = () => L.divIcon({ className: 'gm-pin', iconSize: [28, 40], iconAnchor: [14, 39], popupAnchor: [0, -34],
     html: `<svg viewBox="0 0 24 34" width="28" height="40"><path d="M12 0C5.4 0 0 5.3 0 11.9 0 20.6 12 34 12 34s12-13.4 12-22.1C24 5.3 18.6 0 12 0z" fill="${G.red}" stroke="${G.redDark}" stroke-width="1"/><circle cx="12" cy="12" r="4.3" fill="${G.redDark}"/></svg>` });
 
+  /* ---------- Carte hors ligne du Grand Abidjan (vectorielle, OpenStreetMap / Protomaps) ----------
+     maps/abidjan.pmtiles est intégré à l'APK. Dans la zone couverte, la carte s'affiche sans internet ;
+     ailleurs, les fonds en ligne prennent le relais. */
+  const OFFLINE = { pm: null, bounds: null, maxZoom: 15 };
+  async function loadOfflineMap() {
+    if (typeof pmtiles === 'undefined' || typeof protomapsL === 'undefined') return;
+    try {
+      const r = await fetch('maps/abidjan.pmtiles');
+      if (!r.ok) return;
+      const blob = await r.blob();
+      if (blob.size < 10000) return;
+      const pm = new pmtiles.PMTiles(new pmtiles.FileSource(new File([blob], 'abidjan.pmtiles')));
+      const h = await pm.getHeader();
+      OFFLINE.pm = pm; OFFLINE.maxZoom = h.maxZoom || 15;
+      OFFLINE.bounds = L.latLngBounds([h.minLat, h.minLon], [h.maxLat, h.maxLon]);
+      maps.forEach(m => setVector(m));
+    } catch (e) { console.warn('Carte hors ligne indisponible', e); }
+  }
+  function setVector(m) {
+    if (m._vec) { m.removeLayer(m._vec); m._vec = null; }
+    if (!OFFLINE.pm) return;
+    if (!m.getPane('vec')) { const pane = m.createPane('vec', m.getPane('rotatePane') || m.getPane('mapPane')); pane.style.zIndex = 250; }
+    m._vec = protomapsL.leafletLayer({ url: OFFLINE.pm, flavor: isDark() ? 'dark' : 'light', lang: 'fr', maxDataZoom: OFFLINE.maxZoom,
+      pane: 'vec', bounds: OFFLINE.bounds, attribution: '© OpenStreetMap · Protomaps' });
+    m._vec.options.bounds = OFFLINE.bounds;
+    m._vec.addTo(m);
+    // fonds en ligne retirés quand toute la vue est couverte par la carte hors ligne (économie de données)
+    if (!m._rasterToggle) {
+      m._rasterToggle = () => {
+        if (!OFFLINE.bounds || !m._tileLayers) return;
+        const inside = OFFLINE.bounds.contains(m.getBounds());
+        m._tileLayers.forEach(l => { if (inside && m.hasLayer(l)) m.removeLayer(l); else if (!inside && !m.hasLayer(l)) l.addTo(m); });
+      };
+      m.on('moveend zoomend', m._rasterToggle);
+    }
+    m._rasterToggle();
+  }
+
+  /* ---------- Orientation (cap) de l'utilisateur ----------
+     En marche : boussole du téléphone. En véhicule (vitesse > 1,2 m/s) : direction donnée par le GPS. */
+  const nav = { heading: null, gpsT: 0, raf: 0 };
+  const headingMarkers = new Set();
+  function setHeading(h, src) {
+    if (!Number.isFinite(h)) return;
+    if (src === 'compass' && Date.now() - nav.gpsT < 4000) return; // le GPS prime quand on roule
+    if (nav.heading == null) nav.heading = (h + 360) % 360;
+    else { const d = ((h - nav.heading + 540) % 360) - 180; if (Math.abs(d) < 1) return; nav.heading = (nav.heading + d * (src === 'gps' ? 0.6 : 0.25) + 360) % 360; }
+    if (!nav.raf) nav.raf = requestAnimationFrame(() => { nav.raf = 0; applyHeading(); });
+  }
+  function onOrientation(e) {
+    let h = null;
+    if (typeof e.webkitCompassHeading === 'number') h = e.webkitCompassHeading;
+    else if (e.absolute !== false && e.alpha != null) h = 360 - e.alpha;
+    if (h == null) return;
+    const ang = (screen.orientation && screen.orientation.angle) || window.orientation || 0;
+    setHeading((h + ang) % 360, 'compass');
+  }
+  if ('ondeviceorientationabsolute' in window) window.addEventListener('deviceorientationabsolute', onOrientation);
+  else window.addEventListener('deviceorientation', onOrientation);
+  function updateHeadingMarkers() {
+    headingMarkers.forEach(mk => {
+      const el = mk.getElement && mk.getElement(); if (!el) return;
+      const map = mk._map, brg = map && map.getBearing ? map.getBearing() : 0;
+      el.classList.toggle('has-hd', nav.heading != null);
+      if (nav.heading != null) el.style.setProperty('--hd', ((nav.heading + brg) % 360).toFixed(1) + 'deg');
+    });
+  }
+  function applyHeading() {
+    updateHeadingMarkers();
+    if (trkMap && current === 'screen-track' && trkFollow && trkRotate && nav.heading != null) {
+      const target = (360 - nav.heading) % 360, cur = (trkMap.getBearing() + 360) % 360;
+      if (Math.abs(((target - cur + 540) % 360) - 180) > 2) trkMap.setBearing(target);
+    }
+  }
+
   function baseMap(el, opts = {}) {
-    const m = L.map(el, { zoomControl: false, preferCanvas: !!opts.canvas, maxZoom: 20 }).setView([5.33, -4.01], 13);
+    const m = L.map(el, { zoomControl: false, preferCanvas: !!opts.canvas, maxZoom: 20, rotate: true, bearing: 0, rotateControl: false, touchRotate: false }).setView([5.33, -4.01], 13);
     m.attributionControl.setPrefix(false);
     setTiles(m, 0);
+    setVector(m);
+    // Boussole : visible quand la carte est tournée ; un appui remet le nord en haut
+    const Compass = L.Control.extend({
+      options: { position: 'topright' },
+      onAdd() {
+        const b = L.DomUtil.create('button', 'gm-fab gm-compass');
+        b.type = 'button'; b.title = 'Nord en haut'; b.setAttribute('aria-label', 'Remettre le nord en haut');
+        b.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 2 16 12H8Z" fill="#EA4335"/><path d="M12 22 8 12h8Z" fill="#9aa0a6"/></svg>';
+        L.DomEvent.disableClickPropagation(b);
+        b.onclick = () => { if (opts.onNorth) opts.onNorth(); m.setBearing(0); };
+        m._compass = b;
+        return b;
+      }
+    });
+    new Compass().addTo(m);
+    const syncCompass = () => {
+      const brg = m.getBearing ? m.getBearing() : 0;
+      if (m._compass) { m._compass.hidden = Math.abs((((brg % 360) + 540) % 360) - 180) < 2; m._compass.firstChild.style.transform = `rotate(${brg}deg)`; }
+      updateHeadingMarkers();
+    };
+    m.on('rotate', syncCompass);
+    syncCompass();
     // Bouton « ma position » rond, comme sur Google Maps
     const Locate = L.Control.extend({
       options: { position: 'bottomright' },
@@ -272,8 +370,9 @@
         b.type = 'button'; b.title = 'Ma position'; b.setAttribute('aria-label', 'Centrer sur ma position');
         b.innerHTML = ic('locate');
         L.DomEvent.disableClickPropagation(b);
+        m._locate = b;
         b.onclick = () => {
-          if (opts.onLocate) opts.onLocate();
+          if (opts.onLocate && opts.onLocate() === false) return;
           if (state.pos) m.flyTo(state.pos, Math.max(m.getZoom(), 16), { duration: 0.6 });
           else toast('Position inconnue pour le moment.', 'error');
         };
@@ -301,7 +400,7 @@
     });
   }
   function refreshMapTheme() {
-    maps.forEach(m => setTiles(m, 0));
+    maps.forEach(m => { setTiles(m, 0); setVector(m); });
     if (resMap && state.lastSearch) drawResults(false);
     if (trkMap && state.tracking) drawRoute(trkMap, trkLayer, state.tracking.r, state.tracking.origin.stopId ? null : state.tracking.origin, false, state.tracking.destObj);
   }
@@ -310,10 +409,12 @@
     if (!map || !state.pos) return cur;
     const r = state.manual ? 0 : Math.min(state.accuracy || 0, 3000);
     if (!cur) {
-      cur = L.marker(state.pos, { icon: mkIcon('mk-user', 18), interactive: false, zIndexOffset: 1000 }).addTo(map);
+      cur = L.marker(state.pos, { icon: L.divIcon({ className: 'mk mk-user', html: '<i class="hd-cone"></i><span></span>', iconSize: [18, 18], iconAnchor: [9, 9] }), interactive: false, zIndexOffset: 1000 }).addTo(map);
+      headingMarkers.add(cur);
       cur._acc = L.circle(state.pos, { radius: 0, color: G.blue, weight: 1, opacity: .45, fillColor: G.blue, fillOpacity: .12, interactive: false }).addTo(map);
     } else { cur.setLatLng(state.pos); cur._acc.setLatLng(state.pos); }
     cur._acc.setRadius(r > 15 ? r : 0);
+    updateHeadingMarkers();
     return cur;
   }
   function mapOff(id) { $(id).innerHTML = '<div class="map-off">Carte indisponible (pas de connexion)</div>'; }
@@ -607,6 +708,7 @@
   const renderBoardSoon = debounce(() => { if (current === 'screen-home') renderBoard(); if (typeof renderPhTeaser === 'function') { renderPhTeaser(); if (current === 'screen-pharma') renderPharma(); refreshLive(false); } }, 600);
   function onPos(p) {
     const c = p.coords;
+    if (c.heading != null && Number.isFinite(c.heading) && (c.speed || 0) > 1.2) { nav.gpsT = Date.now(); setHeading(c.heading, 'gps'); }
     if (!Number.isFinite(c.latitude) || !Number.isFinite(c.longitude)) return;
     bestSeen = Math.min(bestSeen, c.accuracy || 9999);
     if (bestSeen <= 100) stopLowWatch();
@@ -1080,7 +1182,7 @@
     state.selected = i;
     state.tracking = { r, pts: buildTrackPoints(r), idx: -1, alerted: new Set(), arrived: false, dest: state.lastSearch.dest.label, destObj: state.lastSearch.dest, origin: state.lastSearch.origin };
     $('nav-badge').hidden = false;
-    trkFollow = true;
+    trkFollow = true; trkRotate = true;
     show('screen-track');
     renderTracking(true);
     requestWakeLock();
@@ -1171,7 +1273,7 @@
       const p = t.pts[Math.max(0, t.idx)];
       if (trkCur) trkCur.setLatLng([p.lat, p.lon]);
       else trkCur = L.marker([p.lat, p.lon], { icon: mkIcon('mk-current', 22), zIndexOffset: 900, interactive: false }).addTo(trkMap);
-      if (!fit && trkFollow) trkMap.panTo(state.pos && !state.posStale ? state.pos : [p.lat, p.lon], { animate: true });
+      if (!fit && trkFollow) trkMap.panTo(state.pos && !state.posStale ? state.pos : [p.lat, p.lon], { animate: true, duration: 0.5 });
     }
   }
 
@@ -1179,15 +1281,32 @@
     if (!state.tracking) return;
     if (!hasL) { mapOff('trk-map'); return; }
     if (!trkMap) {
-      trkMap = baseMap($('trk-map'), { onLocate: () => { trkFollow = true; } });
+      trkMap = baseMap($('trk-map'), {
+        // bouton de position : suivre (nord en haut) <-> suivre en tournant dans le sens de la marche
+        onLocate: () => {
+          if (trkFollow) { trkRotate = !trkRotate; if (!trkRotate) trkMap.setBearing(0); }
+          trkFollow = true; syncNavFab(); applyHeading();
+          if (state.pos) trkMap.setView(state.pos, Math.max(trkMap.getZoom(), 17), { animate: true });
+          toast(trkRotate ? 'La carte tourne dans votre sens de marche.' : 'Nord en haut.');
+          return false;
+        },
+        onNorth: () => { trkRotate = false; syncNavFab(); }
+      });
       trkLayer = L.layerGroup().addTo(trkMap);
-      trkMap.on('dragstart', () => { trkFollow = false; });
+      trkMap.on('dragstart', () => { trkFollow = false; syncNavFab(); });
     }
     trkMap.invalidateSize();
     trkUser = userMarker(trkMap, trkUser);
     renderTracking(true);
+    syncNavFab();
+    if (trkFollow && state.pos) setTimeout(() => { trkMap.setView(state.pos, Math.max(trkMap.getZoom(), 17)); applyHeading(); }, 400);
   }
 
+  function syncNavFab() {
+    if (!trkMap || !trkMap._locate) return;
+    trkMap._locate.classList.toggle('on', trkFollow);
+    trkMap._locate.innerHTML = ic(trkFollow && trkRotate ? 'navigation' : 'locate');
+  }
   function endTracking() {
     if (!state.tracking) return;
     state.tracking = null;
@@ -1974,6 +2093,7 @@
   /* ---------- Démarrage ---------- */
   // un écran à carte plein écran ne doit jamais défiler lui-même
   document.querySelectorAll('.screen.immersive').forEach(el => el.addEventListener('scroll', () => { if (el.scrollTop) el.scrollTop = 0; }));
+  loadOfflineMap();
   makeSheet('screen-results', 'res-sheet', [0.3, 0.55, 0.9], 1);
   makeSheet('screen-track', 'trk-sheet', [0.22, 0.5, 0.88], 0);
   makeSheet('screen-pharma-detail', 'pd-sheet', [0.3, 0.55, 0.9], 1);

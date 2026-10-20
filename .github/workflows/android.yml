@@ -55,6 +55,24 @@ jobs:
             if git pull --rebase -q -X theirs origin main && git push -q; then echo "Données publiées"; else git rebase --abort 2>/dev/null; echo "Publication impossible : données utilisées pour cet APK seulement"; fi
           fi
 
+      - name: Mois en cours (cache de la carte)
+        id: mois
+        run: echo "m=$(date -u +%Y-%m)" >> "$GITHUB_OUTPUT"
+
+      - name: Carte hors ligne (cache mensuel)
+        uses: actions/cache@v4
+        with:
+          path: www/maps/abidjan.pmtiles
+          key: carte-abidjan-${{ steps.mois.outputs.m }}-v1
+
+      - name: Carte hors ligne du Grand Abidjan (Protomaps / OpenStreetMap)
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          bash scripts/map-build.sh
+          node scripts/map-check.mjs
+
       - name: Copier l'application web dans le projet Android
         run: npx cap sync android
 
@@ -94,6 +112,16 @@ jobs:
           N=$(node -e "global.window={};require('vm').runInThisContext(require('fs').readFileSync('www/data/pharmacies.js','utf8'));const p=window.ZUPA_PHARMA;console.log(p.list.length+' pharmacies (base du '+p.updated+'), '+p.list.filter(x=>x.phone).length+' avec téléphone, '+p.list.filter(x=>x.hours).length+' avec horaires')")
           echo "::notice title=Pharmacies::$N"
           { echo "## ZUPA"; echo "- $(basename "$APK")"; echo "- $N"; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Aperçu de la carte hors ligne
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p dist
+          CHROME_PATH=$(which google-chrome || which chromium || which chromium-browser) node scripts/map-preview.mjs
+          gh release view apercus >/dev/null 2>&1 || gh release create apercus --prerelease --title "Aperçus (compilation)" --notes "Captures automatiques de vérification, pas une version de l'application." --target "$GITHUB_SHA"
+          gh release upload apercus dist/apercu-carte-*.png --clobber
 
       - name: APK téléchargeable (onglet Actions)
         uses: actions/upload-artifact@v5

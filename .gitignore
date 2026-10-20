@@ -10,3 +10,4 @@ android/capacitor-cordova-android-plugins/build/
 *.keystore
 *.jks
 .DS_Store
+www/maps/*.pmtiles
