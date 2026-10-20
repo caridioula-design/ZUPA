@@ -1603,10 +1603,9 @@
       const sub = p.kind !== 'stop' ? hint(p) : (j === t.idx ? 'Vous êtes ici' : '');
       return `<li class="${cls}" data-j="${j}" style="--c:${lineColor(p.line)}"><span class="tl-dot"></span><div><div class="tl-name">${esc(p.name)}</div>${sub ? `<div class="tl-sub">${esc(sub)}</div>` : ''}</div></li>`;
     }).join('');
-    if (scroll && t.idx >= 0) { // défile seulement dans le panneau, pas l'écran
-      const li = $('trk-list').children[t.idx], body = $('trk-sheet').querySelector('.sheet-body');
-      if (li) body.scrollTo({ top: Math.max(0, li.offsetTop - body.clientHeight / 3), behavior: 'smooth' });
-    }
+    // la liste des arrêts est dans la bulle en direct : elle défile toute seule jusqu'à l'arrêt en cours
+    { const box = $('trk-list'), li = box.children[Math.max(0, t.idx)];
+      if (li && (scroll || fit)) requestAnimationFrame(() => box.scrollTo({ top: Math.max(0, li.offsetTop - box.clientHeight / 3), behavior: scroll ? 'smooth' : 'auto' })); }
 
     if (trkMap) {
       if (fit) drawRoute(trkMap, trkLayer, t.r, t.origin.stopId ? null : t.origin, true, t.destObj);
@@ -3524,7 +3523,7 @@
   document.querySelectorAll('.screen.immersive').forEach(el => el.addEventListener('scroll', () => { if (el.scrollTop) el.scrollTop = 0; }));
   loadOfflineMap();
   makeSheet('screen-results', 'res-sheet', [0.3, 0.55, 0.9], 1);
-  makeSheet('screen-track', 'trk-sheet', [0.34, 0.55, 0.88], 0);
+  makeSheet('screen-track', 'trk-sheet', [0.36, 0.6, 0.88], 0);
   makeSheet('screen-pharma-detail', 'pd-sheet', [0.3, 0.55, 0.9], 1);
   applyTheme();
   if ($('app-version')) $('app-version').textContent = CONFIG.version || '1.0.0';

@@ -874,3 +874,25 @@ body.dark #screen-pharma{--ink:#34d399;--mint:#0f2a20}
 .live-back:active{background:rgba(255,255,255,.26)}
 .live.on-map .live-pill{padding-left:58px}
 .live.on-map .live-in{padding-left:16px}
+
+/* ---------- Arrêts du trajet dans la bulle en direct ---------- */
+.live:not(.on-map) .live-stops{display:none}
+.live-stops{background:none;box-shadow:none;border-radius:0;margin:10px 0 0;padding:8px 2px 2px;max-height:min(32vh,240px);overflow-y:auto;overscroll-behavior:contain;border-top:1px solid rgba(255,255,255,.12);scrollbar-width:none}
+.live-stops::-webkit-scrollbar{display:none}
+.live-stops li{padding:6px 0}
+.live-stops li:not(:last-child)::before{top:22px;bottom:-6px}
+.live-stops .tl-dot{width:16px;height:16px;border-width:3px;background:#0b0b0d;margin-top:2px}
+.live-stops li.passed .tl-dot{background:var(--c)}
+.live-stops li.current .tl-dot{background:#fff;border-color:#fff;box-shadow:0 0 0 5px rgba(255,255,255,.18)}
+.live-stops .tl-name{color:#fff;font-size:.88rem}
+.live-stops li.passed .tl-name{color:rgba(255,255,255,.45)}
+.live-stops .tl-sub{color:rgba(255,255,255,.65);font-size:.74rem}
+.live-stops li.current .tl-sub{color:#fbbf24}
+/* plus de place pour l'espace « À l'arrivée » */
+#screen-track .trk-ad{margin:8px 0 14px}
+#screen-track .ad-slide{min-height:104px;padding:16px;gap:14px}
+#screen-track .ad-ic{width:52px;height:52px;border-radius:16px}
+#screen-track .ad-ic .ic{width:26px;height:26px}
+#screen-track .ad-main b{font-size:1.08rem;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#screen-track .ad-main small{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#screen-track .ad-main .ad-tag{white-space:nowrap;display:block}
