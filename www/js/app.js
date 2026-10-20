@@ -143,7 +143,28 @@
       if (id === 'screen-pharma') renderPharma();
       if (id === 'screen-paiya') renderPaiya();
       if (id === 'screen-pharma-detail') ensurePdMap();
+      scheduleAutoZoom(id);
     });
+  }
+
+  /* 3 s après l'ouverture d'une carte, zoom sur la position de l'utilisateur
+     (sauf s'il a touché la carte entre-temps, et sauf sur les cartes où l'on place un repère). */
+  const AUTOZOOM = ['screen-results', 'screen-track', 'screen-pharma-detail'];
+  let autoZoomT = 0;
+  function scheduleAutoZoom(id) {
+    clearTimeout(autoZoomT);
+    if (!AUTOZOOM.includes(id) || typeof L === 'undefined') return;
+    const scr = $(id);
+    maps.forEach(m => { if (scr.contains(m.getContainer())) m._touched = false; });
+    autoZoomT = setTimeout(() => {
+      if (current !== id || !state.pos) return;
+      const m = maps.find(x => scr.contains(x.getContainer()));
+      if (!m || m._touched) return;
+      const z = Math.max(m.getZoom(), 17);
+      if (m.getCenter().distanceTo(visibleCenter(m, state.pos, m.getZoom())) < 15 && m.getZoom() >= z) return;
+      flyVisible(m, state.pos, z);
+      if (id === 'screen-track') { trkFollow = true; syncNavFab(); }
+    }, 3000);
   }
 
   /* ---------- Panneau coulissant sur carte plein écran ---------- */
@@ -198,6 +219,20 @@
     const bottom = sh ? sh.visible() : 0;
     map.fitBounds(pts, { paddingTopLeft: [28, top + 30], paddingBottomRight: [28, bottom + 24], maxZoom });
   }
+
+  /* Centre la carte sur un point dans la partie visible (entre le bandeau du haut et le panneau du bas),
+     en tenant compte de la rotation de la carte. */
+  function visibleCenter(map, ll, z) {
+    const scr = map.getContainer().closest('.screen');
+    const top = scr ? (scr.querySelector('.imm-top') || {}).offsetHeight || 0 : 0;
+    const sh = scr && sheets[scr.id];
+    const dy = ((sh ? sh.visible() : 0) - top) / 2;
+    const t = (map.getBearing ? map.getBearing() : 0) * Math.PI / 180;
+    const c = map.project(ll, z).add(L.point(Math.sin(t) * dy, Math.cos(t) * dy));
+    return map.unproject(c, z);
+  }
+  function flyVisible(map, ll, z, opts = { duration: 1.2 }) { map.flyTo(visibleCenter(map, ll, z), z, opts); }
+  function panVisible(map, ll, opts) { map.panTo(visibleCenter(map, ll, map.getZoom()), opts); }
 
   /* ---------- Thème ---------- */
   const mq = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : { matches: false };
@@ -330,6 +365,7 @@
   }
   function applyHeading() {
     updateHeadingMarkers();
+    if (current === 'screen-home') updateLiveDir();
     if (trkMap && current === 'screen-track' && trkFollow && trkRotate && nav.heading != null) {
       const target = (360 - nav.heading) % 360, cur = (trkMap.getBearing() + 360) % 360;
       if (Math.abs(((target - cur + 540) % 360) - 180) > 2) trkMap.setBearing(target);
@@ -373,13 +409,15 @@
         m._locate = b;
         b.onclick = () => {
           if (opts.onLocate && opts.onLocate() === false) return;
-          if (state.pos) m.flyTo(state.pos, Math.max(m.getZoom(), 16), { duration: 0.6 });
+          if (state.pos) flyVisible(m, state.pos, Math.max(m.getZoom(), 16), { duration: 0.6 });
           else toast('Position inconnue pour le moment.', 'error');
         };
         return b;
       }
     });
     new Locate().addTo(m);
+    // toucher la carte annule le zoom automatique sur la position
+    ['pointerdown', 'wheel'].forEach(ev => el.addEventListener(ev, () => { m._touched = true; }, { passive: true }));
     // Les petits arrêts n'apparaissent qu'en zoomant : carte plus lisible
     m._gated = [];
     m.on('zoomend', () => gateAll(m));
@@ -593,11 +631,103 @@
     if (at && !wasAtStop) vibrate([120, 80, 120]);
     wasAtStop = at;
   }
+  /* ---------- Activité en direct (style « Live Activities » / Dynamic Island) ----------
+     Capsule noire en haut de l'onglet Bus : distance jusqu'à l'arrêt, mise à jour à chaque mesure GPS.
+     Cible : arrêt de départ ou prochain arrêt pendant un trajet suivi, sinon l'arrêt le plus proche.
+     Elle verdit à l'approche (500 m -> 30 m) et clignote en vert à l'arrêt. Un appui l'agrandit. */
+  const live = { open: false, shown: null, raf: 0, key: '' };
+  const CARD = ['le nord', 'le nord-est', "l'est", 'le sud-est', 'le sud', 'le sud-ouest', "l'ouest", 'le nord-ouest'];
+  function liveTarget() {
+    const t = state.tracking;
+    if (t && !t.arrived) {
+      if (t.idx < 0) { const p = t.pts[0]; return { kicker: 'Votre arrêt de départ', p, line: p.line, veh: p.veh, act: 'track', far: FAR_KM, at: AT_STOP_KM }; }
+      const nx = t.pts[t.idx + 1];
+      if (nx) return { kicker: nx.kind === 'alight' ? 'Descente à' : 'Prochain arrêt', p: nx, line: nx.line, veh: nx.veh, act: 'track', far: 1.5, at: 0.06 };
+    }
+    const near = Core.nearbyStops(D, state.pos[0], state.pos[1], 3, 1)[0];
+    if (!near) return null;
+    const s = near.stop;
+    return { kicker: 'Arrêt le plus proche', p: { name: s.label, lat: s.lat, lon: s.lon }, stop: s, act: 'origin', far: FAR_KM, at: AT_STOP_KM };
+  }
+  function liveDistParts(km) {
+    if (km < 1) return [String(Math.max(0, Math.round(km * 100) * 10)), 'm'];
+    return [km.toFixed(km < 10 ? 1 : 0).replace('.', ','), 'km'];
+  }
+  function tweenDist(el, to) { // le chiffre défile doucement vers la nouvelle valeur
+    const from = live.shown == null ? to : live.shown;
+    live.shown = to;
+    cancelAnimationFrame(live.raf);
+    const t0 = performance.now(), dur = Math.abs(to - from) > 2 ? 0 : 450;
+    const step = now => {
+      const k = dur ? Math.min(1, (now - t0) / dur) : 1, v = from + (to - from) * (1 - Math.pow(1 - k, 3));
+      const [n, u] = liveDistParts(v);
+      el.textContent = n; $('live-unit').textContent = u;
+      if (k < 1) live.raf = requestAnimationFrame(step);
+    };
+    live.raf = requestAnimationFrame(step);
+  }
+  function renderLive() {
+    const box = $('live');
+    const tg = state.pos ? liveTarget() : null;
+    if (!tg) { box.hidden = true; wasAtStop = false; return; }
+    box.hidden = false;
+    const d = dist(state.pos, tg.p);
+    const at = d <= tg.at;
+    const k = d >= tg.far ? 0 : at ? 1 : 1 - (d - tg.at) / (tg.far - tg.at);
+    box.classList.toggle('at', at);
+    box.classList.toggle('near', k > 0 && !at);
+    box.classList.toggle('stale', !!state.posStale);
+    box.style.setProperty('--near', k.toFixed(3));
+    box.style.setProperty('--lc', tg.line ? lineColor(tg.line) : 'var(--brand)');
+    const key = tg.kicker + tg.p.name;
+    if (key !== live.key) { live.key = key; live.shown = null; }
+    $('live-kicker').textContent = at ? (tg.act === 'track' && state.tracking && state.tracking.idx >= 0 ? 'Arrêt atteint' : 'Vous êtes à l’arrêt') : tg.kicker;
+    $('live-name').textContent = tg.p.name;
+    if (at) { cancelAnimationFrame(live.raf); live.shown = d; $('live-dist').textContent = 'Ici'; $('live-unit').textContent = ''; }
+    else tweenDist($('live-dist'), d);
+    $('live-fill').style.width = (k * 100).toFixed(1) + '%'; box.style.setProperty('--fill', (k * 100).toFixed(1) + '%');
+    const walk = Core.walkMin(d * Core.CFG.DETOUR);
+    $('live-walk').textContent = at ? (state.posStale ? 'Position en cours de mise à jour' : 'Vous y êtes')
+      : tg.act === 'track' && state.tracking && state.tracking.idx >= 0 ? `${tg.veh || 'Bus'} ${tg.line || ''}`.trim()
+      : `~${fmtMin(walk)} à pied`;
+    $('live-dir-txt').parentNode.hidden = at;
+    updateLiveDir(tg);
+    $('live-lines').innerHTML = tg.stop ? linesHtml(tg.stop) : tg.line ? lineBadge(tg.line, true) : '';
+    $('live-act').textContent = tg.act === 'track' ? 'Ouvrir le suivi du trajet' : 'Partir de cet arrêt';
+    live.tg = tg;
+    if (at && !wasAtStop) vibrate([120, 80, 120]);
+    wasAtStop = at;
+  }
+  function updateLiveDir(tg = live.tg) {
+    if (!tg || !state.pos || $('live').hidden) return;
+    const b = bearing(state.pos, [tg.p.lat, tg.p.lon]);
+    let rot = b, txt;
+    if (nav.heading != null) {
+      rot = (b - nav.heading + 360) % 360;
+      txt = rot < 25 || rot > 335 ? 'Droit devant' : rot < 155 ? 'Sur votre droite' : rot <= 205 ? 'Derrière vous' : 'Sur votre gauche';
+    } else txt = 'Vers ' + CARD[Math.round(b / 45) % 8];
+    $('live-arrow').style.transform = `rotate(${rot.toFixed(0)}deg)`;
+    $('live-dir-txt').textContent = txt;
+  }
+  $('live-pill').addEventListener('click', () => {
+    live.open = !live.open;
+    $('live').classList.toggle('open', live.open);
+    $('live-pill').setAttribute('aria-expanded', String(live.open));
+  });
+  $('live-act').addEventListener('click', () => {
+    const tg = live.tg;
+    if (!tg) return;
+    if (tg.act === 'track') { show('screen-track'); return; }
+    setOriginStop(tg.stop);
+    destInput.focus();
+    toast(`Départ : ${tg.stop.label}. Où allez-vous ?`);
+  });
   function renderLoc() {
     const el = $('loc-chip');
     el.classList.remove('at-stop', 'near-stop'); el.style.removeProperty('--near');
     const actions = `<span class="loc-actions"><button class="link" data-geo="retry">Réessayer</button><button class="link" data-geo="stop">Choisir un arrêt</button><button class="link" data-geo="help">Aide GPS</button></span>`;
     if (!state.pos) {
+      renderLive();
       if (state.geoError) {
         el.className = 'loc-chip warn';
         el.innerHTML = `${ic('pin')}<span>${esc(state.geoError)}<br><small>${esc(state.geoHelp || 'Vous pouvez saisir un arrêt de départ ci-dessous.')}</small>${actions}</span>`;
@@ -609,14 +739,12 @@
     }
     const near = Core.nearbyStops(D, state.pos[0], state.pos[1], 3, 1)[0];
     const atStop = near && near.d <= AT_STOP_KM;
-    const nearTxt = !near ? 'Aucun arrêt de bus à moins de 3 km'
-      : atStop ? `<b class="at-stop-txt">Vous êtes à l'arrêt ${esc(near.stop.label)}</b>`
-      : `Arrêt le plus proche : ${esc(near.stop.label)} · ${fmtDist(near.d)}`;
-    stopGlow(el, near);
+    // l'arrêt le plus proche, sa distance et la lueur verte sont dans l'activité en direct (#live)
+    const nearTxt = !near ? 'Aucun arrêt de bus à moins de 3 km' : '';
+    renderLive();
     if (state.manual) {
       el.className = 'loc-chip';
-      stopGlow(el, near);
-      el.innerHTML = `${ic('pin')}<span>Position <b>choisie sur la carte</b><br><small>${nearTxt}</small><span class="loc-actions"><button class="link" data-geo="fix">Modifier</button><button class="link" data-geo="gps">Revenir au GPS</button></span></span>`;
+      el.innerHTML = `${ic('pin')}<span>Position <b>choisie sur la carte</b>${nearTxt ? `<br><small>${nearTxt}</small>` : ''}<span class="loc-actions"><button class="link" data-geo="fix">Modifier</button><button class="link" data-geo="gps">Revenir au GPS</button></span></span>`;
       return;
     }
     const acc = state.accuracy || 0;
@@ -630,8 +758,7 @@
       ? `<br><small class="warn-txt">Position approximative : le navigateur n'a pas accès à la « position exacte ».</small>`
       : (!state.posStale && acc > 150 ? `<br><small class="warn-txt">Précision faible : vérifiez votre position ou corrigez-la.</small>` : '');
     el.className = 'loc-chip' + (state.approx || acc > 150 ? ' warn' : '');
-    stopGlow(el, near);
-    el.innerHTML = `${ic('pin')}<span>${where}${state.posStale ? ' <small>(mise à jour…)</small>' : quality}<br><small>${nearTxt}</small>${warn}<span class="loc-actions"><button class="link" data-geo="fix">${acc > 50 || state.posStale ? 'Position inexacte ? Corriger' : 'Corriger'}</button>${state.approx || acc > 150 ? '<button class="link" data-geo="help">Améliorer le GPS</button>' : ''}</span></span>`;
+    el.innerHTML = `${ic('pin')}<span>${where}${state.posStale ? ' <small>(mise à jour…)</small>' : quality}${nearTxt ? `<br><small>${nearTxt}</small>` : ''}${warn}<span class="loc-actions"><button class="link" data-geo="fix">${acc > 50 || state.posStale ? 'Position inexacte ? Corriger' : 'Corriger'}</button>${state.approx || acc > 150 ? '<button class="link" data-geo="help">Améliorer le GPS</button>' : ''}</span></span>`;
   }
   $('loc-chip').addEventListener('click', e => {
     const b = e.target.closest('[data-geo]');
@@ -740,6 +867,7 @@
     resUser = userMarker(resMap, resUser);
     trkUser = userMarker(trkMap, trkUser);
     if (state.tracking) onTrackPos();
+    renderLive();
     const accChanged = Math.abs(prevAcc - acc) > Math.max(10, prevAcc * 0.3);
     if (moved < 0.02 && !accChanged) return;
     if (!state.manual) store.set('lastPos', { p: np, t: Date.now() });
@@ -1233,6 +1361,7 @@
     const t = state.tracking;
     if (!t) return;
     const n = t.pts.length;
+    renderLive();
     $('trk-sub').textContent = `Vers ${t.dest} · ${t.r.legs.map(l => l.line.veh.toLowerCase() + ' ' + l.line.num).join(' puis ')}`;
     if (t.idx < 0) {
       const p0 = t.pts[0];
@@ -1273,7 +1402,7 @@
       const p = t.pts[Math.max(0, t.idx)];
       if (trkCur) trkCur.setLatLng([p.lat, p.lon]);
       else trkCur = L.marker([p.lat, p.lon], { icon: mkIcon('mk-current', 22), zIndexOffset: 900, interactive: false }).addTo(trkMap);
-      if (!fit && trkFollow) trkMap.panTo(state.pos && !state.posStale ? state.pos : [p.lat, p.lon], { animate: true, duration: 0.5 });
+      if (!fit && trkFollow) panVisible(trkMap, state.pos && !state.posStale ? state.pos : [p.lat, p.lon], { animate: true, duration: 0.5 });
     }
   }
 
@@ -1286,7 +1415,7 @@
         onLocate: () => {
           if (trkFollow) { trkRotate = !trkRotate; if (!trkRotate) trkMap.setBearing(0); }
           trkFollow = true; syncNavFab(); applyHeading();
-          if (state.pos) trkMap.setView(state.pos, Math.max(trkMap.getZoom(), 17), { animate: true });
+          if (state.pos) trkMap.setView(visibleCenter(trkMap, state.pos, Math.max(trkMap.getZoom(), 17)), Math.max(trkMap.getZoom(), 17), { animate: true });
           toast(trkRotate ? 'La carte tourne dans votre sens de marche.' : 'Nord en haut.');
           return false;
         },
@@ -1299,7 +1428,7 @@
     trkUser = userMarker(trkMap, trkUser);
     renderTracking(true);
     syncNavFab();
-    if (trkFollow && state.pos) setTimeout(() => { trkMap.setView(state.pos, Math.max(trkMap.getZoom(), 17)); applyHeading(); }, 400);
+    if (trkFollow && state.pos) setTimeout(() => { trkMap.setView(visibleCenter(trkMap, state.pos, Math.max(trkMap.getZoom(), 17)), Math.max(trkMap.getZoom(), 17)); applyHeading(); }, 400);
   }
 
   function syncNavFab() {

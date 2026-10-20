@@ -26,6 +26,26 @@
       <button class="icon-btn" id="theme-quick" aria-label="Changer le thème"></button>
     </header>
 
+    <!-- Activité en direct : distance jusqu'à l'arrêt, mise à jour en continu -->
+    <div class="live" id="live" hidden>
+      <button class="live-pill" id="live-pill" type="button" aria-expanded="false" aria-controls="live-more">
+        <span class="live-ic" id="live-ic"><span data-icon="bus"></span></span>
+        <span class="live-c"><small id="live-kicker">Arrêt le plus proche</small><b id="live-name"></b></span>
+        <span class="live-r" aria-live="polite"><b id="live-dist"></b><small id="live-unit"></small></span>
+      </button>
+      <div class="live-more" id="live-more">
+        <div class="live-in">
+          <div class="live-track"><i id="live-fill"></i><span class="live-me"></span><span class="live-end"><span data-icon="bus"></span></span></div>
+          <div class="live-row">
+            <span class="live-dir"><svg id="live-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4.5 20.29l.71.71L12 18l6.79 3 .71-.71z" fill="currentColor"/></svg><span id="live-dir-txt"></span></span>
+            <span id="live-walk"></span>
+          </div>
+          <div class="live-lines" id="live-lines"></div>
+          <div class="live-acts"><button type="button" class="live-btn" id="live-act"></button></div>
+        </div>
+      </div>
+    </div>
+
     <div class="loc-chip" id="loc-chip" aria-live="polite"></div>
 
     <div class="card search-card" role="search">
