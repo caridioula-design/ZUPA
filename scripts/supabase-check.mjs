@@ -16,5 +16,7 @@ const bad = await call('/rest/v1/lieux', { method: 'POST', headers: { Prefer: 'r
 out.push(`ajout ${bad.s === 400 && /lat_check/.test(bad.t) ? 'autorisé, contrôles actifs' : bad.s === 401 || bad.s === 403 ? 'REFUSÉ (droits manquants) ' + bad.t : 'réponse inattendue ' + bad.s + ' ' + bad.t}`);
 const upd = await call('/rest/v1/lieux?id=eq.00000000-0000-4000-8000-000000000000', { method: 'PATCH', body: JSON.stringify({ name: 'x' }) });
 out.push(`modification ${upd.s >= 400 ? 'interdite' : 'POSSIBLE (à corriger)'}`);
-const ok = read.s === 200 && dev.s >= 400 && bad.s === 400 && upd.s >= 400;
+const popu = await call('/rest/v1/rpc/lieux_populaires', { method: 'POST', body: JSON.stringify({ p_lat: 5.33, p_lon: -4.01, p_km: 5 }) });
+out.push(popu.s === 200 ? 'amis et lieux populaires OK' : popu.s === 404 ? 'AMIS NON INSTALLÉS : exécutez supabase/amis.sql' : 'amis : réponse ' + popu.s + ' ' + popu.t);
+const ok = popu.s === 200 && read.s === 200 && dev.s >= 400 && bad.s === 400 && upd.s >= 400;
 note(ok ? 'notice' : 'warning', out.join(' · '));

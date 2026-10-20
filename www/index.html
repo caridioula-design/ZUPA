@@ -64,6 +64,7 @@
       <div class="suggest" id="suggest-home" role="listbox" hidden></div>
     </div>
     <button class="btn primary block" id="search-btn">Trouver mon bus</button>
+    <div class="quick-places" id="quick-places" aria-label="Mes lieux confidentiels"></div>
 
     <button class="ph-teaser" id="ph-teaser" aria-label="Voir les pharmacies">
       <span class="ph-teaser-ic"><span data-icon="cross"></span></span>
@@ -268,6 +269,10 @@
       </div>
       <button class="py-open" id="py-open" type="button" aria-pressed="false"><i></i>Ouvert</button>
     </div>
+    <section class="py-pop" id="py-pop" hidden>
+      <div class="py-head"><h2>Les plus visités</h2><span>ces 30 derniers jours</span></div>
+      <div class="py-rail" id="py-rail"></div>
+    </section>
     <div class="py-head"><h2 id="py-list-h">Autour de vous</h2><span id="py-sub"></span></div>
     <div id="py-list" class="py-list"></div>
     <button class="btn ghost block" id="py-more" hidden>Afficher plus</button>
@@ -282,6 +287,11 @@
       <button class="icon-btn" id="ap-back" aria-label="Retour"></button>
       <div class="topbar-text"><div class="title">Ajouter un lieu</div><div class="subtitle" id="ap-sub">Visible par tous les utilisateurs de ZUPA</div></div>
     </div>
+    <div class="segmented ap-vis" id="ap-vis" role="radiogroup" aria-label="Visibilité">
+      <button type="button" data-vis="public" role="radio"><span data-icon="explore"></span>Public</button>
+      <button type="button" data-vis="private" role="radio"><span data-icon="lock"></span>Confidentiel</button>
+    </div>
+    <p class="ap-vis-note" id="ap-vis-note"></p>
     <div class="py-cats" id="ap-cats" role="radiogroup" aria-label="Catégorie"></div>
     <div class="card ap-geo">
       <div class="map-wrap ap-map-wrap">
@@ -298,6 +308,7 @@
     <form class="card form" id="ap-form" novalidate>
       <label for="ap-name" id="ap-name-l">Nom</label>
       <input class="input" id="ap-name" maxlength="80" autocomplete="off">
+      <div id="ap-public-fields">
       <label>Type</label>
       <div class="ap-chips" id="ap-kind" role="radiogroup" aria-label="Type"></div>
       <div id="ap-wc" hidden>
@@ -313,6 +324,7 @@
       </div>
       <label for="ap-phone">Téléphone <small>(facultatif)</small></label>
       <input class="input" id="ap-phone" type="tel" inputmode="tel" maxlength="20" autocomplete="off" placeholder="07 00 00 00 00">
+      </div>
       <label for="ap-note">Remarque <small>(facultatif)</small></label>
       <textarea class="input" id="ap-note" maxlength="200" rows="2" placeholder="ex. derrière la station, au 1er étage…"></textarea>
       <button class="btn primary block ap-save" id="ap-save" type="submit">Enregistrer le lieu</button>
@@ -350,6 +362,32 @@
         <input type="file" id="import-file" accept="application/json,.json" hidden>
       </div>
     </div>
+    <div class="card" id="friends-card">
+      <h3>Amis</h3>
+      <div id="fr-setup">
+        <p class="muted">Échangez des lieux avec vos proches. Choisissez un pseudo : c'est tout ce que vos amis verront de vous. Personne ne peut vous trouver sans votre code ami.</p>
+        <form class="fr-row" id="fr-create"><input class="input" id="fr-pseudo" maxlength="30" autocomplete="nickname" placeholder="Votre pseudo"><button class="btn primary sm" type="submit">Créer</button></form>
+      </div>
+      <div id="fr-main" hidden>
+        <div class="fr-me">
+          <span class="fr-avatar" id="fr-avatar"></span>
+          <span class="fr-me-txt"><b id="fr-me-pseudo"></b><small>Mon code ami : <b class="fr-code" id="fr-me-code"></b></small></span>
+          <button class="btn ghost sm" id="fr-invite" type="button"><span data-icon="share"></span>Inviter</button>
+        </div>
+        <form class="fr-row" id="fr-add"><input class="input" id="fr-code-in" maxlength="9" autocomplete="off" autocapitalize="characters" placeholder="Code ami, ex. 7KQ4-92XZ" aria-label="Code ami"><button class="btn primary sm" type="submit">Ajouter</button></form>
+        <ul class="fav-list fr-list" id="fr-list"></ul>
+      </div>
+    </div>
+    <div class="card" id="recus-card" hidden>
+      <h3>Lieux reçus</h3>
+      <ul class="fav-list fr-list" id="recus-list"></ul>
+    </div>
+    <div class="card">
+      <h3><span data-icon="lock"></span> Mes lieux confidentiels</h3>
+      <p class="muted">Domicile, travail… Ils restent sur ce téléphone : personne d'autre ne les voit, ils ne sont jamais envoyés ni partagés.</p>
+      <ul class="fav-list my-places" id="priv-list"></ul>
+      <div class="btn-row"><button class="btn primary sm" id="priv-add">Ajouter un lieu confidentiel</button></div>
+    </div>
     <div class="card">
       <h3>Lieux ajoutés</h3>
       <p class="muted" id="my-places-sub">Toilettes, restaurants, hôtels et commerces que vous avez ajoutés dans Paiya.</p>
@@ -361,6 +399,16 @@
       <div class="segmented" id="theme-seg">
         <button data-theme="auto">Auto</button><button data-theme="light">Clair</button><button data-theme="dark">Sombre</button>
       </div>
+    </div>
+    <div class="card">
+      <h3>Confidentialité</h3>
+      <ul class="privacy-list">
+        <li>Votre position, votre nom et vos lieux confidentiels restent sur ce téléphone.</li>
+        <li>Vos amis ne voient que votre pseudo et les lieux que vous leur envoyez.</li>
+        <li>Les visites servent, de façon anonyme, à classer les lieux les plus visités : un identifiant différent chaque jour, jamais près de vos lieux confidentiels, et un lieu n'apparaît qu'à partir de 3 visites.</li>
+      </ul>
+      <label class="switch-row"><input type="checkbox" id="pv-visits"><span>Compter mes visites (anonyme)</span></label>
+      <button class="btn ghost sm" id="pv-wipe" style="margin-top:12px">Effacer mes données en ligne</button>
     </div>
     <div class="card">
       <h3>À propos</h3>
@@ -379,8 +427,23 @@
   <button class="nav-btn" data-nav="screen-pharma"><span data-icon="cross"></span>Pharmacies</button>
   <button class="nav-btn" data-nav="screen-paiya"><span data-icon="explore"></span>Paiya</button>
   <button class="nav-btn" data-nav="screen-track" id="nav-track"><span data-icon="route"></span>Trajet<span class="badge" id="nav-badge" hidden></span></button>
-  <button class="nav-btn" data-nav="screen-profile"><span data-icon="user"></span>Profil</button>
+  <button class="nav-btn" data-nav="screen-profile"><span data-icon="user"></span>Profil<span class="badge num" id="nav-pf-badge" hidden></span></button>
 </nav>
+<div class="share-sheet" id="share-sheet" hidden>
+  <div class="share-backdrop" data-share-close></div>
+  <div class="share-panel" role="dialog" aria-modal="true" aria-labelledby="share-title">
+    <div class="share-grab"></div>
+    <h3 id="share-title">Partager</h3>
+    <p class="muted" id="share-sub"></p>
+    <div id="share-friends"></div>
+    <div id="share-send-box">
+      <input class="input" id="share-note" maxlength="200" placeholder="Petit mot (facultatif) : « rendez-vous ici à 19 h »">
+      <button class="btn primary block" id="share-send" type="button">Envoyer</button>
+    </div>
+    <button class="btn ghost block" id="share-out" type="button"><span data-icon="share"></span>Autre application (WhatsApp, SMS…)</button>
+    <button class="btn ghost block" data-share-close type="button">Fermer</button>
+  </div>
+</div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 </div>
 

@@ -632,3 +632,87 @@ body.nav-lock main .screen.active{pointer-events:none}
 .nav-btn{min-height:52px}
 .utag.zone{background:color-mix(in srgb,var(--info) 14%,transparent);color:var(--info)}
 .ap-save.loading{opacity:.6}
+
+/* ---------- Lieux confidentiels ---------- */
+.quick-places{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:12px 0 4px;padding:2px}
+.quick-places::-webkit-scrollbar{display:none}
+.qp{flex:none;display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:999px;background:var(--surface);box-shadow:var(--shadow);font-weight:600;font-size:.88rem;color:var(--text);min-height:44px}
+.qp .ic{width:20px;height:20px;color:#3f4a5a}
+body.dark .qp .ic{color:#c3cad6}
+.qp.add{background:transparent;box-shadow:inset 0 0 0 1.5px var(--border);color:var(--text-2)}
+.qp.add .ic{color:var(--text-3)}
+.utag.priv{display:inline-flex;align-items:center;gap:3px;background:color-mix(in srgb,#3f4a5a 14%,transparent);color:#3f4a5a}
+.utag.priv .ic{width:11px;height:11px}
+body.dark .utag.priv{color:#c3cad6}
+.ap-vis{margin-bottom:8px}
+.ap-vis button{display:flex;align-items:center;justify-content:center;gap:6px}
+.ap-vis .ic{width:18px;height:18px}
+.ap-vis-note{display:flex;align-items:center;gap:8px;font-size:.8rem;color:var(--text-2);margin:0 4px 12px}
+.ap-vis-note .ic{width:16px;height:16px;flex:none}
+.ap-vis-note.priv{color:var(--text)}
+h3 .ic{width:18px;height:18px;vertical-align:-3px}
+
+/* ---------- Amis et lieux reçus ---------- */
+.fr-row{display:flex;gap:8px;margin-top:12px}
+.fr-row .input{flex:1;min-width:0}
+.fr-me{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:14px;background:var(--surface-2)}
+.fr-me-txt{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.3}
+.fr-me-txt small{color:var(--text-2);font-size:.8rem}
+.fr-code{font-family:var(--font-title);letter-spacing:.06em;color:var(--brand);user-select:all}
+.fr-me .btn{display:inline-flex;align-items:center;gap:6px}
+.fr-me .btn .ic{width:16px;height:16px;color:inherit}
+.fr-avatar{flex:none;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--brand);color:#fff;font-family:var(--font-title);font-weight:700;font-size:1rem}
+.fr-list li{gap:10px}
+.fr-list li .btn .ic{color:var(--text-2);width:18px;height:18px}
+.fr-item.recue{background:color-mix(in srgb,var(--brand) 7%,transparent);border-radius:12px;padding:10px 8px}
+.fr-list li.unread b{color:var(--brand)}
+#recus-list .fr-avatar{background:#3f4a5a}
+.badge.num{width:auto!important;height:18px!important;min-width:18px;padding:0 5px;border-radius:9px!important;background:var(--err)!important;color:#fff;font-size:.66rem;font-weight:700;line-height:14px;top:4px!important;right:calc(50% - 26px)!important;text-align:center}
+
+/* ---------- Partage ---------- */
+.share-sheet{position:fixed;inset:0;z-index:1000}
+.share-backdrop{position:absolute;inset:0;background:rgba(10,12,16,.45);opacity:0;transition:opacity .25s}
+.share-panel{position:absolute;left:0;right:0;bottom:0;max-height:85vh;overflow-y:auto;background:var(--surface);border-radius:24px 24px 0 0;padding:10px 18px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -10px 40px rgba(0,0,0,.25);transform:translateY(100%);transition:transform .32s cubic-bezier(.16,1,.3,1);display:flex;flex-direction:column;gap:10px}
+.share-sheet.open .share-backdrop{opacity:1}
+.share-sheet.open .share-panel{transform:none}
+.share-grab{width:40px;height:4px;border-radius:2px;background:var(--border);margin:0 auto 6px}
+.share-panel h3{font-family:var(--font-title);font-size:1.15rem}
+#share-sub{display:flex;align-items:center;gap:8px}
+#share-sub .ic{width:18px;height:18px;flex:none}
+.share-list{display:flex;flex-direction:column;gap:4px;max-height:38vh;overflow-y:auto}
+.share-friend{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:12px;cursor:pointer;min-height:52px}
+.share-friend:has(input:checked){background:color-mix(in srgb,var(--brand) 9%,transparent)}
+.share-friend input{width:20px;height:20px;accent-color:var(--brand)}
+#share-send-box{display:flex;flex-direction:column;gap:8px}
+.share-panel .btn{display:flex;align-items:center;justify-content:center;gap:8px}
+.share-panel .btn .ic{width:18px;height:18px}
+@media(prefers-reduced-motion:reduce){.share-panel,.share-backdrop{transition:none}}
+
+/* ---------- Les plus visités ---------- */
+.py-pop{margin-bottom:16px}
+.py-rail{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 2px 6px;scrollbar-width:none}
+.py-rail::-webkit-scrollbar{display:none}
+.pop-card{flex:none;width:150px;scroll-snap-align:start;position:relative;display:flex;flex-direction:column;gap:6px;text-align:left;padding:12px;border-radius:18px;background:var(--surface);box-shadow:var(--shadow)}
+.pop-card.following{box-shadow:0 0 0 2px var(--c),var(--shadow)}
+.pop-rank{position:absolute;top:8px;right:12px;font-family:var(--font-title);font-weight:700;font-size:1.6rem;line-height:1;color:color-mix(in srgb,var(--c) 30%,transparent)}
+.pop-ic{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:var(--c);color:#fff}
+.pop-ic .ic{width:20px;height:20px}
+.pop-card b{font-size:.88rem;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pop-card small{display:flex;align-items:center;gap:4px;font-size:.72rem;color:var(--text-3)}
+.pop-card small .ic{width:13px;height:13px;color:#e8590c}
+
+/* ---------- Confidentialité ---------- */
+.privacy-list{margin:6px 0 12px 18px;color:var(--text-2);font-size:.86rem;display:flex;flex-direction:column;gap:6px}
+.switch-row{display:flex;align-items:center;gap:10px;font-weight:600;font-size:.9rem;min-height:44px}
+.switch-row input{width:20px;height:20px;accent-color:var(--brand)}
+
+/* ---------- Clavier ouvert ---------- */
+body.kb-open .navbar{display:none}
+body.kb-open .live{position:relative;top:auto}
+body.kb-open .py-fab-wrap{display:none}
+body.kb-open .screen.active{padding-bottom:calc(var(--kb, 0px) + 60vh)}
+.suggest{overscroll-behavior:contain}
+.ap-vis{grid-template-columns:1fr 1fr}
+.fav-list .fr-avatar,.fr-me .fr-avatar{flex:0 0 38px;width:38px;overflow:visible;white-space:normal;text-overflow:clip}
+.fr-list li>span:not(.fr-avatar){white-space:normal}
+.fr-me-txt small b{display:inline-block}

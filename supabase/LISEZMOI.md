@@ -5,7 +5,7 @@ Les toilettes, restaurants, hôtels et commerces ajoutés par les utilisateurs s
 ## Mise en place (une seule fois, environ 5 minutes)
 
 1. Créez un compte sur https://supabase.com, puis **New project**. Choisissez par exemple le nom `zupa` et la région la plus proche (Europe de l'Ouest).
-2. Dans le projet, ouvrez **SQL Editor › New query**. Collez tout le contenu de `supabase/lieux.sql`, puis cliquez sur **Run**.
+2. Dans le projet, ouvrez **SQL Editor › New query**. Collez tout le contenu de `supabase/lieux.sql`, puis cliquez sur **Run**. Faites de même avec `supabase/amis.sql` (amis, partage de lieux, lieux les plus visités).
 3. Ouvrez **Project Settings › API** (ou **Connect**) et copiez deux valeurs :
    - **Project URL**, par exemple `https://abcdefgh.supabase.co` ;
    - la clé publique **Publishable key** (`sb_publishable_…`) ou, sur les anciens projets, la clé **anon public**.
@@ -33,3 +33,12 @@ Dans Supabase, **Table Editor › lieux** :
 - pour supprimer un lieu, utilisez la suppression de ligne.
 
 La table `signalements` contient le motif de chaque signalement.
+
+## Amis, partage et lieux les plus visités (`amis.sql`)
+
+- Aucune de ces tables n'est lisible directement : tout passe par des fonctions qui vérifient le secret du téléphone. Seule l'empreinte SHA-256 de ce secret est stockée.
+- On ne trouve un utilisateur que par son **code ami** : il n'y a ni annuaire ni recherche par nom. Les amis ne voient que le pseudo.
+- Les lieux ne s'échangent qu'entre amis acceptés : 20 demandes d'ami et 60 partages par jour au maximum. Les lieux reçus sont effacés après 90 jours, ou quand l'amitié est retirée.
+- **Visites** : l'identifiant change chaque jour (empreinte appareil + date) et n'est relié à aucun profil. Rien n'est compté près des lieux confidentiels de l'utilisateur. Un lieu n'apparaît qu'à partir de 3 visites sur 30 jours, et les visites de plus de 60 jours sont supprimées.
+- **Lieux confidentiels** (domicile, travail…) : ils ne quittent jamais le téléphone et ne passent par aucune de ces fonctions.
+- **« Effacer mes données en ligne »** (Profil) supprime le profil, les amitiés, les lieux échangés et les lieux publics ajoutés depuis ce téléphone.

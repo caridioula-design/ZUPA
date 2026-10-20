@@ -49,6 +49,9 @@
     check: 'M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z',
     flag: 'M14.4 6 14 4H5v17h2v-7h5.6l.4 2h7V6z',
     trash: 'M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z',
+    lock: 'M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2z',
+    work: 'M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z',
+    fire: 'M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67zM11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z',
     clock: 'M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z'
   };
   const ic = n => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONS[n]}"/></svg>`;
@@ -970,6 +973,7 @@
     trkUser = userMarker(trkMap, trkUser);
     if (state.tracking) onTrackPos();
     renderLive();
+    checkVisit();
     const accChanged = Math.abs(prevAcc - acc) > Math.max(10, prevAcc * 0.3);
     if (moved < 0.02 && !accChanged) return;
     if (!state.manual) store.set('lastPos', { p: np, t: Date.now() });
@@ -1066,6 +1070,7 @@
         ? `<div class="sg-head">${esc(it.head)}</div>`
         : `<div class="sg-item${i === active ? ' active' : ''}" role="option" id="${box.id}-${i}" data-i="${i}" aria-selected="${i === active}">${it.html}</div>`).join('');
       box.hidden = false;
+      sizeSuggest();
       input.setAttribute('aria-expanded', 'true');
       if (active >= 0) { input.setAttribute('aria-activedescendant', `${box.id}-${active}`); const el = $(`${box.id}-${active}`); el && el.scrollIntoView({ block: 'nearest' }); }
       else input.removeAttribute('aria-activedescendant');
@@ -1180,14 +1185,16 @@
     onPick: it => { if (it.type === 'place') setDestPlace(it.place); else setDest(it.stop); runSearch(); },
     onEnter: () => runSearch(),
     search: q => {
-      const stops = Core.searchStops(D, q, 6).map(withDist), places = searchPlaces(q, 6);
+      const stops = Core.searchStops(D, q, 6).map(withDist), places = searchPlaces(q, 6), mine = privMatches(q).map(privItem);
       const out = [];
+      if (mine.length) out.push({ head: 'Mes lieux confidentiels' }, ...mine);
       if (stops.length) out.push({ head: 'Arrêts' }, ...stops);
       if (places.length) out.push({ head: 'Lieux' }, ...places);
       return out;
     },
     empty: () => {
       const out = [];
+      if (priv.length) out.push({ head: 'Mes lieux confidentiels' }, ...priv.map(privItem));
       const mine = comm.mine.slice(0, 4).map(m => placeItem({ p: commPlace(m, true), kind: 'paiya' }));
       if (mine.length) out.push({ head: 'Mes lieux' }, ...mine);
       const rp = state.recentPlaces.map(r => ({ type: 'place', place: r, html: `<span class="sg-ic place" style="--c:var(--text-2)">${ic('clock')}</span><span class="sg-main"><span class="sg-name">${esc(r.name)}</span></span>${state.pos ? `<span class="sg-extra">${fmtDist(Core.haversine(state.pos[0], state.pos[1], r.lat, r.lon))}</span>` : ''}` }));
@@ -1324,7 +1331,7 @@
         if (res.status === 'noDestStops') { toast(`Aucun arrêt de bus à moins de 800 m de ${dest.label}.`, 'error', 5000); return; }
         state.lastSearch = { origin, dest, res };
         state.routes = res.routes; state.selected = 0;
-        if (dest.id) addRecent(dest.id); else if (dest.place && current === 'screen-home') addRecentPlace(dest);
+        if (dest.id) addRecent(dest.id); else if (dest.place && current === 'screen-home' && !priv.some(r => r.name === dest.label)) addRecentPlace(dest);
         state.resBack = dest.place ? current : 'screen-home';
         renderResults();
         show('screen-results');
@@ -1633,6 +1640,10 @@
       : `<li class="muted">Aucun favori pour l'instant (${FAV_LIMIT} maximum).</li>`;
     renderCustomList();
     renderMyPlaces();
+    renderFriends(); renderPrivList();
+    frRefresh(true);
+    // les lieux reçus affichés sont considérés comme vus
+    setTimeout(() => { if (current === 'screen-profile' && fr.recus.some(r => !r.lu)) { fr.recus.forEach(r => { if (!r.lu) { r.lu = true; rpc('lieu_recu_maj', { p_id: r.id }); } }); store.set('recus', fr.recus); syncBadge(); renderFriends(); } }, 4000);
     $('data-stats').textContent = `${D.lines.length} trajets de bus et ${D.stops.length} arrêts intégrés à l'application. Vos favoris et réglages restent sur cet appareil.`;
     applyTheme();
   }
@@ -2221,6 +2232,8 @@
       ns && ['bus', 'Arrêt de bus le plus proche', `${esc(ns.name)} · ${fmtDist(ns.d)}`],
       p.hours && ['clock', 'Horaires', esc(fmtHours(p.hours))],
       p.note && ['info', 'Remarque', esc(p.note)],
+      p.shared && ['user', 'Source', `Envoyé par ${esc(p.from)}${p.created ? ' le ' + esc(new Date(p.created).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })) : ''}`],
+      p.private && ['lock', 'Confidentiel', 'Visible par vous seul, enregistré sur ce téléphone.'],
       p.community && ['user', 'Source', `Ajouté par ${p.mine ? 'vous' : 'un utilisateur de ZUPA'}${p.created ? ' le ' + esc(new Date(p.created).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })) : ''}${p.pending ? ' · en attente d\u2019envoi' : ''}`],
       p.web && ['share', 'Site web', `<a href="${esc(/^https?:/.test(p.web) ? p.web : 'https://' + p.web)}" data-ext>${esc(p.web.replace(/^https?:\/\//, '').slice(0, 40))}</a>`]
     ].filter(Boolean) : [
@@ -2243,6 +2256,8 @@
       ? 'Informations issues d\'OpenStreetMap : elles peuvent être incomplètes. Appelez avant de vous déplacer si possible.'
       : 'Vérifiez par téléphone avant de vous déplacer : les informations proviennent d\'OpenStreetMap et de la liste de garde publiée.';
     renderPdComm(kind === 'paiya' ? p : null);
+    if (p.private) $('pd-note').textContent = 'Lieu confidentiel : il n\u2019est ni envoyé ni partagé.';
+    else if (p.shared) $('pd-note').textContent = 'Lieu envoyé par un ami. Vérifiez sur place avant de vous déplacer loin.';
     if (p.community) $('pd-note').textContent = 'Lieu ajouté par la communauté ZUPA. Signalez-le s\u2019il est faux ou n\u2019existe plus.';
     $('screen-pharma-detail').classList.toggle('py', kind === 'paiya');
     $('screen-pharma-detail').style.setProperty('--c', kind === 'paiya' ? PY_COLOR[p.cat] : '');
@@ -2305,20 +2320,21 @@
     searchRoutes({ lat: state.pos[0], lon: state.pos[1], label: state.manual ? 'Position choisie' : 'Ma position' },
       { id: null, place: true, lat: p.lat, lon: p.lon, label: p.name }, $('pd-bus'));
   };
-  $('pd-share').onclick = async () => {
-    const p = ph.sel; if (!p) return;
+  $('pd-share').onclick = () => { if (ph.sel) openShare(ph.sel); };
+  async function nativeShare(p) {
+    if (!p) return;
     const text = [p.name + (p.garde ? ' (de garde)' : ''), [p.street, p.commune].filter(Boolean).join(', '), p.phone && 'Tél. ' + fmtPhone(p.phone),
       Number.isFinite(p.lat) && `https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}`, '— partagé avec ZUPA'].filter(Boolean).join('\n');
     try { if (navigator.share) { await navigator.share({ title: p.name, text }); return; } } catch (err) { if (err && err.name === 'AbortError') return; }
     try { await navigator.clipboard.writeText(text); toast('Informations copiées.', 'success'); } catch (_) { toast(text, 'info', 8000); }
-  };
+  }
 
   /* =====================================================================
      PAIYA : hôtels, restaurants, toilettes publiques, commerces
      ===================================================================== */
   const PYC = PaiyaCore;
-  const PY_ICON = { hotel: 'hotel', resto: 'resto', wc: 'wc', shop: 'shop' };
-  const PY_COLOR = { hotel: '#5b3cc4', resto: '#c24a12', wc: '#0b7a8f', shop: '#b3245f' }; // texte blanc lisible (contraste ≥ 4,5)
+  const PY_ICON = { hotel: 'hotel', resto: 'resto', wc: 'wc', shop: 'shop', private: 'lock' };
+  const PY_COLOR = { hotel: '#5b3cc4', resto: '#c24a12', wc: '#0b7a8f', shop: '#b3245f', private: '#3f4a5a' }; // texte blanc lisible (contraste ≥ 4,5)
   const PY_EMBED = (window.ZUPA_PAIYA && Array.isArray(window.ZUPA_PAIYA.list)) ? window.ZUPA_PAIYA.list : [];
   const py = { cat: store.get('pyCat', 'resto'), q: '', shown: 20, cache: store.get('pyCache', null), loading: false, lastTry: 0, open: false };
 
@@ -2437,7 +2453,7 @@
     toast('Merci, le signalement est enregistré.', 'success');
     renderPdComm(p);
   }
-  window.addEventListener('online', () => { syncMine(); fetchCommunity(true); });
+  window.addEventListener('online', () => { syncMine(); fetchCommunity(true); flushVisits(); frRefresh(false); });
   async function refreshPaiya(force) {
     if (!state.pos || py.loading) return;
     const c = py.cache;
@@ -2534,8 +2550,10 @@
     const upd = window.ZUPA_PAIYA && window.ZUPA_PAIYA.updated;
     $('py-note').textContent = `Données © OpenStreetMap${upd ? ' · base du ' + new Date(upd).toLocaleDateString('fr-FR') : ''}${py.cache ? ' · actualisée le ' + new Date(py.cache.t).toLocaleDateString('fr-FR') : ''}`;
     renderLive();
+    renderPopular();
     if (state.pos) refreshPaiya(false);
     fetchCommunity(false);
+    fetchPopular(false);
   }
   $('py-open').onclick = () => { py.open = !py.open; py.shown = 20; renderPaiya(); };
   $('py-cats').addEventListener('click', e => {
@@ -2576,10 +2594,11 @@
   // nom plausible : au moins 2 lettres, pas de lien ni d'adresse e-mail, pas de répétitions absurdes
   const nameValid = v => { const t = v.trim(); return t.length >= 2 && (t.match(/\p{L}/gu) || []).length >= 2 && !/https?:|www\.|@|\.(com|net|org|ci)\b/i.test(t) && !/(.)\1{4,}/.test(t); };
   const phoneDigits = v => v.replace(/\D/g, '').replace(/^225(?=\d{10}$)/, '');
-  function openAddPlace(cat, from) {
+  function openAddPlace(cat, from, opts = {}) {
+    ap.vis = opts.private ? 'private' : 'public'; ap.pkind = opts.kind || 'home';
     const lastHour = comm.mine.filter(m => Date.now() - new Date(m.created).getTime() < 3600e3).length;
-    if (lastHour >= 10) { toast('Vous avez déjà ajouté 10 lieux en une heure. Réessayez un peu plus tard.', 'error', 5000); return; }
-    ap.cat = cat || py.cat; ap.back = from || current;
+    if (ap.vis === 'public' && lastHour >= 10) { toast('Vous avez déjà ajouté 10 lieux en une heure. Réessayez un peu plus tard.', 'error', 5000); return; }
+    ap.cat = PYC.CATS[cat] ? cat : (PYC.CATS[py.cat] ? py.cat : 'wc'); ap.back = from || current;
     ap.kind = AP_KINDS[ap.cat][0]; ap.fee = null; ap.hours = '';
     ap.pos = state.gpsLast || state.pos; ap.acc = state.gpsLast ? state.gpsAcc : state.accuracy;
     ap.st = ap.pos ? 'auto' : 'none';
@@ -2588,8 +2607,22 @@
     show('screen-addplace');
   }
   function renderAddPlace() {
-    const scr = $('screen-addplace');
-    scr.style.setProperty('--c', PY_COLOR[ap.cat]);
+    const scr = $('screen-addplace'), pv = ap.vis === 'private';
+    scr.style.setProperty('--c', pv ? PY_COLOR.private : PY_COLOR[ap.cat]);
+    $('ap-vis').querySelectorAll('button').forEach(b => { const on = b.dataset.vis === ap.vis; b.classList.toggle('active', on); b.setAttribute('aria-checked', String(on)); });
+    $('ap-vis-note').innerHTML = pv ? `${ic('lock')}<span>Visible par vous seul. Enregistré sur ce téléphone, jamais envoyé ni partagé.</span>` : `${ic('explore')}<span>Visible par tous les utilisateurs de ZUPA.</span>`;
+    $('ap-vis-note').className = 'ap-vis-note' + (pv ? ' priv' : '');
+    $('ap-sub').textContent = pv ? 'Lieu confidentiel' : 'Visible par tous les utilisateurs de ZUPA';
+    $('ap-public-fields').hidden = pv; $('ap-hours').hidden = pv; $('ap-hours').previousElementSibling.hidden = pv;
+    $('ap-range').hidden = pv || !(ap.hours && ap.hours !== '24/7');
+    if (pv) {
+      $('ap-cats').innerHTML = Object.entries(PRIV_KINDS).map(([k, v]) => `<button type="button" class="py-cat${ap.pkind === k ? ' on' : ''}" role="radio" aria-checked="${ap.pkind === k}" data-pkind="${k}" style="--c:${PY_COLOR.private}">${ic(v.icon)}<span>${v.label}</span></button>`).join('');
+      $('ap-wc').hidden = true;
+      $('ap-name').placeholder = ap.pkind === 'other' ? 'ex. Chez maman, Salle de sport' : PRIV_KINDS[ap.pkind].label;
+      $('ap-name-l').innerHTML = 'Nom <small>(facultatif)</small>';
+      renderApState();
+      return;
+    }
     $('ap-cats').innerHTML = PYC.ORDER.map(c => `<button type="button" class="py-cat${ap.cat === c ? ' on' : ''}" role="radio" aria-checked="${ap.cat === c}" data-cat="${c}" style="--c:${PY_COLOR[c]}">${ic(PY_ICON[c])}<span>${esc(PYC.CATS[c].label)}</span></button>`).join('');
     const kinds = AP_KINDS[ap.cat];
     $('ap-kind').innerHTML = kinds.map(k => `<button type="button" role="radio" aria-checked="${ap.kind === k}" class="${ap.kind === k ? 'on' : ''}" data-v="${esc(k)}">${esc(k)}</button>`).join('');
@@ -2619,7 +2652,7 @@
     $('ap-locate').lastChild.textContent = ap.st === 'ok' ? 'Géolocaliser à nouveau' : 'Géolocaliser';
     $('ap-pin-ok').hidden = ap.st !== 'moved' && ap.st !== 'weak';
     const confirmed = ap.st === 'ok' || ap.st === 'pin';
-    const nameOk = ap.cat === 'wc' && !$('ap-name').value.trim() || nameValid($('ap-name').value);
+    const nameOk = (ap.vis === 'private' || ap.cat === 'wc') && !$('ap-name').value.trim() || nameValid($('ap-name').value);
     $('ap-save').disabled = !(confirmed && nameOk);
     $('ap-why').textContent = !confirmed ? 'Confirmez d\u2019abord la position avec « Géolocaliser ».' : !nameOk ? 'Indiquez le vrai nom du lieu (lettres, sans lien internet).' : '';
   }
@@ -2674,7 +2707,12 @@
   };
   $('ap-locate').onclick = apLocate;
   $('ap-pin-ok').onclick = () => { ap.st = 'pin'; renderApState(); };
+  $('ap-vis').addEventListener('click', e => {
+    const b = e.target.closest('[data-vis]'); if (!b || b.dataset.vis === ap.vis) return;
+    ap.vis = b.dataset.vis; renderAddPlace();
+  });
   $('ap-cats').addEventListener('click', e => {
+    const k = e.target.closest('[data-pkind]'); if (k) { ap.pkind = k.dataset.pkind; renderAddPlace(); return; }
     const b = e.target.closest('[data-cat]'); if (!b) return;
     ap.cat = b.dataset.cat; ap.kind = AP_KINDS[ap.cat][0]; renderAddPlace();
   });
@@ -2688,6 +2726,20 @@
     e.preventDefault();
     renderApState();
     if ($('ap-save').disabled) return;
+    if (ap.vis === 'private') {
+      const nm = $('ap-name').value.trim().replace(/\s+/g, ' ') || PRIV_KINDS[ap.pkind].label;
+      const old = ap.pkind !== 'other' && priv.find(r => r.kind === ap.pkind);
+      if (old && !confirm(`Remplacer votre ${PRIV_KINDS[ap.pkind].label.toLowerCase()} enregistré (« ${old.name} ») ?`)) return;
+      if (old) priv = priv.filter(r => r !== old);
+      priv.push({ id: 'p-' + uuid(), kind: ap.pkind, name: nm, lat: +ap.pos[0].toFixed(6), lon: +ap.pos[1].toFixed(6), note: $('ap-note').value.trim(), created: new Date().toISOString() });
+      savePriv();
+      toast(`« ${nm} » enregistré sur ce téléphone uniquement.`, 'success', 5000);
+      show(ap.back && ap.back !== 'screen-addplace' ? ap.back : 'screen-profile', { force: true });
+      return;
+    }
+    // un lieu public posé sur un lieu confidentiel le révélerait
+    const hp = priv.find(r => Core.haversine(r.lat, r.lon, ap.pos[0], ap.pos[1]) < 0.06);
+    if (hp && !confirm(`Ce point est tout près de votre lieu confidentiel « ${hp.name} ». Le rendre public révélerait cet endroit à tous. Continuer ?`)) return;
     const name = $('ap-name').value.trim().replace(/\s+/g, ' ') || (ap.cat === 'wc' ? 'Toilettes publiques' : '');
     const tel = phoneDigits($('ap-phone').value);
     if ($('ap-phone').value.trim() && (tel.length < 8 || tel.length > 10)) { toast('Numéro de téléphone invalide : 10 chiffres, par ex. 07 00 00 00 00.', 'error', 5000); $('ap-phone').focus(); return; }
@@ -2717,6 +2769,7 @@
     live.dest = { kind: 'paiya', id: 'z' + rec.id, t: Date.now() }; store.set('liveDest', live.dest);
     show(ap.back === 'screen-profile' ? 'screen-profile' : 'screen-paiya', { force: true });
   });
+  $('ap-note').addEventListener('input', () => {});
   $('py-add').onclick = () => openAddPlace(py.cat, 'screen-paiya');
   $('my-places-add').onclick = () => openAddPlace(py.cat, 'screen-profile');
   function renderMyPlaces() {
@@ -2736,6 +2789,307 @@
       toast('Lieu supprimé.', 'info', 5000, { text: 'Annuler', fn: () => { comm.mine.splice(i, 0, m); saveMine(); } });
     } else if (confirm('Supprimer ce lieu pour tous les utilisateurs ?')) deleteMine(b.dataset.delPlace);
   });
+
+  /* =====================================================================
+     LIEUX CONFIDENTIELS : uniquement sur ce téléphone (jamais envoyés, jamais partagés)
+     ===================================================================== */
+  const PRIV_KINDS = { home: { label: 'Domicile', icon: 'home', alias: 'maison chez moi domicile home' }, work: { label: 'Travail', icon: 'work', alias: 'travail bureau boulot job service' }, other: { label: 'Autre lieu', icon: 'lock', alias: '' } };
+  let priv = store.get('private', []); if (!Array.isArray(priv)) priv = [];
+  const privPlace = r => ({ id: r.id, name: r.name, lat: r.lat, lon: r.lon, kind: r.kind, cat: 'private', sub: 'Lieu confidentiel', private: true, icon: PRIV_KINDS[r.kind].icon, note: r.note || '', created: r.created });
+  const nearPrivate = (lat, lon, km = 0.15) => priv.some(r => Core.haversine(lat, lon, r.lat, r.lon) < km);
+  function savePriv() { store.set('private', priv); renderQuickPlaces(); renderPrivList(); }
+  function privMatches(q) {
+    const k = Core.key(q);
+    return priv.filter(r => Core.matchScore(k, Core.key(r.name + ' ' + PRIV_KINDS[r.kind].alias)) >= 0);
+  }
+  const privItem = r => ({ type: 'place', place: privPlace(r), html: `<span class="sg-ic place" style="--c:${PY_COLOR.private}">${ic(PRIV_KINDS[r.kind].icon)}</span><span class="sg-main"><span class="sg-name">${esc(r.name)}<span class="utag priv">${ic('lock')}privé</span></span></span>${state.pos ? `<span class="sg-extra">${fmtDist(Core.haversine(state.pos[0], state.pos[1], r.lat, r.lon))}</span>` : ''}` });
+  function renderQuickPlaces() {
+    const box = $('quick-places');
+    const chips = ['home', 'work'].map(k => {
+      const r = priv.find(x => x.kind === k);
+      return r ? `<button class="qp" data-qp="${esc(r.id)}">${ic(PRIV_KINDS[k].icon)}<span>${esc(r.name)}</span></button>`
+        : `<button class="qp add" data-qp-add="${k}">${ic('plus')}<span>${PRIV_KINDS[k].label}</span></button>`;
+    });
+    priv.filter(r => r.kind === 'other').slice(0, 2).forEach(r => chips.push(`<button class="qp" data-qp="${esc(r.id)}">${ic('lock')}<span>${esc(r.name)}</span></button>`));
+    box.innerHTML = chips.join('');
+  }
+  $('quick-places').addEventListener('click', e => {
+    const a = e.target.closest('[data-qp-add]');
+    if (a) { openAddPlace(null, 'screen-home', { private: true, kind: a.dataset.qpAdd }); return; }
+    const b = e.target.closest('[data-qp]'); if (!b) return;
+    const r = priv.find(x => x.id === b.dataset.qp);
+    if (r) { setOriginStop(null); setDestPlace(privPlace(r)); runSearch(); }
+  });
+  function renderPrivList() {
+    const ul = $('priv-list');
+    ul.innerHTML = priv.length ? priv.map(r => `<li style="--c:${PY_COLOR.private}">${ic(PRIV_KINDS[r.kind].icon)}<span>${esc(r.name)}<br><small class="muted">${PRIV_KINDS[r.kind].label}${r.note ? ' · ' + esc(r.note) : ''}</small></span><button class="btn ghost sm" data-priv-go="${esc(r.id)}">Y aller</button><button class="btn ghost sm" data-priv-del="${esc(r.id)}" aria-label="Supprimer ${esc(r.name)}">${ic('trash')}</button></li>`).join('')
+      : '<li class="muted">Aucun lieu confidentiel. Ajoutez votre domicile ou votre travail pour y aller en un geste.</li>';
+  }
+  $('priv-list').addEventListener('click', e => {
+    const g = e.target.closest('[data-priv-go]');
+    if (g) { const r = priv.find(x => x.id === g.dataset.privGo); if (r) { setOriginStop(null); setDestPlace(privPlace(r)); runSearch(); } return; }
+    const d = e.target.closest('[data-priv-del]'); if (!d) return;
+    const i = priv.findIndex(x => x.id === d.dataset.privDel); if (i < 0) return;
+    const r = priv.splice(i, 1)[0]; savePriv();
+    toast(`« ${r.name} » supprimé.`, 'info', 5000, { text: 'Annuler', fn: () => { priv.splice(i, 0, r); savePriv(); } });
+  });
+  $('priv-add').onclick = () => openAddPlace(null, 'screen-profile', { private: true, kind: priv.some(r => r.kind === 'home') ? (priv.some(r => r.kind === 'work') ? 'other' : 'work') : 'home' });
+
+  /* =====================================================================
+     AMIS ET PARTAGE DE LIEUX
+     Un secret aléatoire par téléphone (seule son empreinte est en ligne) ; on ne trouve
+     quelqu'un que par son code ami ; les lieux ne s'échangent qu'entre amis acceptés.
+     ===================================================================== */
+  const mySecret = (() => { let x = store.get('secret', null); if (!/^[0-9a-f-]{36}$/.test(x || '')) { x = uuid(); store.set('secret', x); } return x; })();
+  const fr = { me: store.get('me', null), list: store.get('friends', []), recus: store.get('recus', []), seen: store.get('recusSeen', []), busy: false };
+  const rpc = (name, body) => sb('/rest/v1/rpc/' + name, { method: 'POST', body: { p_secret: mySecret, ...body } });
+  const initial = n => esc(String(n || '?').trim().charAt(0).toUpperCase());
+  async function frRefresh(quiet) {
+    if (!fr.me || !sbOn() || fr.busy) return;
+    fr.busy = true;
+    const [a, b] = await Promise.all([rpc('amis_liste', {}), rpc('lieux_recus', {})]);
+    fr.busy = false;
+    if (a.status === 400 && /Profil inconnu/.test(sbErr(a))) { fr.me = null; store.set('me', null); renderFriends(); return; }
+    const before = new Set(fr.list.filter(f => f.etat === 'recue').map(f => f.code));
+    if (a.ok && Array.isArray(a.data)) { fr.list = a.data; store.set('friends', fr.list); }
+    if (b.ok && Array.isArray(b.data)) { fr.recus = b.data; store.set('recus', fr.recus); }
+    if (!quiet) {
+      fr.list.filter(f => f.etat === 'recue' && !before.has(f.code)).forEach(f => toast(`${f.pseudo} veut devenir votre ami.`, 'info', 6000, { text: 'Voir', fn: () => show('screen-profile') }));
+      const fresh = fr.recus.filter(r => !r.lu && !fr.seen.includes(r.id));
+      if (fresh.length) toast(fresh.length === 1 ? `${fresh[0].de_pseudo} vous a envoyé un lieu : ${fresh[0].nom}` : `${fresh.length} nouveaux lieux reçus de vos amis`, 'success', 6000, { text: 'Voir', fn: () => fresh.length === 1 ? openRecu(fresh[0]) : show('screen-profile') });
+      fr.seen = [...new Set([...fr.seen, ...fresh.map(r => r.id)])].slice(-200); store.set('recusSeen', fr.seen);
+    }
+    renderFriends(); syncBadge();
+  }
+  function syncBadge() {
+    const n = fr.list.filter(f => f.etat === 'recue').length + fr.recus.filter(r => !r.lu).length;
+    const b = $('nav-pf-badge'); b.hidden = !n; b.textContent = n > 9 ? '9+' : String(n);
+  }
+  function renderFriends() {
+    $('fr-setup').hidden = !!fr.me; $('fr-main').hidden = !fr.me;
+    if (!sbOn()) { $('fr-setup').innerHTML = '<p class="muted">Les amis ont besoin de la base en ligne, qui n\u2019est pas configurée.</p>'; return; }
+    if (fr.me) {
+      $('fr-avatar').textContent = String(fr.me.pseudo).charAt(0).toUpperCase();
+      $('fr-me-pseudo').textContent = fr.me.pseudo; $('fr-me-code').textContent = fr.me.code;
+      const L = { recue: 'vous invite', envoyee: 'invitation envoyée', ami: 'ami' };
+      const sorted = [...fr.list].sort((x, y) => ({ recue: 0, ami: 1, envoyee: 2 }[x.etat] - { recue: 0, ami: 1, envoyee: 2 }[y.etat]));
+      $('fr-list').innerHTML = sorted.length ? sorted.map(f => `<li class="fr-item ${f.etat}"><span class="fr-avatar">${initial(f.pseudo)}</span><span>${esc(f.pseudo)}<br><small class="muted">${L[f.etat]}</small></span>${
+        f.etat === 'recue' ? `<button class="btn primary sm" data-fr-ok="${esc(f.code)}">Accepter</button><button class="btn ghost sm" data-fr-no="${esc(f.code)}" aria-label="Refuser">${ic('close')}</button>`
+        : `<button class="btn ghost sm" data-fr-del="${esc(f.code)}" data-pseudo="${esc(f.pseudo)}" data-etat="${f.etat}">${f.etat === 'ami' ? 'Retirer' : 'Annuler'}</button>`}</li>`).join('')
+        : '<li class="muted">Aucun ami pour l\u2019instant. Envoyez votre code avec « Inviter », ou saisissez celui d\u2019un ami.</li>';
+    }
+    const rc = fr.recus;
+    $('recus-card').hidden = !rc.length;
+    $('recus-list').innerHTML = rc.map(r => `<li class="${r.lu ? '' : 'unread'}"><span class="fr-avatar">${initial(r.de_pseudo)}</span><span><b>${esc(r.nom)}</b><br><small class="muted">de ${esc(r.de_pseudo)} · ${esc(fmtAgo(new Date(r.created_at).getTime()))}${r.note ? ' · « ' + esc(r.note) + ' »' : ''}</small></span><button class="btn ghost sm" data-rc-go="${esc(r.id)}">Voir</button><button class="btn ghost sm" data-rc-del="${esc(r.id)}" aria-label="Supprimer">${ic('trash')}</button></li>`).join('');
+  }
+  const recuPlace = r => ({ id: 'r' + r.id, cat: PYC.CATS[r.cat] ? r.cat : 'shop', name: r.nom, sub: `Envoyé par ${r.de_pseudo}`, lat: r.lat, lon: r.lon, note: r.note || '', shared: true, from: r.de_pseudo, created: r.created_at });
+  function openRecu(r) {
+    if (!r.lu) { r.lu = true; store.set('recus', fr.recus); rpc('lieu_recu_maj', { p_id: r.id }); syncBadge(); }
+    openDetail(withStatus(recuPlace(r)), current, 'paiya');
+  }
+  $('fr-create').addEventListener('submit', async e => {
+    e.preventDefault();
+    const ps = $('fr-pseudo').value.trim();
+    if (ps.length < 2 || !nameValid(ps)) { toast('Choisissez un pseudo de 2 à 30 lettres.', 'error'); return; }
+    const r = await rpc('zupa_moi', { p_pseudo: ps });
+    if (!r.ok || !r.data || !r.data[0]) { toast(r.net ? 'Pas de connexion internet.' : 'Création impossible : ' + sbErr(r), 'error'); return; }
+    fr.me = r.data[0]; store.set('me', fr.me); renderFriends(); frRefresh(true); toast(`Profil créé. Votre code ami : ${fr.me.code}`, 'success', 6000);
+  });
+  $('fr-add').addEventListener('submit', async e => {
+    e.preventDefault();
+    let c = $('fr-code-in').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (c.length !== 8) { toast('Un code ami a 8 caractères, par exemple 7KQ4-92XZ.', 'error'); return; }
+    c = c.slice(0, 4) + '-' + c.slice(4);
+    const r = await rpc('ami_demander', { p_code: c });
+    const M = { envoyee: ['Invitation envoyée.', 'success'], acceptee: ['Vous êtes maintenant amis !', 'success'], deja_amis: ['Vous êtes déjà amis.', 'info'], introuvable: ['Aucun utilisateur avec ce code.', 'error'], soi_meme: ['C\u2019est votre propre code.', 'error'] };
+    const m = r.ok ? M[r.data] : [r.net ? 'Pas de connexion internet.' : sbErr(r), 'error'];
+    toast(m[0], m[1]);
+    if (r.ok && r.data !== 'introuvable' && r.data !== 'soi_meme') { $('fr-code-in').value = ''; frRefresh(true); }
+  });
+  $('fr-code-in').addEventListener('input', e => { const v = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8); e.target.value = v.length > 4 ? v.slice(0, 4) + '-' + v.slice(4) : v; });
+  $('fr-invite').onclick = async () => {
+    const text = `Rejoins-moi sur ZUPA pour échanger nos lieux ! Mon code ami : ${fr.me.code}`;
+    try { if (navigator.share) { await navigator.share({ title: 'ZUPA', text }); return; } } catch (err) { if (err && err.name === 'AbortError') return; }
+    try { await navigator.clipboard.writeText(fr.me.code); toast('Code copié : ' + fr.me.code, 'success'); } catch (_) { toast(text, 'info', 8000); }
+  };
+  $('fr-list').addEventListener('click', async e => {
+    const ok = e.target.closest('[data-fr-ok]'), no = e.target.closest('[data-fr-no]'), del = e.target.closest('[data-fr-del]');
+    if (ok || no) { const r = await rpc('ami_repondre', { p_code: (ok || no).dataset[ok ? 'frOk' : 'frNo'], p_ok: !!ok }); if (!r.ok) toast('Action impossible : ' + (r.net ? 'pas de connexion.' : sbErr(r)), 'error'); else if (ok) toast('Vous êtes maintenant amis !', 'success'); frRefresh(true); return; }
+    if (del) {
+      if (del.dataset.etat === 'ami' && !confirm(`Retirer ${del.dataset.pseudo} de vos amis ? Les lieux échangés entre vous seront effacés.`)) return;
+      const r = await rpc('ami_retirer', { p_code: del.dataset.frDel }); if (!r.ok) toast('Action impossible : ' + (r.net ? 'pas de connexion.' : sbErr(r)), 'error'); frRefresh(true);
+    }
+  });
+  $('recus-list').addEventListener('click', async e => {
+    const g = e.target.closest('[data-rc-go]'), d = e.target.closest('[data-rc-del]');
+    const r = fr.recus.find(x => x.id === (g || d || {}).dataset?.[g ? 'rcGo' : 'rcDel']);
+    if (!r) return;
+    if (g) { openRecu(r); return; }
+    const i = fr.recus.indexOf(r); fr.recus.splice(i, 1); store.set('recus', fr.recus); renderFriends(); syncBadge();
+    let undone = false;
+    toast('Lieu reçu supprimé.', 'info', 5000, { text: 'Annuler', fn: () => { undone = true; fr.recus.splice(i, 0, r); store.set('recus', fr.recus); renderFriends(); syncBadge(); } });
+    setTimeout(() => { if (!undone) rpc('lieu_recu_maj', { p_id: r.id, p_supprimer: true }); }, 5200);
+  });
+
+  // Feuille de partage : amis ZUPA ou autre application
+  const share = { p: null };
+  function openShare(p) {
+    share.p = p;
+    $('share-title').textContent = `Partager « ${p.name} »`;
+    const friends = fr.list.filter(f => f.etat === 'ami');
+    const box = $('share-friends');
+    $('share-send-box').hidden = true; $('share-out').hidden = !!p.private;
+    if (p.private) { $('share-sub').innerHTML = `${ic('lock')} Lieu confidentiel : visible par vous seul. Il ne peut pas être partagé.`; box.innerHTML = ''; }
+    else if (!sbOn() || !fr.me) { $('share-sub').textContent = 'Avec vos amis ZUPA : créez d\u2019abord votre profil d\u2019amis.'; box.innerHTML = '<button class="btn ghost sm" data-share-setup>Créer mon profil d\u2019amis</button>'; }
+    else if (!friends.length) { $('share-sub').textContent = 'Aucun ami pour l\u2019instant. Ajoutez-en avec leur code dans Profil › Amis.'; box.innerHTML = '<button class="btn ghost sm" data-share-setup>Ajouter un ami</button>'; }
+    else {
+      $('share-sub').textContent = 'Choisissez à qui l\u2019envoyer :';
+      box.innerHTML = `<div class="share-list">${friends.map(f => `<label class="share-friend"><input type="checkbox" value="${esc(f.code)}"><span class="fr-avatar">${initial(f.pseudo)}</span><span>${esc(f.pseudo)}</span></label>`).join('')}</div>`;
+      $('share-send-box').hidden = false; $('share-note').value = '';
+      syncShareBtn();
+    }
+    const sh = $('share-sheet'); sh.hidden = false; requestAnimationFrame(() => sh.classList.add('open'));
+  }
+  function closeShare() { const sh = $('share-sheet'); sh.classList.remove('open'); setTimeout(() => { sh.hidden = true; }, 250); }
+  function syncShareBtn() { const n = $('share-friends').querySelectorAll('input:checked').length; $('share-send').disabled = !n; $('share-send').textContent = n ? `Envoyer à ${n} ami${n > 1 ? 's' : ''}` : 'Choisissez un ami'; }
+  $('share-friends').addEventListener('change', syncShareBtn);
+  $('share-sheet').addEventListener('click', e => {
+    if (e.target.closest('[data-share-close]')) { closeShare(); return; }
+    if (e.target.closest('[data-share-setup]')) { closeShare(); show('screen-profile'); setTimeout(() => $('friends-card').scrollIntoView({ behavior: 'smooth', block: 'start' }), 350); }
+  });
+  $('share-out').onclick = () => { const p = share.p; closeShare(); nativeShare(p); };
+  $('share-send').onclick = async () => {
+    const p = share.p, codes = [...$('share-friends').querySelectorAll('input:checked')].map(i => i.value);
+    if (!p || !codes.length || p.private) return;
+    $('share-send').disabled = true;
+    const r = await rpc('lieu_partager', { p_codes: codes, p_nom: p.name, p_cat: p.cat && PYC.CATS[p.cat] ? p.cat : (p.st ? 'pharma' : null), p_lat: p.lat, p_lon: p.lon, p_note: $('share-note').value.trim() || null });
+    if (r.ok) { closeShare(); toast(r.data > 1 ? `Lieu envoyé à ${r.data} amis.` : 'Lieu envoyé.', 'success'); }
+    else { $('share-send').disabled = false; toast(r.net ? 'Pas de connexion internet : réessayez.' : 'Envoi impossible : ' + sbErr(r), 'error'); }
+  };
+
+  /* =====================================================================
+     LIEUX LES PLUS VISITÉS (anonyme)
+     Une visite = rester 2 min à moins de 35 m d'un lieu public, GPS précis. Rien n'est compté
+     près des lieux confidentiels. Identifiant de visite = empreinte (appareil + jour) : il change
+     chaque jour et ne peut pas être relié au profil.
+     ===================================================================== */
+  const visit = { cand: null, since: 0, done: store.get('visitsDone', {}), queue: store.get('visitQueue', []), on: store.get('pvVisits', true) };
+  const today = () => new Date().toISOString().slice(0, 10);
+  async function vidFor(day) {
+    try { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(deviceId + '|' + day)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
+    catch (_) { return null; }
+  }
+  async function flushVisits() {
+    if (!sbOn() || !visit.queue.length) return;
+    const q = visit.queue.slice();
+    for (const v of q) {
+      const vid = await vidFor(v.day); if (!vid) break;
+      const r = await sb('/rest/v1/rpc/visite_ajouter', { method: 'POST', body: { p_place: v.id, p_vid: vid, p_cat: v.cat, p_nom: v.name, p_lat: v.lat, p_lon: v.lon } });
+      if (r.net) break;
+      visit.queue = visit.queue.filter(x => x !== v);
+    }
+    store.set('visitQueue', visit.queue);
+  }
+  function checkVisit() {
+    if (!visit.on || !state.pos || state.posStale || state.manual || (state.accuracy || 999) > 50) { visit.cand = null; return; }
+    const [lat, lon] = state.pos;
+    if (nearPrivate(lat, lon)) { visit.cand = null; return; }
+    let best = null, bd = 0.035;
+    for (const p of placesBase()) {
+      if (Math.abs(p.lat - lat) > 0.0004 || Math.abs(p.lon - lon) > 0.0004) continue;
+      const d = Core.haversine(lat, lon, p.lat, p.lon);
+      if (d < bd) { bd = d; best = p; }
+    }
+    if (!best || !PYC.CATS[best.cat]) { visit.cand = null; return; }
+    if (!visit.cand || visit.cand.id !== best.id) { visit.cand = best; visit.since = Date.now(); return; }
+    if (Date.now() - visit.since < 120e3) return;
+    const day = today();
+    if (visit.done[best.id] === day) return;
+    visit.done[best.id] = day;
+    for (const k in visit.done) if (visit.done[k] !== day) delete visit.done[k];
+    store.set('visitsDone', visit.done);
+    visit.queue.push({ id: best.id, day, cat: best.cat, name: best.name, lat: +best.lat.toFixed(5), lon: +best.lon.toFixed(5) });
+    visit.queue = visit.queue.slice(-50); store.set('visitQueue', visit.queue);
+    flushVisits();
+  }
+  $('pv-visits').checked = visit.on;
+  $('pv-visits').onchange = e => { visit.on = e.target.checked; store.set('pvVisits', visit.on); if (!visit.on) { visit.queue = []; store.set('visitQueue', []); } toast(visit.on ? 'Vos visites seront comptées de façon anonyme.' : 'Vos visites ne sont plus comptées.'); };
+  $('pv-wipe').onclick = async () => {
+    if (!sbOn()) return;
+    if (!confirm('Effacer vos données en ligne ? Votre profil d\u2019amis, vos amis, les lieux échangés et les lieux publics que vous avez ajoutés seront supprimés. Vos données sur ce téléphone restent.')) return;
+    const r = await sb('/rest/v1/rpc/mes_donnees_supprimer', { method: 'POST', body: { p_secret: mySecret, p_device: deviceId } });
+    if (!r.ok) { toast(r.net ? 'Pas de connexion internet.' : 'Effacement impossible : ' + sbErr(r), 'error'); return; }
+    fr.me = null; fr.list = []; fr.recus = [];
+    ['me', 'friends', 'recus'].forEach(k => store.set(k, k === 'me' ? null : []));
+    comm.mine = comm.mine.filter(m => !m.synced); store.set('myPlaces', comm.mine);
+    if (comm.list) { comm.list.rows = []; store.set('community', comm.list); }
+    comm.ver++; renderFriends(); syncBadge(); renderMyPlaces();
+    toast('Vos données en ligne ont été effacées.', 'success');
+  };
+
+  const pop = { list: store.get('popular', null), t: 0 };
+  async function fetchPopular(force) {
+    if (!sbOn() || !state.pos || (!force && Date.now() - pop.t < 15 * 60e3)) return;
+    pop.t = Date.now();
+    const r = await sb('/rest/v1/rpc/lieux_populaires', { method: 'POST', body: { p_lat: +state.pos[0].toFixed(3), p_lon: +state.pos[1].toFixed(3), p_km: 10 } });
+    if (r.ok && Array.isArray(r.data)) { pop.list = { t: Date.now(), rows: r.data }; store.set('popular', pop.list); if (current === 'screen-paiya') renderPopular(); }
+  }
+  const popPlace = r => { const b = placesBase().find(x => x.id === r.place_id); return b || { id: r.place_id, cat: r.cat, name: r.nom, sub: PYC.CATS[r.cat].one, lat: r.lat, lon: r.lon }; };
+  function renderPopular() {
+    const rows = ((pop.list && pop.list.rows) || []).filter(r => PYC.CATS[r.cat]).slice(0, 10);
+    $('py-pop').hidden = !rows.length;
+    $('py-rail').innerHTML = rows.map((r, i) => {
+      const p = popPlace(r), d = state.pos ? Core.haversine(state.pos[0], state.pos[1], p.lat, p.lon) : null;
+      return `<button class="pop-card${isFollowed('paiya', p.id) ? ' following' : ''}" data-pop="${esc(r.place_id)}" style="--c:${PY_COLOR[r.cat]}"><span class="pop-rank">${i + 1}</span><span class="pop-ic">${ic(PY_ICON[r.cat])}</span><b>${esc(p.name)}</b><small>${ic('fire')}${r.visites} visites${d != null ? ' · ' + fmtDist(d) : ''}</small></button>`;
+    }).join('');
+  }
+  $('py-rail').addEventListener('click', e => {
+    const c = e.target.closest('[data-pop]'); if (!c) return;
+    const r = ((pop.list && pop.list.rows) || []).find(x => x.place_id === c.dataset.pop); if (!r) return;
+    const p = popPlace(r);
+    if (placesBase().some(x => x.id === p.id) && !isFollowed('paiya', p.id) && state.pos) followPlace('paiya', p.id);
+    else openDetail(withStatus(p), 'screen-paiya', 'paiya');
+  });
+
+  /* =====================================================================
+     CLAVIER : le champ et ses suggestions restent visibles au-dessus du clavier
+     ===================================================================== */
+  const vv = window.visualViewport;
+  let fullH = window.innerHeight;
+  function sizeSuggest() {
+    const vh = vv ? vv.height + vv.offsetTop : window.innerHeight;
+    document.querySelectorAll('.suggest').forEach(b => {
+      if (b.hidden) return;
+      const top = b.getBoundingClientRect().top;
+      b.style.maxHeight = Math.max(150, vh - top - 10) + 'px';
+    });
+  }
+  function keepFocusVisible() {
+    const el = document.activeElement;
+    if (!el || !el.matches('input:not([type=checkbox]), textarea')) return;
+    const scr = el.closest('.screen'); if (!scr) { sizeSuggest(); return; }
+    const r = el.getBoundingClientRect(), sr = scr.getBoundingClientRect();
+    const card = el.closest('.search-card');
+    // la zone de recherche monte en haut de l'écran : toute la place restante va aux suggestions
+    const delta = card ? card.getBoundingClientRect().top - sr.top - 8 : r.top - sr.top - 90;
+    if (Math.abs(delta) > 6) scr.scrollBy({ top: delta, behavior: 'smooth' });
+    setTimeout(sizeSuggest, 320);
+  }
+  function kbUpdate() {
+    const h = vv ? vv.height : window.innerHeight;
+    const typing = !!document.activeElement && document.activeElement.matches('input:not([type=checkbox]), textarea');
+    if (!typing) fullH = Math.max(window.innerHeight, h); // hauteur de référence prise sans clavier
+    const open = fullH - h > 140 && !!document.activeElement && document.activeElement.matches('input, textarea');
+    document.body.classList.toggle('kb-open', open);
+    // si la page n'a pas été redimensionnée (clavier par-dessus), on ajoute la hauteur du clavier en bas
+    document.documentElement.style.setProperty('--kb', (open ? Math.max(0, window.innerHeight - h) : 0) + 'px');
+    if (open) keepFocusVisible(); else sizeSuggest();
+  }
+  if (vv) vv.addEventListener('resize', kbUpdate);
+  window.addEventListener('resize', kbUpdate);
+  window.addEventListener('orientationchange', () => { fullH = 0; setTimeout(kbUpdate, 400); });
+  document.addEventListener('focusin', e => { if (e.target.matches('input:not([type=checkbox]), textarea')) setTimeout(() => { kbUpdate(); keepFocusVisible(); }, 300); });
+  document.addEventListener('focusout', () => setTimeout(kbUpdate, 200));
 
   /* ---------- Anti double appui ---------- */
   let lastTap = { el: null, t: 0 };
@@ -2774,6 +3128,7 @@
     if (document.querySelector('.map-wrap.full')) { exitFull(); return true; }
     const open = [...document.querySelectorAll('.suggest')].some(b => !b.hidden);
     if (open) { closeSuggests(); return true; }
+    if (!$('share-sheet').hidden) { closeShare(); return true; }
     if (live.open && LIVE_HOST[current]) { live.open = false; $('live').classList.remove('open'); $('live-pill').setAttribute('aria-expanded', 'false'); return true; }
     const to = navStack.length > 1 ? navStack[navStack.length - 2] : current !== 'screen-home' ? 'screen-home' : null;
     if (!to) return false;
@@ -2801,7 +3156,10 @@
   syncClear();
   renderHome();
   startGeo();
-  setTimeout(() => { syncMine(); fetchCommunity(false); }, 4000);
+  setTimeout(() => { syncMine(); fetchCommunity(false); flushVisits(); frRefresh(false); }, 4000);
+  setInterval(() => { if (document.visibilityState === 'visible') frRefresh(false); }, 120e3);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') frRefresh(false); });
+  renderQuickPlaces(); syncBadge();
   renderPhTeaser();
   loadGardes();
 })();
