@@ -134,6 +134,7 @@
     closeSuggests();
     if (sheets[id]) sheets[id].snapTo(sheets[id].idx);
     requestAnimationFrame(() => {
+      placeLive(id);
       if (id === 'screen-home') renderHome();
       if (id === 'screen-results') ensureResMap();
       if (id === 'screen-track') ensureTrkMap();
@@ -142,6 +143,7 @@
       if (id === 'screen-fixpos') ensureFpMap();
       if (id === 'screen-pharma') renderPharma();
       if (id === 'screen-paiya') renderPaiya();
+      renderLive();
       if (id === 'screen-pharma-detail') ensurePdMap();
       scheduleAutoZoom(id);
     });
@@ -365,7 +367,7 @@
   }
   function applyHeading() {
     updateHeadingMarkers();
-    if (current === 'screen-home') updateLiveDir();
+    if (LIVE_HOST[current]) updateLiveDir();
     if (trkMap && current === 'screen-track' && trkFollow && trkRotate && nav.heading != null) {
       const target = (360 - nav.heading) % 360, cur = (trkMap.getBearing() + 360) % 360;
       if (Math.abs(((target - cur + 540) % 360) - 180) > 2) trkMap.setBearing(target);
@@ -635,9 +637,51 @@
      Capsule noire en haut de l'onglet Bus : distance jusqu'à l'arrêt, mise à jour à chaque mesure GPS.
      Cible : arrêt de départ ou prochain arrêt pendant un trajet suivi, sinon l'arrêt le plus proche.
      Elle verdit à l'approche (500 m -> 30 m) et clignote en vert à l'arrêt. Un appui l'agrandit. */
-  const live = { open: false, shown: null, raf: 0, key: '' };
+  const live = { open: false, shown: null, raf: 0, key: '', dest: store.get('liveDest', null) };
   const CARD = ['le nord', 'le nord-est', "l'est", 'le sud-est', 'le sud', 'le sud-ouest', "l'ouest", 'le nord-ouest'];
+  const LIVE_HOST = { 'screen-home': ['loc-chip', 'before'], 'screen-pharma': ['ph-garde', 'after'], 'screen-paiya': ['py-cats', 'after'] };
+  function placeLive(id) { // la même bulle passe d'un onglet à l'autre
+    const h = LIVE_HOST[id], box = $('live');
+    if (!h) return;
+    const ref = $(h[0]);
+    if (h[1] === 'before') { if (ref.previousElementSibling !== box) ref.before(box); }
+    else if (ref.nextElementSibling !== box) ref.after(box);
+    live.key = '';
+  }
+  const DEST_TTL = 3 * 3600e3;
+  function placeTarget(kind) {
+    const d = live.dest && live.dest.kind === kind && Date.now() - live.dest.t < DEST_TTL ? live.dest : null;
+    if (kind === 'pharma') {
+      const list = allPharmacies().filter(p => p.d != null && !p.approx).sort((a, b) => a.d - b.d);
+      const sel = d && list.find(p => p.id === d.id);
+      const g = list.find(p => p.garde), o = list.find(p => p.st === 'open');
+      const p = sel || g || o || list[0];
+      if (!p) return null;
+      return { kind, p, icon: 'cross', color: 'var(--ph)', dest: !!sel, far: FAR_KM, at: 0.04,
+        kicker: sel ? 'Votre destination' : p === g ? 'De garde, la plus proche' : p === o ? 'Ouverte, la plus proche' : 'La plus proche',
+        tags: `<span class="st ${p.st}">${esc(statusLabel(p, true))}</span>` };
+    }
+    let p = null;
+    if (d) { const p0 = placesBase().find(x => x.id === d.id); if (p0) p = withStatus(p0); }
+    const sel = !!p;
+    if (!p) {
+      let best = null, bd = Infinity;
+      for (const x of placesBase()) {
+        if (x.cat !== py.cat) continue;
+        const k = quickKm(x);
+        if (k < bd && (!py.open || withStatus(x).st === 'open')) { bd = k; best = x; }
+      }
+      if (!best) return null;
+      p = withStatus(best);
+    }
+    const one = { hotel: 'Hôtel le plus proche', resto: 'Restaurant le plus proche', wc: 'Toilettes les plus proches', shop: 'Commerce le plus proche' }[p.cat];
+    return { kind, p, icon: PY_ICON[p.cat], color: PY_COLOR[p.cat], dest: sel, far: FAR_KM, at: 0.04,
+      kicker: sel ? 'Votre destination' : one,
+      tags: `<span class="live-sub">${esc(p.sub || '')}</span>${p.hours ? `<span class="st ${p.st}">${esc(pyStatus(p, true))}</span>` : ''}` };
+  }
   function liveTarget() {
+    if (current === 'screen-pharma') return placeTarget('pharma');
+    if (current === 'screen-paiya') return placeTarget('paiya');
     const t = state.tracking;
     if (t && !t.arrived) {
       if (t.idx < 0) { const p = t.pts[0]; return { kicker: 'Votre arrêt de départ', p, line: p.line, veh: p.veh, act: 'track', far: FAR_KM, at: AT_STOP_KM }; }
@@ -668,6 +712,7 @@
   }
   function renderLive() {
     const box = $('live');
+    if (!LIVE_HOST[current]) return;
     const tg = state.pos ? liveTarget() : null;
     if (!tg) { box.hidden = true; wasAtStop = false; return; }
     box.hidden = false;
@@ -678,10 +723,14 @@
     box.classList.toggle('near', k > 0 && !at);
     box.classList.toggle('stale', !!state.posStale);
     box.style.setProperty('--near', k.toFixed(3));
-    box.style.setProperty('--lc', tg.line ? lineColor(tg.line) : 'var(--brand)');
-    const key = tg.kicker + tg.p.name;
-    if (key !== live.key) { live.key = key; live.shown = null; }
-    $('live-kicker').textContent = at ? (tg.act === 'track' && state.tracking && state.tracking.idx >= 0 ? 'Arrêt atteint' : 'Vous êtes à l’arrêt') : tg.kicker;
+    box.style.setProperty('--lc', tg.color || (tg.line ? lineColor(tg.line) : 'var(--brand)'));
+    const key = current + tg.kicker + tg.p.name;
+    if (key !== live.key) {
+      live.key = key; live.shown = null;
+      const icn = tg.icon || 'bus';
+      $('live-ic').innerHTML = ic(icn); box.querySelector('.live-end').innerHTML = ic(icn);
+    }
+    $('live-kicker').textContent = at ? (tg.kind ? 'Vous y êtes' : tg.act === 'track' && state.tracking && state.tracking.idx >= 0 ? 'Arrêt atteint' : 'Vous êtes à l’arrêt') : tg.kicker;
     $('live-name').textContent = tg.p.name;
     if (at) { cancelAnimationFrame(live.raf); live.shown = d; $('live-dist').textContent = 'Ici'; $('live-unit').textContent = ''; }
     else tweenDist($('live-dist'), d);
@@ -692,8 +741,9 @@
       : `~${fmtMin(walk)} à pied`;
     $('live-dir-txt').parentNode.hidden = at;
     updateLiveDir(tg);
-    $('live-lines').innerHTML = tg.stop ? linesHtml(tg.stop) : tg.line ? lineBadge(tg.line, true) : '';
-    $('live-act').textContent = tg.act === 'track' ? 'Ouvrir le suivi du trajet' : 'Partir de cet arrêt';
+    $('live-lines').innerHTML = tg.tags || (tg.stop ? linesHtml(tg.stop) : tg.line ? lineBadge(tg.line, true) : '');
+    $('live-act').textContent = tg.kind ? (tg.p.phone ? 'Itinéraire et appel' : 'Itinéraire') : tg.act === 'track' ? 'Ouvrir le suivi du trajet' : 'Partir de cet arrêt';
+    $('live-clear').hidden = !tg.dest;
     live.tg = tg;
     if (at && !wasAtStop) vibrate([120, 80, 120]);
     wasAtStop = at;
@@ -714,9 +764,11 @@
     $('live').classList.toggle('open', live.open);
     $('live-pill').setAttribute('aria-expanded', String(live.open));
   });
+  $('live-clear').addEventListener('click', () => { live.dest = null; store.set('liveDest', null); renderLive(); });
   $('live-act').addEventListener('click', () => {
     const tg = live.tg;
     if (!tg) return;
+    if (tg.kind) { openDetail(tg.p, current, tg.kind); return; }
     if (tg.act === 'track') { show('screen-track'); return; }
     setOriginStop(tg.stop);
     destInput.focus();
@@ -1770,7 +1822,8 @@
     cache: store.get('phCache', null),          // { t, center:[lat,lon], list }
     gardes: store.get('gardes', null),          // dernière liste de garde connue
     filter: store.get('phFilter', null),
-    q: '', shown: 20, sel: null, back: 'screen-pharma', loading: false, lastLiveTry: 0
+    q: '', shown: 20, sel: null, back: 'screen-pharma', loading: false, lastLiveTry: 0,
+    checkedAt: store.get('gardesChecked', 0), checking: false, checkFailed: false
   };
   const isNative = () => !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
   function openExternal(url) { if (isNative()) location.href = url; else window.open(url, '_blank', 'noopener'); }
@@ -1817,9 +1870,18 @@
       try { const r = await fetch(url, { cache: 'no-store', signal: ctl.signal }); return r.ok ? await r.json() : null; }
       catch (_) { return null; } finally { clearTimeout(t); }
     };
+    if (ph.checking) return;
+    ph.checking = true;
+    if (current === 'screen-pharma') renderGardeBanner();
     const cands = [ph.gardes];
     cands.push(await fetchJson('data/gardes.json', 4000));
-    if (CONFIG.gardesUrl) cands.push(await fetchJson(CONFIG.gardesUrl + (CONFIG.gardesUrl.includes('?') ? '&' : '?') + 't=' + Date.now(), 8000));
+    if (CONFIG.gardesUrl) {
+      const online = await fetchJson(CONFIG.gardesUrl + (CONFIG.gardesUrl.includes('?') ? '&' : '?') + 't=' + Date.now(), 8000);
+      ph.checkFailed = !online;
+      if (online) { ph.checkedAt = Date.now(); store.set('gardesChecked', ph.checkedAt); }
+      cands.push(online);
+    }
+    ph.checking = false;
     const valid = cands.filter(g => { const w = PC.pickWeek(g); return w && w.du && w.au && Array.isArray(w.pharmacies) && w.pharmacies.length; });
     const rank = g => { const w = PC.pickWeek(g); return (PC.gardeState(g) === 'current' ? '2' : PC.gardeState(g) === 'future' ? '1' : '0') + w.au + (g.maj || ''); };
     const best = valid.sort((a, b) => rank(b).localeCompare(rank(a)))[0] || null;
@@ -1859,6 +1921,7 @@
 
   function refreshPharmaViews() {
     renderPhTeaser();
+    if (current === 'screen-pharma') renderLive();
     if (current === 'screen-pharma') renderPharma();
   }
 
@@ -1873,6 +1936,28 @@
     return list;
   }
 
+  // « il y a 5 min », « hier à 08:15 », « le 18 oct. »
+  function fmtAgo(t) {
+    const s = (Date.now() - t) / 1000, d = new Date(t);
+    if (s < 90) return "à l'instant";
+    if (s < 3600) return `il y a ${Math.round(s / 60)} min`;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const hm = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    if (d >= today) return s < 6 * 3600 ? `il y a ${Math.round(s / 3600)} h` : `aujourd'hui à ${hm}`;
+    if (d >= today - 864e5) return `hier à ${hm}`;
+    return 'le ' + d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+  }
+  function freshLine(stt) {
+    const g = week();
+    const maj = g && g.maj ? fmtDay(g.maj) : null;
+    const pill = stt === 'current' ? '<span class="fresh ok"><i></i>À jour</span>' : '<span class="fresh old"><i></i>À actualiser</span>';
+    let txt;
+    if (ph.checking) txt = 'Vérification en ligne…';
+    else if (ph.checkedAt && !ph.checkFailed) txt = `Vérifiée en ligne ${fmtAgo(ph.checkedAt)}`;
+    else if (ph.checkedAt) txt = `Hors ligne · dernière vérification ${fmtAgo(ph.checkedAt)}`;
+    else txt = `Hors ligne · liste intégrée${maj ? ' du ' + esc(maj) : ''}`;
+    return `<span class="fresh-row${ph.checking ? ' checking' : ''}">${pill}<small>${txt}</small></span>`;
+  }
   function renderGardeBanner() {
     const el = $('ph-garde');
     const g = week(), stt = PC.gardeState(ph.gardes);
@@ -1880,10 +1965,10 @@
       el.className = 'garde-banner';
       const nInt = g.pharmacies.filter(p => p.interieur).length, villes = new Set(g.pharmacies.filter(p => p.interieur).map(p => p.commune)).size;
       const detail = nInt ? `${g.pharmacies.length - nInt} à Abidjan · ${nInt} dans ${villes} villes de l'intérieur` : `${g.pharmacies.length} pharmacies`;
-      el.innerHTML = `${ic('cross')}<span><b>Pharmacies de garde</b> du ${esc(fmtDay(g.du))} au ${esc(fmtDay(g.au))}<small>${detail} · source : UNPPCI</small></span>`;
+      el.innerHTML = `${ic('cross')}<span><b>Pharmacies de garde</b> du ${esc(fmtDay(g.du))} au ${esc(fmtDay(g.au))}<small>${detail} · source : UNPPCI</small>${freshLine(stt)}</span>`;
     } else {
       el.className = 'garde-banner warn';
-      el.innerHTML = `${ic('info')}<span><b>Liste de garde ${stt === 'expired' ? 'expirée' : stt === 'future' ? 'pas encore en vigueur' : 'indisponible'}</b><small>${stt === 'expired' ? `Dernière liste : semaine du ${esc(fmtDay(g.du))}. ` : ''}Connectez-vous à internet pour recevoir la liste de la semaine. En attendant, les pharmacies ouvertes sont indiquées selon leurs horaires.</small></span>`;
+      el.innerHTML = `${ic('info')}<span><b>Liste de garde ${stt === 'expired' ? 'expirée' : stt === 'future' ? 'pas encore en vigueur' : 'indisponible'}</b><small>${stt === 'expired' ? `Dernière liste : semaine du ${esc(fmtDay(g.du))}. ` : ''}Connectez-vous à internet pour recevoir la liste de la semaine. En attendant, les pharmacies ouvertes sont indiquées selon leurs horaires.</small>${freshLine(stt)}</span>`;
     }
   }
 
@@ -1906,6 +1991,7 @@
   }
 
   function renderPharma() {
+    if (!ph.checking && Date.now() - ph.checkedAt > 3 * 3600e3 && Date.now() - (ph.lastCheckTry || 0) > 120e3) { ph.lastCheckTry = Date.now(); loadGardes(); }
     renderGardeBanner();
     const f = ph.filter || 'all';
     document.querySelectorAll('#ph-filter button').forEach(b => { const on = b.dataset.f === f; b.classList.toggle('active', on); b.setAttribute('aria-selected', String(on)); });
@@ -1947,8 +2033,9 @@
   $('ph-more').onclick = () => { ph.shown += 20; renderPharma(); };
   $('ph-refresh').innerHTML = ic('refresh');
   $('ph-refresh').onclick = () => {
-    if (!state.pos) { toast('Position inconnue : activez la localisation.', 'error'); return; }
-    loadGardes(); refreshLive(true);
+    loadGardes();
+    if (!state.pos) { toast('Position inconnue : la liste de garde est vérifiée, mais pas les pharmacies autour de vous.', 'error'); return; }
+    refreshLive(true);
   };
   function onPhClick(e) {
     if (e.target.closest('[data-ph-call]')) return; // lien tel: natif
@@ -1974,6 +2061,7 @@
   function openDetail(p, from, kind) {
     const home = kind === 'paiya' ? 'screen-paiya' : 'screen-pharma';
     ph.sel = p; ph.kind = kind; ph.back = from && from !== 'screen-pharma-detail' ? from : home;
+    if (Number.isFinite(p.lat) && !p.approx) { live.dest = { kind, id: p.id, t: Date.now() }; store.set('liveDest', live.dest); }
     $('pd-name').textContent = p.name;
     $('pd-status').textContent = statusLabel(p, true);
     const call = $('pd-call');
@@ -2066,9 +2154,9 @@
      ===================================================================== */
   const PYC = PaiyaCore;
   const PY_ICON = { hotel: 'hotel', resto: 'resto', wc: 'wc', shop: 'shop' };
-  const PY_COLOR = { hotel: '#6d4bd8', resto: '#E97234', wc: '#0e9bb5', shop: '#d1347a' };
+  const PY_COLOR = { hotel: '#5b3cc4', resto: '#c24a12', wc: '#0b7a8f', shop: '#b3245f' }; // texte blanc lisible (contraste ≥ 4,5)
   const PY_EMBED = (window.ZUPA_PAIYA && Array.isArray(window.ZUPA_PAIYA.list)) ? window.ZUPA_PAIYA.list : [];
-  const py = { cat: store.get('pyCat', 'resto'), q: '', shown: 20, cache: store.get('pyCache', null), loading: false, lastTry: 0 };
+  const py = { cat: store.get('pyCat', 'resto'), q: '', shown: 20, cache: store.get('pyCache', null), loading: false, lastTry: 0, open: false };
 
   // Liste fusionnée (intégrée + actualisée), recalculée seulement quand le cache change
   let pyBase = null, pyBaseKey = '';
@@ -2120,41 +2208,74 @@
     } else if (force) toast('Actualisation impossible : vérifiez votre connexion internet.', 'error');
   }
 
+  // Accroche du haut : change avec la catégorie et l'heure
+  function pyTitle(cat) {
+    const h = new Date().getHours();
+    if (cat === 'resto') return h < 10 ? 'Un petit-déj’ pas loin ?' : h < 15 ? 'On mange où à midi ?' : h < 18 ? 'Une petite pause ?' : 'Ce soir, on sort où ?';
+    if (cat === 'hotel') return h >= 18 || h < 6 ? 'Où dormir ce soir ?' : 'Où poser vos valises ?';
+    if (cat === 'wc') return 'Une envie pressante ?';
+    return h < 12 ? 'Des courses à faire ?' : 'Un tour en boutique ?';
+  }
+  // accord : un restaurant « ouvert », des toilettes « ouvertes »
+  const pyStatus = (p, long) => { const t = statusLabel(p, long); return p.cat === 'wc' ? t.replace('Ouverte', 'Ouvertes').replace('Fermée', 'Fermées') : t.replace('Ouverte', 'Ouvert').replace('Fermée', 'Fermé'); };
+  const PY_PLURAL = { hotel: ['hôtel', 'hôtels'], resto: ['restaurant', 'restaurants'], wc: ['toilettes', 'toilettes'], shop: ['commerce', 'commerces'] };
   function renderPaiya() {
     const base = placesBase();
     const counts = Object.fromEntries(PYC.ORDER.map(c => [c, 0]));
-    for (const p of base) if (!state.pos || quickKm(p) <= 15) counts[p.cat]++;
-    $('py-cats').innerHTML = PYC.ORDER.map(c => `<button class="py-cat${py.cat === c ? ' on' : ''}" role="tab" aria-selected="${py.cat === c}" data-cat="${c}" style="--c:${PY_COLOR[c]}">${ic(PY_ICON[c])}${esc(PYC.CATS[c].label)}<small>${counts[c] || 0}</small></button>`).join('');
-    $('py-sub').textContent = state.pos ? (state.placeName ? `Autour de ${state.placeName}` : 'Autour de vous') : 'Position inconnue : triés par nom';
+    let near1 = 0;
+    for (const p of base) {
+      if (state.pos) { const k = quickKm(p); if (k <= 15) counts[p.cat]++; if (p.cat === py.cat && k <= 1) near1++; }
+      else counts[p.cat]++;
+    }
+    const col = PY_COLOR[py.cat];
+    // en-tête coloré : la couleur, l'icône géante et l'accroche suivent la catégorie
+    const scr = $('screen-paiya');
+    scr.style.setProperty('--c', col);
+    const title = pyTitle(py.cat), tEl = $('py-title');
+    if (tEl.textContent !== title) { tEl.textContent = title; tEl.classList.remove('swap'); void tEl.offsetWidth; tEl.classList.add('swap'); }
+    const art = $('py-hero-art');
+    if (art.dataset.cat !== py.cat) { art.dataset.cat = py.cat; art.firstChild.setAttribute('d', ICONS[PY_ICON[py.cat]]); art.classList.remove('swap'); void art.offsetWidth; art.classList.add('swap'); }
+    const [one, many] = PY_PLURAL[py.cat];
+    $('py-pulse').textContent = !state.pos ? 'Activez la localisation pour voir ce qu’il y a autour.'
+      : near1 ? `${near1} ${near1 > 1 ? many : one} à moins d’1 km` : counts[py.cat] ? `Le plus proche est un peu plus loin` : `Rien dans le coin pour l’instant`;
+    $('py-cats').innerHTML = PYC.ORDER.map(c => `<button class="py-cat${py.cat === c ? ' on' : ''}" role="tab" aria-selected="${py.cat === c}" data-cat="${c}" style="--c:${PY_COLOR[c]}">${ic(PY_ICON[c])}<span>${esc(PYC.CATS[c].label)}</span></button>`).join('');
+    $('py-open').classList.toggle('on', py.open);
+    $('py-open').setAttribute('aria-pressed', String(py.open));
+    $('py-sub').textContent = state.pos ? (state.placeName ? state.placeName : '') : 'triés par nom';
     let list = base.filter(p => p.cat === py.cat);
     const q = PC.norm(py.q);
     if (q) list = list.filter(p => PC.norm([p.name, p.sub, p.street, p.commune].filter(Boolean).join(' ')).includes(q));
+    if (py.open) list = list.filter(p => p.hours && withStatus(p).st === 'open');
     if (state.pos) { const dk = new Map(list.map(p => [p, quickKm(p)])); list.sort((a, b) => dk.get(a) - dk.get(b)); }
     else list.sort((a, b) => a.name.localeCompare(b.name, 'fr'));
     const shown = list.slice(0, py.shown).map(withStatus);
-    const col = PY_COLOR[py.cat];
+    $('py-list-h').textContent = py.open ? 'Ouverts maintenant' : state.pos ? 'Autour de vous' : PYC.CATS[py.cat].label;
     if (!list.length) {
-      $('py-list').innerHTML = `<div class="empty">${ic(PY_ICON[py.cat])}<p><b>Aucun lieu trouvé</b></p><p>${q ? 'Modifiez votre recherche.' : 'Connectez-vous à internet puis touchez « Actualiser » pour charger les lieux autour de vous.'}</p></div>`;
+      const msg = q ? 'Modifiez votre recherche.'
+        : py.open ? 'Peu de lieux indiquent leurs horaires. Retirez le filtre « Ouvert » pour tout voir.'
+        : 'Connectez-vous à internet puis touchez le bouton d’actualisation pour charger les lieux autour de vous.';
+      $('py-list').innerHTML = `<div class="py-empty">${ic(PY_ICON[py.cat])}<p><b>Aucun lieu trouvé</b></p><p>${msg}</p>${py.open ? '<button class="btn ghost sm" data-py-all>Tout afficher</button>' : ''}</div>`;
+      $('py-list').classList.add('is-empty');
       $('py-more').hidden = true;
     } else {
-      $('py-list').innerHTML = shown.map(p => `<article class="py-card" data-py="${esc(p.id)}" tabindex="0" style="--c:${col}">
-        <div class="ph-top"><span class="ph-ic">${ic(PY_ICON[p.cat])}</span>
-          <div class="ph-main"><div class="ph-name">${esc(p.name)}</div><div class="ph-meta">${esc([p.sub, p.street || p.commune].filter(Boolean).join(' · '))}</div></div>
-          <div class="ph-dist">${p.d != null ? `<b>${fmtDist(p.d)}</b><small>~${fmtMin(Core.walkMin(p.d * Core.CFG.DETOUR))} à pied</small>` : ''}</div>
-        </div>
-        ${p.hours ? `<div class="ph-tags"><span class="st ${p.st}">${esc(statusLabel(p, true))}</span></div>` : ''}
-        <div class="ph-btns">
-          <button class="btn green" data-py-go="${esc(p.id)}">${ic('route')}Itinéraire</button>
-          ${p.phone ? `<a class="btn ghost" href="${esc(telHref(String(p.phone).split(/[;,/]/)[0]))}" data-ph-call>${ic('phone')}Appeler</a>` : `<button class="btn ghost" data-py-go="${esc(p.id)}">${ic('info')}Détails</button>`}
-        </div>
-      </article>`).join('');
+      $('py-list').classList.remove('is-empty');
+      $('py-list').innerHTML = shown.map(p => {
+        const status = p.hours ? `<small class="py-st ${p.st}">${esc(pyStatus(p))}</small>` : '';
+        return `<button class="py-row" data-py="${esc(p.id)}" type="button">
+          <span class="py-ic">${ic(PY_ICON[p.cat])}</span>
+          <span class="py-main"><b>${esc(p.name)}</b><small>${esc([p.sub, p.street || p.commune].filter(Boolean).join(' · '))}</small></span>
+          <span class="py-d">${p.d != null ? `<b>${fmtDist(p.d)}</b>` : ''}${status || (p.d != null ? `<small>${fmtMin(Core.walkMin(p.d * Core.CFG.DETOUR))} à pied</small>` : '')}</span>
+        </button>`;
+      }).join('');
       $('py-more').hidden = list.length <= py.shown;
       $('py-more').textContent = `Afficher plus (${list.length - py.shown})`;
     }
     const upd = window.ZUPA_PAIYA && window.ZUPA_PAIYA.updated;
     $('py-note').textContent = `Données © OpenStreetMap${upd ? ' · base du ' + new Date(upd).toLocaleDateString('fr-FR') : ''}${py.cache ? ' · actualisée le ' + new Date(py.cache.t).toLocaleDateString('fr-FR') : ''}`;
+    renderLive();
     if (state.pos) refreshPaiya(false);
   }
+  $('py-open').onclick = () => { py.open = !py.open; py.shown = 20; renderPaiya(); };
   $('py-cats').addEventListener('click', e => {
     const b = e.target.closest('[data-cat]'); if (!b) return;
     py.cat = b.dataset.cat; py.shown = 20; store.set('pyCat', py.cat); renderPaiya();
@@ -2165,6 +2286,7 @@
   $('py-refresh').innerHTML = ic('refresh');
   $('py-refresh').onclick = () => { if (!state.pos) { toast('Position inconnue : activez la localisation.', 'error'); return; } refreshPaiya(true); };
   $('py-list').addEventListener('click', e => {
+    if (e.target.closest('[data-py-all]')) { py.open = false; renderPaiya(); return; }
     if (e.target.closest('[data-ph-call]')) return;
     const el = e.target.closest('[data-py-go]') || e.target.closest('[data-py]');
     if (!el) return;
@@ -2172,7 +2294,6 @@
     const p0 = placesBase().find(x => x.id === id);
     if (p0) openDetail(withStatus(p0), 'screen-paiya', 'paiya');
   });
-  $('py-list').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('.py-card')) e.target.click(); });
   document.addEventListener('click', e => { const a = e.target.closest('a[data-ext]'); if (a) { e.preventDefault(); openExternal(a.href); } });
 
   /* ---------- Navigation globale ---------- */

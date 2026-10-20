@@ -368,17 +368,6 @@ body.dark .loc-chip.at-stop .at-stop-txt{color:#4ade80!important}
 @media(prefers-reduced-motion:reduce){.loc-chip.at-stop{animation:none;background:rgba(22,163,74,.3)}}
 
 /* ---------- Paiya ---------- */
-.py-cats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
-.py-cat{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border-radius:14px;background:var(--surface);box-shadow:var(--shadow);font-size:.74rem;font-weight:600;color:var(--text-2);border:2px solid transparent}
-.py-cat .ic{width:24px;height:24px;color:var(--c)}
-.py-cat small{font-size:.66rem;color:var(--text-3);font-weight:500}
-.py-cat.on{border-color:var(--c);color:var(--text);background:color-mix(in srgb,var(--c) 10%,var(--surface))}
-.py-list{display:flex;flex-direction:column;gap:12px}
-.py-card{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);padding:14px;cursor:pointer;border-left:5px solid var(--c);transition:transform .15s}
-.py-card:active{transform:scale(.99)}
-.py-card .ph-ic{background:color-mix(in srgb,var(--c) 14%,transparent);color:var(--c)}
-.py-card .ph-btns .btn.green{background:var(--c)}
-.py-card .ph-btns .btn.ghost{background:color-mix(in srgb,var(--c) 12%,transparent);color:var(--c)}
 .mk-py span{background:var(--c,#E97234);border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)}
 
 /* ---------- Cartes plein écran avec panneau coulissant ---------- */
@@ -423,7 +412,7 @@ body.dark .gm-fab.on{background:#8AB4F8;color:#202124}
 /* ---------- Activité en direct (style Live Activities / Dynamic Island) ---------- */
 .live{--near:0;--lc:var(--brand);position:sticky;top:calc(6px + env(safe-area-inset-top));z-index:30;margin:0 0 12px;
   background:#050506;color:#fff;border-radius:30px;box-shadow:0 10px 28px rgba(0,0,0,.28),0 0 0 calc(var(--near) * 2px) rgba(34,197,94,calc(.2 + var(--near) * .8));
-  overflow:hidden;transition:border-radius .45s cubic-bezier(.2,.9,.25,1.15),box-shadow .6s ease}
+  overflow:hidden;transition:border-radius .45s cubic-bezier(.16,1,.3,1),box-shadow .6s ease}
 body.dark .live{background:#000;box-shadow:0 10px 28px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.08),0 0 0 calc(var(--near) * 2px) rgba(34,197,94,calc(.2 + var(--near) * .8))}
 .live::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 140% at 0% 50%,rgba(34,197,94,calc(var(--near) * .38)),transparent 60%);transition:opacity .6s}
 .live.open{border-radius:28px}
@@ -440,7 +429,7 @@ body.dark .live{background:#000;box-shadow:0 10px 28px rgba(0,0,0,.5),0 0 0 1px 
 .live-r small{font-size:.8rem;font-weight:700;color:rgba(255,255,255,.6)}
 .live.at .live-r b{color:#4ade80;font-size:1.25rem}
 .live.stale .live-r b{opacity:.55}
-.live-more{display:grid;grid-template-rows:0fr;transition:grid-template-rows .45s cubic-bezier(.2,.9,.25,1.1)}
+.live-more{display:grid;grid-template-rows:0fr;transition:grid-template-rows .45s cubic-bezier(.16,1,.3,1)}
 .live.open .live-more{grid-template-rows:1fr}
 .live-in{min-height:0;overflow:hidden;position:relative;padding:0 16px}
 .live.open .live-in{padding-bottom:14px}
@@ -464,3 +453,77 @@ body.dark .live{background:#000;box-shadow:0 10px 28px rgba(0,0,0,.5),0 0 0 1px 
 .live.at::before{background:radial-gradient(120% 140% at 0% 50%,rgba(34,197,94,.5),transparent 65%);animation:live-at-bg 1.2s ease-in-out infinite}
 @keyframes live-at-bg{50%{opacity:.35}}
 @media(prefers-reduced-motion:reduce){.live,.live-more,.live-track i,.live-dir svg{transition:none}.live.at,.live.at::before{animation:none}}
+
+/* ---------- Fraîcheur de la liste de garde ---------- */
+.fresh-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
+.fresh-row small{display:inline!important;color:var(--text-2)}
+.fresh{display:inline-flex;align-items:center;gap:6px;padding:3px 10px 3px 8px;border-radius:999px;font-size:.72rem;font-weight:700}
+.fresh i{width:7px;height:7px;border-radius:50%;background:currentColor}
+.fresh.ok{background:var(--ph);color:#fff}
+.fresh.ok i{background:#bbf7d0;box-shadow:0 0 0 0 rgba(187,247,208,.9);animation:fresh-dot 2.4s ease-out infinite}
+.fresh.old{background:#b45309;color:#fff}
+.fresh-row.checking small{opacity:.7}
+@keyframes fresh-dot{0%{box-shadow:0 0 0 0 rgba(187,247,208,.9)}70%,100%{box-shadow:0 0 0 6px rgba(187,247,208,0)}}
+
+/* ---------- Bulle en direct : variantes lieux ---------- */
+.live-lines .st{font-size:.7rem}
+.live-sub{color:rgba(255,255,255,.75);font-size:.8rem;margin-right:4px;align-self:center}
+.live-acts{display:flex;gap:8px}
+.live-acts .live-btn{flex:1}
+.live-btn.sec{flex:0 0 auto;padding:11px 14px;background:transparent;box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
+
+/* ---------- Paiya : vitrine colorée, sobre, qui change avec la catégorie ---------- */
+#screen-paiya{--c:#c24a12;--ink:var(--c)}
+body.dark #screen-paiya,body.dark .py-cat{--ink:color-mix(in srgb,var(--c) 55%,#fff)}
+.py-hero{position:relative;overflow:hidden;isolation:isolate;border-radius:28px;padding:14px 18px 22px;margin-bottom:14px;color:#fff;
+  background:radial-gradient(130% 120% at 0% 0%,rgba(255,255,255,.2),transparent 55%),var(--c);
+  box-shadow:0 14px 30px -12px color-mix(in srgb,var(--c) 70%,transparent);transition:background-color .55s cubic-bezier(.16,1,.3,1),box-shadow .55s}
+.py-hero-art{position:absolute;right:-26px;bottom:-34px;width:178px;height:178px;fill:#fff;opacity:.16;transform:rotate(-12deg);z-index:-1}
+.py-hero-art.swap{animation:py-art .7s cubic-bezier(.16,1,.3,1)}
+@keyframes py-art{from{transform:rotate(-40deg) scale(.6);opacity:0}to{transform:rotate(-12deg) scale(1);opacity:.16}}
+.py-hero-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.py-brand{font-family:var(--font-title);font-weight:700;font-size:1rem;letter-spacing:.2px;padding:4px 12px;border-radius:999px;background:rgba(255,255,255,.18)}
+.py-hero-btn{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.18);color:#fff}
+.py-hero-btn .ic{width:20px;height:20px}
+.py-hero-btn:active{background:rgba(255,255,255,.3)}
+.py-title{font-family:var(--font-title);font-weight:700;font-size:clamp(1.7rem,7.6vw,2.15rem);line-height:1.04;letter-spacing:-.02em;max-width:78%;text-wrap:balance}
+.py-title.swap{animation:py-title .6s cubic-bezier(.16,1,.3,1)}
+@keyframes py-title{from{transform:translateY(10px);opacity:.15;filter:blur(3px)}to{transform:none;opacity:1;filter:none}}
+.py-pulse{margin-top:8px;font-size:.88rem;font-weight:500;color:rgba(255,255,255,.92)}
+.py-cats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+.py-cat{display:flex;flex-direction:column;align-items:center;gap:5px;padding:11px 2px 9px;border-radius:18px;background:var(--surface);box-shadow:var(--shadow);font-size:.74rem;font-weight:600;color:var(--text-2);
+  transition:background-color .35s cubic-bezier(.16,1,.3,1),color .35s,transform .35s cubic-bezier(.16,1,.3,1),box-shadow .35s}
+.py-cat .ic{width:24px;height:24px;color:var(--ink);transition:color .35s,transform .35s cubic-bezier(.16,1,.3,1)}
+.py-cat.on{background:var(--c);color:#fff;transform:translateY(-3px);box-shadow:0 10px 18px -8px color-mix(in srgb,var(--c) 80%,transparent)}
+.py-cat.on .ic{color:#fff;transform:scale(1.12)}
+.py-cat:active{transform:scale(.96)}
+.py-tools{display:flex;gap:8px;align-items:stretch;margin-bottom:16px}
+.py-tools .ph-search{flex:1;margin:0;min-width:0}
+.py-open{display:flex;align-items:center;gap:7px;padding:0 14px;border-radius:14px;background:var(--surface);box-shadow:var(--shadow);font-weight:600;font-size:.86rem;color:var(--text-2);transition:background-color .25s,color .25s}
+.py-open i{width:9px;height:9px;border-radius:50%;border:2px solid var(--text-3);transition:all .25s}
+.py-open.on{background:var(--c);color:#fff}
+.py-open.on i{border-color:#fff;background:#86efac}
+.py-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:0 4px 8px}
+.py-head h2{font-family:var(--font-title);font-size:1.15rem;font-weight:700}
+.py-head span{font-size:.78rem;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.py-list{background:var(--surface);border-radius:22px;box-shadow:var(--shadow);overflow:hidden}
+.py-list.is-empty{background:none;box-shadow:none}
+.py-row{display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center;width:100%;text-align:left;padding:12px 14px;transition:background-color .2s}
+.py-row+.py-row{border-top:1px solid var(--border)}
+.py-row:active{background:color-mix(in srgb,var(--c) 8%,transparent)}
+.py-row:focus-visible{outline-offset:-2px}
+.py-ic{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 13%,var(--surface));color:var(--ink)}
+.py-ic .ic{width:22px;height:22px}
+.py-main{min-width:0;display:flex;flex-direction:column;line-height:1.25}
+.py-main b{font-weight:600;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.py-main small{color:var(--text-3);font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.py-d{text-align:right;display:flex;flex-direction:column;align-items:flex-end;line-height:1.2}
+.py-d b{font-family:var(--font-title);font-weight:700;font-size:1.05rem;color:var(--ink);font-variant-numeric:tabular-nums}
+.py-d small{font-size:.7rem;color:var(--text-3)}
+.py-st.open{color:var(--ok);font-weight:600}
+.py-st.closed{color:var(--text-3)}
+.py-empty{text-align:center;color:var(--text-2);padding:28px 18px;background:var(--surface);border-radius:22px;box-shadow:var(--shadow)}
+.py-empty .ic{width:44px;height:44px;color:var(--ink);opacity:.8;margin-bottom:6px}
+.py-empty p+p{margin-top:6px;font-size:.88rem}
+.py-empty .btn{margin-top:12px}
+@media(prefers-reduced-motion:reduce){.py-title.swap,.py-hero-art.swap,.fresh.ok i{animation:none}.py-hero,.py-cat,.py-cat .ic{transition:none}}

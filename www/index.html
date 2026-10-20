@@ -41,7 +41,7 @@
             <span id="live-walk"></span>
           </div>
           <div class="live-lines" id="live-lines"></div>
-          <div class="live-acts"><button type="button" class="live-btn" id="live-act"></button></div>
+          <div class="live-acts"><button type="button" class="live-btn" id="live-act"></button><button type="button" class="live-btn sec" id="live-clear" hidden>Le plus proche</button></div>
         </div>
       </div>
     </div>
@@ -250,15 +250,24 @@
 
   <!-- ================= PAIYA ================= -->
   <section class="screen py" id="screen-paiya" aria-label="Paiya">
-    <div class="topbar">
-      <div class="topbar-text"><div class="title">Paiya</div><div class="subtitle" id="py-sub">Autour de vous</div></div>
-      <button class="icon-btn" id="py-refresh" aria-label="Actualiser"></button>
-    </div>
+    <header class="py-hero" id="py-hero">
+      <svg class="py-hero-art" id="py-hero-art" viewBox="0 0 24 24" aria-hidden="true"><path d=""/></svg>
+      <div class="py-hero-top">
+        <span class="py-brand">Paiya</span>
+        <button class="py-hero-btn" id="py-refresh" aria-label="Actualiser les lieux autour de moi"></button>
+      </div>
+      <h1 class="py-title" id="py-title">On sort où ?</h1>
+      <p class="py-pulse" id="py-pulse"></p>
+    </header>
     <div class="py-cats" id="py-cats" role="tablist" aria-label="Catégories"></div>
-    <div class="ph-search">
-      <span data-icon="search"></span>
-      <input id="py-q" type="search" autocomplete="off" placeholder="Nom, type, quartier…" aria-label="Rechercher">
+    <div class="py-tools">
+      <div class="ph-search">
+        <span data-icon="search"></span>
+        <input id="py-q" type="search" autocomplete="off" placeholder="Nom, type, quartier…" aria-label="Rechercher">
+      </div>
+      <button class="py-open" id="py-open" type="button" aria-pressed="false"><i></i>Ouvert</button>
     </div>
+    <div class="py-head"><h2 id="py-list-h">Autour de vous</h2><span id="py-sub"></span></div>
     <div id="py-list" class="py-list"></div>
     <button class="btn ghost block" id="py-more" hidden>Afficher plus</button>
     <div class="ad-slot">Espace publicitaire</div>
