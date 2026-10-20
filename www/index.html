@@ -28,6 +28,7 @@
 
     <!-- Activité en direct : distance jusqu'à l'arrêt, mise à jour en continu -->
     <div class="live" id="live" hidden>
+      <svg class="live-ecg" viewBox="0 0 400 40" preserveAspectRatio="none" aria-hidden="true"><path d="M0 24h150l9-12 11 22 11-30 9 20h40l7-7 7 7h156"/></svg>
       <button class="live-pill" id="live-pill" type="button" aria-expanded="false" aria-controls="live-more">
         <span class="live-ic" id="live-ic"><span data-icon="bus"></span></span>
         <span class="live-c"><small id="live-kicker">Arrêt le plus proche</small><b id="live-name"></b></span>
@@ -206,21 +207,29 @@
   </section>
 
   <!-- ================= PHARMACIES ================= -->
-  <section class="screen ph" id="screen-pharma" aria-label="Pharmacies">
-    <div class="topbar">
-      <div class="topbar-text"><div class="title">Pharmacies</div><div class="subtitle" id="ph-sub">Autour de vous</div></div>
-      <button class="icon-btn" id="ph-refresh" aria-label="Actualiser"></button>
-    </div>
+  <section class="screen ph med" id="screen-pharma" aria-label="Pharmacies">
+    <header class="med-hero" id="ph-hero">
+      <svg class="med-hero-art" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 3H5c-1.1 0-1.99.9-1.99 2L3 19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-1 11h-4v4h-4v-4H6v-4h4V6h4v4h4v4z"/></svg>
+      <svg class="med-ecg" viewBox="0 0 400 40" preserveAspectRatio="none" aria-hidden="true"><path d="M0 24h120l10-14 12 26 12-34 10 22h46l8-8 8 8h174"/></svg>
+      <div class="py-hero-top">
+        <span class="py-brand med-brand"><span data-icon="cross"></span>Pharmacies</span>
+        <button class="py-hero-btn" id="ph-refresh" aria-label="Actualiser"></button>
+      </div>
+      <h1 class="py-title" id="ph-title">Une pharmacie près de vous</h1>
+      <p class="py-pulse" id="ph-pulse"></p>
+    </header>
     <div class="garde-banner" id="ph-garde" aria-live="polite"></div>
+    <div class="py-cats med-cats" id="ph-filter" role="tablist" aria-label="Filtre">
+      <button class="py-cat" data-f="garde" role="tab"><span data-icon="cross"></span><span>De garde</span><small id="ph-n-garde"></small></button>
+      <button class="py-cat" data-f="open" role="tab"><span data-icon="clock"></span><span>Ouvertes</span><small id="ph-n-open"></small></button>
+      <button class="py-cat" data-f="all" role="tab"><span data-icon="pin"></span><span>Toutes</span><small id="ph-n-all"></small></button>
+    </div>
     <div class="ph-search">
       <span data-icon="search"></span>
       <input id="ph-q" type="search" autocomplete="off" placeholder="Nom, commune ou quartier" aria-label="Rechercher une pharmacie">
     </div>
-    <div class="segmented ph-seg" id="ph-filter" role="tablist">
-      <button data-f="garde" role="tab">De garde</button><button data-f="open" role="tab">Ouvertes</button><button data-f="all" role="tab">Toutes</button>
-    </div>
-    <div id="ph-board"></div>
-    <div id="ph-list" class="ph-list"></div>
+    <div class="py-head"><h2 id="ph-list-h">Autour de vous</h2><span id="ph-sub"></span></div>
+    <div id="ph-list" class="py-list ph-rows"></div>
     <button class="btn ghost block" id="ph-more" hidden>Afficher plus</button>
     <div class="ad-slot">Espace publicitaire</div>
     <p class="foot-note" id="ph-note"></p>
@@ -376,6 +385,8 @@
         </div>
         <form class="fr-row" id="fr-add"><input class="input" id="fr-code-in" maxlength="9" autocomplete="off" autocapitalize="characters" placeholder="Code ami, ex. 7KQ4-92XZ" aria-label="Code ami"><button class="btn primary sm" type="submit">Ajouter</button></form>
         <ul class="fav-list fr-list" id="fr-list"></ul>
+        <details class="fr-blocked" id="fr-blocked" hidden><summary id="fr-blocked-sum">Utilisateurs bloqués</summary><ul class="fav-list fr-list" id="fr-blocked-list"></ul></details>
+        <label class="switch-row"><input type="checkbox" id="fr-notif"><span>Me notifier quand un ami m'envoie un lieu</span></label>
       </div>
     </div>
     <div class="card" id="recus-card" hidden>
@@ -442,6 +453,15 @@
     </div>
     <button class="btn ghost block" id="share-out" type="button"><span data-icon="share"></span>Autre application (WhatsApp, SMS…)</button>
     <button class="btn ghost block" data-share-close type="button">Fermer</button>
+  </div>
+</div>
+<div class="share-sheet" id="act-sheet" hidden>
+  <div class="share-backdrop" data-act-close></div>
+  <div class="share-panel" role="dialog" aria-modal="true" aria-labelledby="act-title">
+    <div class="share-grab"></div>
+    <div class="act-head"><span class="fr-avatar" id="act-avatar"></span><div><h3 id="act-title"></h3><p class="muted" id="act-sub"></p></div></div>
+    <div class="act-list" id="act-list"></div>
+    <button class="btn ghost block" data-act-close type="button">Annuler</button>
   </div>
 </div>
 <div class="toasts" id="toasts" aria-live="polite"></div>

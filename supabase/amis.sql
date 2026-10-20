@@ -31,6 +31,15 @@ create table if not exists public.amities (
   check (demandeur <> destinataire)
 );
 
+-- Blocages : la personne bloquée ne peut plus vous inviter ni vous envoyer de lieu, et ne voit plus votre pseudo
+create table if not exists public.blocages (
+  qui        uuid not null references public.profils (id) on delete cascade,
+  bloque     uuid not null references public.profils (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (qui, bloque),
+  check (qui <> bloque)
+);
+
 create table if not exists public.partages (
   id         uuid primary key default gen_random_uuid(),
   de         uuid not null references public.profils (id) on delete cascade,
@@ -61,7 +70,8 @@ alter table public.profils enable row level security;
 alter table public.amities enable row level security;
 alter table public.partages enable row level security;
 alter table public.visites enable row level security;
-revoke all on public.profils, public.amities, public.partages, public.visites from anon, authenticated;
+alter table public.blocages enable row level security;
+revoke all on public.profils, public.amities, public.partages, public.visites, public.blocages from anon, authenticated;
 
 -- ---------- outils internes ----------
 create or replace function public.zupa_qui(p_secret uuid) returns uuid
@@ -104,6 +114,8 @@ begin
   select id into lui from profils where code = upper(btrim(p_code));
   if lui is null then return 'introuvable'; end if;
   if lui = moi then return 'soi_meme'; end if;
+  -- blocage dans un sens ou dans l'autre : on ne révèle rien
+  if exists (select 1 from blocages where (qui = lui and bloque = moi) or (qui = moi and bloque = lui)) then return 'introuvable'; end if;
   if exists (select 1 from amities where statut = 'ami' and ((demandeur = moi and destinataire = lui) or (demandeur = lui and destinataire = moi))) then return 'deja_amis'; end if;
   if exists (select 1 from amities where demandeur = lui and destinataire = moi) then      -- il m'avait déjà invité : on devient amis
     update amities set statut = 'ami' where demandeur = lui and destinataire = moi;
@@ -149,6 +161,35 @@ begin
     from amities a join profils p on p.id = case when a.demandeur = moi then a.destinataire else a.demandeur end
     where a.demandeur = moi or a.destinataire = moi
     order by a.statut desc, p.pseudo;
+end $$;
+
+-- Bloquer : retire l'amitié, les demandes et les lieux échangés
+create or replace function public.ami_bloquer(p_secret uuid, p_code text) returns boolean
+language plpgsql security definer set search_path = public, extensions as $$
+declare moi uuid := zupa_qui(p_secret); lui uuid;
+begin
+  select id into lui from profils where code = upper(btrim(p_code));
+  if lui is null or lui = moi then return false; end if;
+  delete from amities where (demandeur = moi and destinataire = lui) or (demandeur = lui and destinataire = moi);
+  delete from partages where (de = moi and pour = lui) or (de = lui and pour = moi);
+  insert into blocages (qui, bloque) values (moi, lui) on conflict do nothing;
+  return true;
+end $$;
+
+create or replace function public.ami_debloquer(p_secret uuid, p_code text) returns boolean
+language plpgsql security definer set search_path = public, extensions as $$
+declare moi uuid := zupa_qui(p_secret);
+begin
+  delete from blocages where qui = moi and bloque = (select id from profils where code = upper(btrim(p_code)));
+  return found;
+end $$;
+
+create or replace function public.bloques_liste(p_secret uuid)
+returns table (code text, pseudo text)
+language plpgsql security definer set search_path = public, extensions as $$
+declare moi uuid := zupa_qui(p_secret);
+begin
+  return query select p.code, p.pseudo from blocages b join profils p on p.id = b.bloque where b.qui = moi order by b.created_at desc;
 end $$;
 
 -- ---------- partage de lieux (uniquement entre amis) ----------
@@ -233,7 +274,7 @@ begin
   foreach f in array array[
     'zupa_moi(uuid, text)', 'ami_demander(uuid, text)', 'ami_repondre(uuid, text, boolean)', 'ami_retirer(uuid, text)',
     'amis_liste(uuid)', 'lieu_partager(uuid, text[], text, text, double precision, double precision, text)', 'lieux_recus(uuid)',
-    'lieu_recu_maj(uuid, uuid, boolean)', 'visite_ajouter(text, text, text, text, double precision, double precision)',
+    'lieu_recu_maj(uuid, uuid, boolean)', 'ami_bloquer(uuid, text)', 'ami_debloquer(uuid, text)', 'bloques_liste(uuid)', 'visite_ajouter(text, text, text, text, double precision, double precision)',
     'lieux_populaires(double precision, double precision, double precision)', 'mes_donnees_supprimer(uuid, uuid)']
   loop
     execute format('revoke all on function public.%s from public', f);

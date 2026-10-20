@@ -17,6 +17,10 @@
       "backgroundColor": "#E97234",
       "style": "DARK",
       "overlaysWebView": false
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_zupa",
+      "iconColor": "#E97234"
     }
   }
 }

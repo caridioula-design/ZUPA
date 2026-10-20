@@ -52,6 +52,9 @@
     lock: 'M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2z',
     work: 'M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z',
     fire: 'M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67zM11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z',
+    more: 'M6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z',
+    block: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM4 12c0-4.42 3.58-8 8-8 1.85 0 3.55.63 4.9 1.69L5.69 16.9A7.902 7.902 0 0 1 4 12zm8 8c-1.85 0-3.55-.63-4.9-1.69L18.31 7.1A7.902 7.902 0 0 1 20 12c0 4.42-3.58 8-8 8z',
+    person_remove: 'M14 8c0-2.21-1.79-4-4-4S6 5.79 6 8s1.79 4 4 4 4-1.79 4-4zm3 2v2h6v-2h-6zM2 18v2h16v-2c0-2.66-5.33-4-8-4s-8 1.34-8 4z',
     clock: 'M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z'
   };
   const ic = n => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONS[n]}"/></svg>`;
@@ -669,7 +672,7 @@
      Elle verdit à l'approche (500 m -> 30 m) et clignote en vert à l'arrêt. Un appui l'agrandit. */
   const live = { open: false, shown: null, raf: 0, key: '', dest: store.get('liveDest', null) };
   const CARD = ['le nord', 'le nord-est', "l'est", 'le sud-est', 'le sud', 'le sud-ouest', "l'ouest", 'le nord-ouest'];
-  const LIVE_HOST = { 'screen-home': ['loc-chip', 'before'], 'screen-pharma': ['ph-garde', 'after'], 'screen-paiya': ['py-cats', 'after'] };
+  const LIVE_HOST = { 'screen-home': ['loc-chip', 'before'], 'screen-pharma': ['ph-filter', 'after'], 'screen-paiya': ['py-cats', 'after'] };
   function placeLive(id) { // la même bulle passe d'un onglet à l'autre
     const h = LIVE_HOST[id], box = $('live');
     if (!h) return;
@@ -697,7 +700,7 @@
       const g = list.find(p => p.garde), o = list.find(p => p.st === 'open');
       const p = sel || g || o || list[0];
       if (!p) return null;
-      return { kind, p, icon: 'cross', color: 'var(--ph)', dest: !!sel, far: FAR_KM, at: 0.04,
+      return { kind, p, icon: 'cross', color: '#10b981', dest: !!sel, far: FAR_KM, at: 0.04,
         kicker: sel ? 'Votre destination' : p === g ? 'De garde, la plus proche' : p === o ? 'Ouverte, la plus proche' : 'La plus proche',
         tags: `<span class="st ${p.st}">${esc(statusLabel(p, true))}</span>` };
     }
@@ -764,6 +767,7 @@
     box.classList.toggle('stale', !!state.posStale);
     box.style.setProperty('--near', k.toFixed(3));
     box.style.setProperty('--lc', tg.color || (tg.line ? lineColor(tg.line) : 'var(--brand)'));
+    box.classList.toggle('med', tg.kind === 'pharma');
     const key = current + tg.kicker + tg.p.name;
     if (key !== live.key) {
       live.key = key; live.shown = null;
@@ -2123,38 +2127,54 @@
   function phCard(p) {
     const ns = p.approx ? null : nearStop(p);
     const meta = [p.garde && p.garde.adresse || p.street, p.commune || (p.garde && p.garde.commune)].filter(Boolean).join(' · ') || (ns ? `Près de l'arrêt ${ns.name}` : '');
-    const tags = [`<span class="st ${p.st}">${esc(statusLabel(p, true))}</span>`];
-    if (p.garde && p.os.open === true) tags.push('<span class="st open">Ouverte</span>');
     const fol = isFollowed('pharma', p.id);
-    if (fol) tags.unshift('<span class="st follow">Suivie en direct</span>');
-    return `<article class="ph-card${p.garde ? ' garde' : ''}${fol ? ' following' : ''}" data-ph="${esc(p.id)}" tabindex="0" aria-pressed="${fol}">
-      <div class="ph-top"><span class="ph-ic">${ic('cross')}</span>
-        <div class="ph-main"><div class="ph-name">${esc(p.name)}</div><div class="ph-meta">${esc(meta)}</div></div>
-        <div class="ph-dist">${p.d != null ? (p.approx ? `<b>≈ ${fmtDist(p.d)}</b><small>centre-ville</small>` : `<b>${fmtDist(p.d)}</b><small>~${fmtMin(Core.walkMin(p.d * Core.CFG.DETOUR))} à pied</small>`) : '<small>position<br>inconnue</small>'}</div>
-      </div>
-      <div class="ph-tags">${tags.join('')}</div>
-      <div class="ph-btns">
-        <button class="btn green" data-ph-go="${esc(p.id)}">${ic('route')}Itinéraire</button>
-        ${p.phone ? `<a class="btn ghost" href="${esc(telHref(p.phone))}" data-ph-call>${ic('phone')}Appeler</a>` : '<button class="btn ghost" disabled>Pas de numéro</button>'}
-      </div>
-    </article>`;
+    const st = fol ? '<small class="py-st follow">suivie</small>'
+      : p.st === 'garde' ? '<small class="ph-badge">GARDE</small>'
+      : p.st === 'open' ? `<small class="py-st open">${esc(statusLabel(p))}</small>`
+      : p.st === 'closed' ? '<small class="py-st closed">Fermée</small>'
+      : (p.d != null && !p.approx ? `<small>${fmtMin(Core.walkMin(p.d * Core.CFG.DETOUR))} à pied</small>` : '');
+    const tel = p.phone || (p.garde && p.garde.tels && p.garde.tels[0]);
+    return `<div class="py-row ph-row${p.st === 'garde' ? ' garde' : ''}${fol ? ' following' : ''}" data-ph="${esc(p.id)}" role="button" tabindex="0" aria-pressed="${fol}">
+      <span class="py-ic">${ic('cross')}</span>
+      <span class="py-main"><b><span>${esc(p.name)}</span></b><small>${esc(meta)}</small></span>
+      <span class="py-d">${p.d != null ? `<b>${p.approx ? '≈ ' : ''}${fmtDist(p.d)}</b>` : ''}${st}</span>
+      ${tel ? `<a class="ph-call" href="${esc(telHref(tel))}" data-ph-call aria-label="Appeler ${esc(p.name)}">${ic('phone')}</a>` : '<span class="ph-call off" aria-hidden="true"></span>'}
+      <button class="py-more-btn" type="button" data-ph-go="${esc(p.id)}" aria-label="Fiche et carte de ${esc(p.name)}">${ic('chevron')}</button>
+    </div>`;
   }
 
+  // Accroche du haut : la nuit et le week-end, on cherche surtout une pharmacie de garde
+  function phTitle() {
+    const d = new Date(), h = d.getHours(), we = d.getDay() === 0 || (d.getDay() === 6 && h >= 13);
+    if (h >= 20 || h < 7) return 'Une pharmacie de garde cette nuit ?';
+    if (we) return 'De garde ce week-end';
+    return h < 12 ? 'Une pharmacie ce matin ?' : 'Une pharmacie près de vous';
+  }
   function renderPharma() {
     if (!ph.checking && Date.now() - ph.checkedAt > 3 * 3600e3 && Date.now() - (ph.lastCheckTry || 0) > 120e3) { ph.lastCheckTry = Date.now(); loadGardes(); }
     renderGardeBanner();
     const f = ph.filter || 'all';
-    document.querySelectorAll('#ph-filter button').forEach(b => { const on = b.dataset.f === f; b.classList.toggle('active', on); b.setAttribute('aria-selected', String(on)); });
-    $('ph-sub').textContent = state.pos ? (state.placeName ? `Autour de ${state.placeName}` : 'Autour de vous') : 'Position inconnue : triées par nom';
+    document.querySelectorAll('#ph-filter button').forEach(b => { const on = b.dataset.f === f; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); });
+    const all = allPharmacies(), near = all.filter(p => p.d != null && !p.approx && p.d <= 3);
+    $('ph-n-garde').textContent = all.filter(p => p.garde).length || '';
+    $('ph-n-open').textContent = all.filter(p => p.st === 'garde' || p.st === 'open').length || '';
+    $('ph-n-all').textContent = all.length;
+    const t = phTitle(), tEl = $('ph-title');
+    if (tEl.textContent !== t) { tEl.textContent = t; tEl.classList.remove('swap'); void tEl.offsetWidth; tEl.classList.add('swap'); }
+    const ng = near.filter(p => p.garde).length, closest = near.filter(p => p.garde).sort((a, b) => a.d - b.d)[0];
+    $('ph-pulse').textContent = !state.pos ? 'Activez la localisation pour voir les pharmacies autour de vous.'
+      : ng ? `${ng} de garde à moins de 3 km · la plus proche à ${fmtDist(closest.d)}`
+      : gardeOn() ? 'Aucune pharmacie de garde à moins de 3 km' : `${near.length} pharmacies à moins de 3 km`;
+    $('ph-list-h').textContent = f === 'garde' ? 'De garde autour de vous' : f === 'open' ? 'Ouvertes maintenant' : 'Autour de vous';
+    $('ph-sub').textContent = state.pos ? (state.placeName || '') : 'triées par nom';
     const list = phFiltered();
-    const top = list.filter(p => p.d != null).slice(0, 5);
-    $('ph-board').innerHTML = top.length ? `<div class="board green"><div class="board-row head"><span>Pharmacie</span><span class="b-dist">Distance</span><span class="b-st">Statut</span></div>${top.map((p, i) =>
-      `<button class="board-row${isFollowed('pharma', p.id) ? ' following' : ''}" style="animation-delay:${i * 80}ms" data-ph="${esc(p.id)}"><span class="b-name">${esc(p.name.replace(/^pharmacie\s+/i, '').replace(/^./, c => c.toUpperCase()))}</span><span class="b-dist">${p.approx ? '≈' : ''}${fmtDist(p.d)}</span><span class="b-st ${p.st}">${esc(p.st === 'garde' ? 'GARDE' : p.st === 'open' ? 'OUVERTE' : p.st === 'closed' ? 'FERMÉE' : '—')}</span></button>`).join('')}</div>` : '';
     if (!list.length) {
       const total = PH_EMBED.length + (ph.cache ? ph.cache.list.length : 0);
-      $('ph-list').innerHTML = `<div class="empty">${ic('cross')}<p><b>${ph.q ? 'Aucune pharmacie ne correspond' : f === 'garde' ? 'Aucune pharmacie de garde trouvée' : 'Aucune pharmacie trouvée'}</b></p><p>${!total ? 'Connectez-vous à internet puis touchez « Actualiser » pour charger les pharmacies autour de vous.' : f !== 'all' ? 'Essayez le filtre « Toutes ».' : 'Modifiez votre recherche.'}</p>${f !== 'all' ? '<button class="btn ghost sm" data-ph-all>Voir toutes les pharmacies</button>' : ''}</div>`;
+      $('ph-list').classList.add('is-empty');
+      $('ph-list').innerHTML = `<div class="py-empty">${ic('cross')}<p><b>${ph.q ? 'Aucune pharmacie ne correspond' : f === 'garde' ? 'Aucune pharmacie de garde trouvée' : 'Aucune pharmacie trouvée'}</b></p><p>${!total ? 'Connectez-vous à internet puis touchez « Actualiser » pour charger les pharmacies autour de vous.' : f !== 'all' ? 'Essayez le filtre « Toutes ».' : 'Modifiez votre recherche.'}</p>${f !== 'all' ? '<button class="btn ghost sm" data-ph-all>Voir toutes les pharmacies</button>' : ''}</div>`;
       $('ph-more').hidden = true;
     } else {
+      $('ph-list').classList.remove('is-empty');
       $('ph-list').innerHTML = list.slice(0, ph.shown).map(phCard).join('');
       $('ph-more').hidden = list.length <= ph.shown;
       $('ph-more').textContent = `Afficher plus (${list.length - ph.shown})`;
@@ -2200,8 +2220,7 @@
     else followPlace('pharma', p.id);
   }
   $('ph-list').addEventListener('click', onPhClick);
-  $('ph-board').addEventListener('click', onPhClick);
-  $('ph-list').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('.ph-card')) e.target.click(); });
+  $('ph-list').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('.ph-row')) e.target.click(); });
   $('ph-teaser').onclick = () => { const id = $('ph-teaser').dataset.ph; if (id) openPharmacy(id, 'screen-home'); else show('screen-pharma'); };
 
   /* ---------- Détail ---------- */
@@ -2841,22 +2860,28 @@
      quelqu'un que par son code ami ; les lieux ne s'échangent qu'entre amis acceptés.
      ===================================================================== */
   const mySecret = (() => { let x = store.get('secret', null); if (!/^[0-9a-f-]{36}$/.test(x || '')) { x = uuid(); store.set('secret', x); } return x; })();
-  const fr = { me: store.get('me', null), list: store.get('friends', []), recus: store.get('recus', []), seen: store.get('recusSeen', []), busy: false };
+  const fr = { me: store.get('me', null), list: store.get('friends', []), recus: store.get('recus', []), blocked: store.get('blocked', []), seen: store.get('recusSeen', []), busy: false };
   const rpc = (name, body) => sb('/rest/v1/rpc/' + name, { method: 'POST', body: { p_secret: mySecret, ...body } });
   const initial = n => esc(String(n || '?').trim().charAt(0).toUpperCase());
   async function frRefresh(quiet) {
     if (!fr.me || !sbOn() || fr.busy) return;
     fr.busy = true;
-    const [a, b] = await Promise.all([rpc('amis_liste', {}), rpc('lieux_recus', {})]);
+    const [a, b, c] = await Promise.all([rpc('amis_liste', {}), rpc('lieux_recus', {}), rpc('bloques_liste', {})]);
+    if (c.ok && Array.isArray(c.data)) { fr.blocked = c.data; store.set('blocked', fr.blocked); }
     fr.busy = false;
     if (a.status === 400 && /Profil inconnu/.test(sbErr(a))) { fr.me = null; store.set('me', null); renderFriends(); return; }
     const before = new Set(fr.list.filter(f => f.etat === 'recue').map(f => f.code));
     if (a.ok && Array.isArray(a.data)) { fr.list = a.data; store.set('friends', fr.list); }
     if (b.ok && Array.isArray(b.data)) { fr.recus = b.data; store.set('recus', fr.recus); }
     if (!quiet) {
-      fr.list.filter(f => f.etat === 'recue' && !before.has(f.code)).forEach(f => toast(`${f.pseudo} veut devenir votre ami.`, 'info', 6000, { text: 'Voir', fn: () => show('screen-profile') }));
+      const visible = document.visibilityState === 'visible';
+      fr.list.filter(f => f.etat === 'recue' && !before.has(f.code)).forEach(f => {
+        if (visible) toast(`${f.pseudo} veut devenir votre ami.`, 'info', 6000, { text: 'Voir', fn: () => show('screen-profile') });
+        notify(f.code.replace('-', '') + '0f', 'Nouvelle demande d\u2019ami', `${f.pseudo} veut devenir votre ami sur ZUPA.`, { friend: f.code });
+      });
       const fresh = fr.recus.filter(r => !r.lu && !fr.seen.includes(r.id));
-      if (fresh.length) toast(fresh.length === 1 ? `${fresh[0].de_pseudo} vous a envoyé un lieu : ${fresh[0].nom}` : `${fresh.length} nouveaux lieux reçus de vos amis`, 'success', 6000, { text: 'Voir', fn: () => fresh.length === 1 ? openRecu(fresh[0]) : show('screen-profile') });
+      fresh.forEach(r => notify(r.id, `${r.de_pseudo} vous a envoyé un lieu`, r.nom + (r.note ? ` · « ${r.note} »` : ''), { recu: r.id }));
+      if (fresh.length && visible) toast(fresh.length === 1 ? `${fresh[0].de_pseudo} vous a envoyé un lieu : ${fresh[0].nom}` : `${fresh.length} nouveaux lieux reçus de vos amis`, 'success', 6000, { text: 'Voir', fn: () => fresh.length === 1 ? openRecu(fresh[0]) : show('screen-profile') });
       fr.seen = [...new Set([...fr.seen, ...fresh.map(r => r.id)])].slice(-200); store.set('recusSeen', fr.seen);
     }
     renderFriends(); syncBadge();
@@ -2874,13 +2899,16 @@
       const L = { recue: 'vous invite', envoyee: 'invitation envoyée', ami: 'ami' };
       const sorted = [...fr.list].sort((x, y) => ({ recue: 0, ami: 1, envoyee: 2 }[x.etat] - { recue: 0, ami: 1, envoyee: 2 }[y.etat]));
       $('fr-list').innerHTML = sorted.length ? sorted.map(f => `<li class="fr-item ${f.etat}"><span class="fr-avatar">${initial(f.pseudo)}</span><span>${esc(f.pseudo)}<br><small class="muted">${L[f.etat]}</small></span>${
-        f.etat === 'recue' ? `<button class="btn primary sm" data-fr-ok="${esc(f.code)}">Accepter</button><button class="btn ghost sm" data-fr-no="${esc(f.code)}" aria-label="Refuser">${ic('close')}</button>`
-        : `<button class="btn ghost sm" data-fr-del="${esc(f.code)}" data-pseudo="${esc(f.pseudo)}" data-etat="${f.etat}">${f.etat === 'ami' ? 'Retirer' : 'Annuler'}</button>`}</li>`).join('')
+        f.etat === 'recue' ? `<button class="btn primary sm" data-fr-ok="${esc(f.code)}">Accepter</button>` : ''}<button class="btn ghost sm fr-more" data-fr-menu="${esc(f.code)}" aria-label="Options pour ${esc(f.pseudo)}">${ic('more')}</button></li>`).join('')
         : '<li class="muted">Aucun ami pour l\u2019instant. Envoyez votre code avec « Inviter », ou saisissez celui d\u2019un ami.</li>';
     }
+    const bl = fr.blocked || [];
+    $('fr-blocked').hidden = !bl.length;
+    $('fr-blocked-sum').textContent = `Utilisateurs bloqués (${bl.length})`;
+    $('fr-blocked-list').innerHTML = bl.map(b => `<li><span class="fr-avatar off">${initial(b.pseudo)}</span><span>${esc(b.pseudo)}<br><small class="muted">bloqué</small></span><button class="btn ghost sm" data-fr-unblock="${esc(b.code)}">Débloquer</button></li>`).join('');
     const rc = fr.recus;
     $('recus-card').hidden = !rc.length;
-    $('recus-list').innerHTML = rc.map(r => `<li class="${r.lu ? '' : 'unread'}"><span class="fr-avatar">${initial(r.de_pseudo)}</span><span><b>${esc(r.nom)}</b><br><small class="muted">de ${esc(r.de_pseudo)} · ${esc(fmtAgo(new Date(r.created_at).getTime()))}${r.note ? ' · « ' + esc(r.note) + ' »' : ''}</small></span><button class="btn ghost sm" data-rc-go="${esc(r.id)}">Voir</button><button class="btn ghost sm" data-rc-del="${esc(r.id)}" aria-label="Supprimer">${ic('trash')}</button></li>`).join('');
+    $('recus-list').innerHTML = rc.map(r => `<li class="${r.lu ? '' : 'unread'}"><span class="fr-avatar">${initial(r.de_pseudo)}</span><span><b>${esc(r.nom)}</b><br><small class="muted">de ${esc(r.de_pseudo)} · ${esc(fmtAgo(new Date(r.created_at).getTime()))}${r.note ? ' · « ' + esc(r.note) + ' »' : ''}</small></span><button class="btn ghost sm" data-rc-go="${esc(r.id)}">Voir</button><button class="btn ghost sm fr-more" data-rc-menu="${esc(r.id)}" aria-label="Options">${ic('more')}</button></li>`).join('');
   }
   const recuPlace = r => ({ id: 'r' + r.id, cat: PYC.CATS[r.cat] ? r.cat : 'shop', name: r.nom, sub: `Envoyé par ${r.de_pseudo}`, lat: r.lat, lon: r.lon, note: r.note || '', shared: true, from: r.de_pseudo, created: r.created_at });
   function openRecu(r) {
@@ -2893,7 +2921,7 @@
     if (ps.length < 2 || !nameValid(ps)) { toast('Choisissez un pseudo de 2 à 30 lettres.', 'error'); return; }
     const r = await rpc('zupa_moi', { p_pseudo: ps });
     if (!r.ok || !r.data || !r.data[0]) { toast(r.net ? 'Pas de connexion internet.' : 'Création impossible : ' + sbErr(r), 'error'); return; }
-    fr.me = r.data[0]; store.set('me', fr.me); renderFriends(); frRefresh(true); toast(`Profil créé. Votre code ami : ${fr.me.code}`, 'success', 6000);
+    fr.me = r.data[0]; store.set('me', fr.me); renderFriends(); frRefresh(true); notifPermission(true); toast(`Profil créé. Votre code ami : ${fr.me.code}`, 'success', 6000);
   });
   $('fr-add').addEventListener('submit', async e => {
     e.preventDefault();
@@ -2912,24 +2940,63 @@
     try { if (navigator.share) { await navigator.share({ title: 'ZUPA', text }); return; } } catch (err) { if (err && err.name === 'AbortError') return; }
     try { await navigator.clipboard.writeText(fr.me.code); toast('Code copié : ' + fr.me.code, 'success'); } catch (_) { toast(text, 'info', 8000); }
   };
-  $('fr-list').addEventListener('click', async e => {
-    const ok = e.target.closest('[data-fr-ok]'), no = e.target.closest('[data-fr-no]'), del = e.target.closest('[data-fr-del]');
-    if (ok || no) { const r = await rpc('ami_repondre', { p_code: (ok || no).dataset[ok ? 'frOk' : 'frNo'], p_ok: !!ok }); if (!r.ok) toast('Action impossible : ' + (r.net ? 'pas de connexion.' : sbErr(r)), 'error'); else if (ok) toast('Vous êtes maintenant amis !', 'success'); frRefresh(true); return; }
-    if (del) {
-      if (del.dataset.etat === 'ami' && !confirm(`Retirer ${del.dataset.pseudo} de vos amis ? Les lieux échangés entre vous seront effacés.`)) return;
-      const r = await rpc('ami_retirer', { p_code: del.dataset.frDel }); if (!r.ok) toast('Action impossible : ' + (r.net ? 'pas de connexion.' : sbErr(r)), 'error'); frRefresh(true);
-    }
+  // Feuille d'actions (options d'un ami)
+  function openActions(o) {
+    $('act-title').textContent = o.title; $('act-sub').textContent = o.sub || '';
+    $('act-avatar').textContent = o.avatar || ''; $('act-avatar').hidden = !o.avatar;
+    $('act-list').innerHTML = o.actions.map((a, i) => `<button type="button" class="act-btn${a.danger ? ' danger' : ''}" data-act="${i}">${ic(a.icon)}<span><b>${esc(a.label)}</b>${a.hint ? `<small>${esc(a.hint)}</small>` : ''}</span></button>`).join('');
+    openActions.cur = o.actions;
+    const sh = $('act-sheet'); sh.hidden = false; requestAnimationFrame(() => sh.classList.add('open'));
+  }
+  function closeActions() { const sh = $('act-sheet'); sh.classList.remove('open'); setTimeout(() => { sh.hidden = true; }, 250); }
+  $('act-sheet').addEventListener('click', e => {
+    if (e.target.closest('[data-act-close]')) { closeActions(); return; }
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    const a = openActions.cur[+b.dataset.act]; closeActions(); if (a) a.fn();
+  });
+  const frAct = async (fn, body, okMsg) => {
+    const r = await rpc(fn, body);
+    if (!r.ok) { toast('Action impossible : ' + (r.net ? 'pas de connexion internet.' : sbErr(r)), 'error'); return false; }
+    if (okMsg) toast(okMsg, 'success');
+    await frRefresh(true); return true;
+  };
+  function friendMenu(f) {
+    const block = { icon: 'block', danger: true, label: `Bloquer ${f.pseudo}`, hint: 'Il ne pourra plus vous inviter ni vous envoyer de lieu. Il n\u2019est pas prévenu.', fn: () => frAct('ami_bloquer', { p_code: f.code }, `${f.pseudo} est bloqué.`) };
+    const actions = f.etat === 'ami' ? [
+      { icon: 'person_remove', label: 'Retirer de mes amis', hint: 'Les lieux échangés entre vous sont effacés.', fn: () => frAct('ami_retirer', { p_code: f.code }, `${f.pseudo} a été retiré de vos amis.`) }, block]
+      : f.etat === 'recue' ? [
+      { icon: 'check', label: 'Accepter', fn: () => frAct('ami_repondre', { p_code: f.code, p_ok: true }, 'Vous êtes maintenant amis !') },
+      { icon: 'close', label: 'Refuser', hint: 'Il pourra vous réinviter plus tard.', fn: () => frAct('ami_repondre', { p_code: f.code, p_ok: false }, 'Invitation refusée.') }, block]
+      : [{ icon: 'close', label: 'Annuler l\u2019invitation', fn: () => frAct('ami_retirer', { p_code: f.code }, 'Invitation annulée.') }, block];
+    openActions({ title: f.pseudo, sub: { ami: 'Ami sur ZUPA', recue: 'Vous invite à devenir amis', envoyee: 'Invitation envoyée' }[f.etat], avatar: String(f.pseudo).charAt(0).toUpperCase(), actions });
+  }
+  $('fr-list').addEventListener('click', e => {
+    const ok = e.target.closest('[data-fr-ok]');
+    if (ok) { frAct('ami_repondre', { p_code: ok.dataset.frOk, p_ok: true }, 'Vous êtes maintenant amis !'); return; }
+    const m = e.target.closest('[data-fr-menu]'); if (!m) return;
+    const f = fr.list.find(x => x.code === m.dataset.frMenu); if (f) friendMenu(f);
+  });
+  $('fr-blocked-list').addEventListener('click', e => {
+    const u = e.target.closest('[data-fr-unblock]'); if (!u) return;
+    const b = (fr.blocked || []).find(x => x.code === u.dataset.frUnblock);
+    frAct('ami_debloquer', { p_code: u.dataset.frUnblock }, b ? `${b.pseudo} est débloqué. Vous pouvez de nouveau l\u2019inviter.` : 'Débloqué.');
   });
   $('recus-list').addEventListener('click', async e => {
-    const g = e.target.closest('[data-rc-go]'), d = e.target.closest('[data-rc-del]');
-    const r = fr.recus.find(x => x.id === (g || d || {}).dataset?.[g ? 'rcGo' : 'rcDel']);
+    const g = e.target.closest('[data-rc-go]'), mm = e.target.closest('[data-rc-menu]');
+    const r = fr.recus.find(x => x.id === (g || mm || {}).dataset?.[g ? 'rcGo' : 'rcMenu']);
     if (!r) return;
     if (g) { openRecu(r); return; }
+    openActions({ title: r.nom, sub: `Envoyé par ${r.de_pseudo}`, avatar: String(r.de_pseudo).charAt(0).toUpperCase(), actions: [
+      { icon: 'route', label: 'Y aller en bus', fn: () => { setOriginStop(null); setDestPlace({ name: r.nom, lat: r.lat, lon: r.lon }); runSearch(); } },
+      { icon: 'trash', label: 'Supprimer ce lieu', fn: () => delRecu(r) },
+      { icon: 'block', danger: true, label: `Bloquer ${r.de_pseudo}`, hint: 'Ses lieux sont effacés et il ne pourra plus vous en envoyer.', fn: () => frAct('ami_bloquer', { p_code: r.de_code }, `${r.de_pseudo} est bloqué.`) }] });
+  });
+  function delRecu(r) {
     const i = fr.recus.indexOf(r); fr.recus.splice(i, 1); store.set('recus', fr.recus); renderFriends(); syncBadge();
     let undone = false;
     toast('Lieu reçu supprimé.', 'info', 5000, { text: 'Annuler', fn: () => { undone = true; fr.recus.splice(i, 0, r); store.set('recus', fr.recus); renderFriends(); syncBadge(); } });
     setTimeout(() => { if (!undone) rpc('lieu_recu_maj', { p_id: r.id, p_supprimer: true }); }, 5200);
-  });
+  }
 
   // Feuille de partage : amis ZUPA ou autre application
   const share = { p: null };
@@ -2965,6 +3032,32 @@
     const r = await rpc('lieu_partager', { p_codes: codes, p_nom: p.name, p_cat: p.cat && PYC.CATS[p.cat] ? p.cat : (p.st ? 'pharma' : null), p_lat: p.lat, p_lon: p.lon, p_note: $('share-note').value.trim() || null });
     if (r.ok) { closeShare(); toast(r.data > 1 ? `Lieu envoyé à ${r.data} amis.` : 'Lieu envoyé.', 'success'); }
     else { $('share-send').disabled = false; toast(r.net ? 'Pas de connexion internet : réessayez.' : 'Envoi impossible : ' + sbErr(r), 'error'); }
+  };
+
+  /* ---------- Notifications du téléphone (nouveau lieu reçu, demande d'ami) ---------- */
+  const LN = () => (isNative() && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) || null;
+  const notifOn = () => store.get('notifOn', true);
+  async function notifPermission(ask) {
+    const ln = LN(); if (!ln) return false;
+    try { let p = await ln.checkPermissions(); if (p.display !== 'granted' && ask) p = await ln.requestPermissions(); return p.display === 'granted'; } catch (_) { return false; }
+  }
+  async function notify(key, title, body, extra) {
+    const ln = LN(); if (!ln || !notifOn() || !(await notifPermission(false))) return false;
+    const id = parseInt(String(key).replace(/[^0-9a-f]/gi, '').slice(0, 7) || '1', 16) || Date.now() % 2e9;
+    try { await ln.schedule({ notifications: [{ id, title, body, extra, smallIcon: 'ic_stat_zupa', iconColor: '#E97234', autoCancel: true }] }); return true; } catch (_) { return false; }
+  }
+  try {
+    const ln = LN();
+    if (ln) ln.addListener('localNotificationActionPerformed', async ev => {
+      const x = (ev && ev.notification && ev.notification.extra) || {};
+      if (x.recu) { let r = fr.recus.find(y => y.id === x.recu); if (!r) { await frRefresh(true); r = fr.recus.find(y => y.id === x.recu); } if (r) openRecu(r); else show('screen-profile'); }
+      else if (x.friend) show('screen-profile');
+    });
+  } catch (_) {}
+  $('fr-notif').checked = notifOn();
+  $('fr-notif').onchange = async e => {
+    store.set('notifOn', e.target.checked);
+    if (e.target.checked && LN() && !(await notifPermission(true))) toast('Autorisez les notifications de ZUPA dans les réglages du téléphone.', 'error', 6000);
   };
 
   /* =====================================================================
@@ -3129,6 +3222,7 @@
     const open = [...document.querySelectorAll('.suggest')].some(b => !b.hidden);
     if (open) { closeSuggests(); return true; }
     if (!$('share-sheet').hidden) { closeShare(); return true; }
+    if (!$('act-sheet').hidden) { closeActions(); return true; }
     if (live.open && LIVE_HOST[current]) { live.open = false; $('live').classList.remove('open'); $('live-pill').setAttribute('aria-expanded', 'false'); return true; }
     const to = navStack.length > 1 ? navStack[navStack.length - 2] : current !== 'screen-home' ? 'screen-home' : null;
     if (!to) return false;
