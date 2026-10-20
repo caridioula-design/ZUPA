@@ -654,6 +654,16 @@
     live.key = '';
   }
   const DEST_TTL = 3 * 3600e3;
+  const isFollowed = (kind, id) => !!(live.dest && live.dest.kind === kind && live.dest.id === id && Date.now() - live.dest.t < DEST_TTL);
+  // Toucher un lieu dans une liste : la bulle le suit (sans ouvrir la carte) ; le toucher à nouveau ouvre sa fiche
+  function followPlace(kind, id) {
+    live.dest = { kind, id, t: Date.now() }; store.set('liveDest', live.dest);
+    live.open = true; $('live').classList.add('open'); $('live-pill').setAttribute('aria-expanded', 'true');
+    vibrate(25);
+    if (kind === 'pharma') renderPharma(); else renderPaiya();
+    renderLive();
+    const box = $('live'); box.classList.remove('pop'); void box.offsetWidth; box.classList.add('pop');
+  }
   function placeTarget(kind) {
     const d = live.dest && live.dest.kind === kind && Date.now() - live.dest.t < DEST_TTL ? live.dest : null;
     if (kind === 'pharma') {
@@ -769,7 +779,20 @@
     $('live').classList.toggle('open', live.open);
     $('live-pill').setAttribute('aria-expanded', String(live.open));
   });
-  $('live-clear').addEventListener('click', () => { live.dest = null; store.set('liveDest', null); renderLive(); });
+  // la bulle ouverte se replie quand on fait défiler la liste vers le bas (elle reste en haut, en petit)
+  Object.keys(LIVE_HOST).forEach(id => {
+    let last = 0;
+    $(id).addEventListener('scroll', e => {
+      const y = e.target.scrollTop;
+      if (live.open && y > 160 && y - last > 4) { live.open = false; $('live').classList.remove('open'); $('live-pill').setAttribute('aria-expanded', 'false'); }
+      last = y;
+    }, { passive: true });
+  });
+  $('live-clear').addEventListener('click', () => {
+    live.dest = null; store.set('liveDest', null);
+    if (current === 'screen-pharma') renderPharma(); else if (current === 'screen-paiya') renderPaiya();
+    renderLive();
+  });
   $('live-act').addEventListener('click', () => {
     const tg = live.tg;
     if (!tg) return;
@@ -1013,7 +1036,7 @@
   }
   const withDist = s => stopItem(s, state.pos ? fmtDist(dist(state.pos, s)) : '');
 
-  function makeSuggest(input, box, { onPick, empty, onEnter }) {
+  function makeSuggest(input, box, { onPick, empty, onEnter, search }) {
     let items = [], active = -1;
     const render = () => {
       if (!items.length) { close(); return; }
@@ -1027,8 +1050,8 @@
     };
     const update = () => {
       const q = input.value.trim();
-      items = q ? Core.searchStops(D, q, 8).map(withDist) : (empty ? empty() : []);
-      if (q && !items.length) items = [{ head: 'Aucun arrêt ne correspond' }];
+      items = q ? (search ? search(q) : Core.searchStops(D, q, 8).map(withDist)) : (empty ? empty() : []);
+      if (q && !items.length) items = [{ head: search ? 'Aucun arrêt ni lieu ne correspond' : 'Aucun arrêt ne correspond' }];
       active = q ? items.findIndex(it => !it.head) : -1;
       render();
     };
@@ -1067,7 +1090,42 @@
   /* ---------- Accueil ---------- */
   const originInput = $('origin-input'), destInput = $('dest-input');
   function setOriginStop(s) { state.origin = s ? { type: 'stop', id: s.id } : null; originInput.value = s ? s.label : ''; syncClear(); }
-  function setDest(s) { state.dest = s ? s.id : null; destInput.value = s ? s.label : ''; syncClear(); }
+  function setDest(s) { state.dest = s ? s.id : null; state.destPlace = null; destInput.value = s ? s.label : ''; syncClear(); }
+  // Destination = un lieu (Paiya, pharmacie, lieu ajouté) : l'itinéraire vise les arrêts les plus proches de ce lieu
+  function setDestPlace(p) { state.dest = null; state.destPlace = { id: null, place: true, lat: p.lat, lon: p.lon, label: p.name }; destInput.value = p.name; syncClear(); }
+  let placeIndex = null, placeIndexKey = '';
+  function placeIdx() { // noms normalisés, recalculés seulement quand les listes changent
+    placesBase();
+    const key = `${pyBaseKey}|${(ph.cache && ph.cache.t) || 0}`;
+    if (placeIndex && key === placeIndexKey) return placeIndex;
+    const all = [];
+    for (const p of placesBase()) if (p.name && p.name !== PYC.CATS[p.cat].one) all.push({ p, kind: 'paiya', n: PC.norm(p.name + ' ' + (p.sub || '')) });
+    for (const p of PC.mergeLists(PH_EMBED, ph.cache && ph.cache.list)) if (Number.isFinite(p.lat)) all.push({ p, kind: 'pharma', n: PC.norm(p.name + ' ' + (p.commune || '')) });
+    placeIndex = all; placeIndexKey = key;
+    return all;
+  }
+  function placeItem(x) {
+    const p = x.p, cat = x.kind === 'pharma' ? null : p.cat;
+    const icn = cat ? PY_ICON[cat] : 'cross', col = cat ? PY_COLOR[cat] : 'var(--ph)';
+    const n = Core.nearbyStops(D, p.lat, p.lon, 0.8, 1)[0];
+    const near = n ? `près de l'arrêt ${n.stop.label} · ${fmtDist(n.d)}` : 'aucun arrêt à moins de 800 m';
+    const tag = p.community ? '<span class="utag">ZUPA</span>' : '';
+    return { type: 'place', place: p, html: `<span class="sg-ic place" style="--c:${col}">${ic(icn)}</span><span class="sg-main"><span class="sg-name">${esc(p.name)}${tag}</span><span class="sg-sub">${esc(near)}</span></span>${state.pos ? `<span class="sg-extra">${fmtDist(Core.haversine(state.pos[0], state.pos[1], p.lat, p.lon))}</span>` : ''}` };
+  }
+  function searchPlaces(q, max = 5) {
+    const nq = PC.norm(q);
+    if (nq.length < 2) return [];
+    const words = nq.split(' ').filter(Boolean);
+    const hits = [];
+    for (const x of placeIdx()) {
+      if (!words.every(w => x.n.includes(w))) continue;
+      let sc = x.n.startsWith(nq) ? 0 : (' ' + x.n).includes(' ' + words[0]) ? 1 : 2;
+      if (x.p.community) sc -= 1.5;
+      if (state.pos) sc += Math.min(1, Core.haversine(state.pos[0], state.pos[1], x.p.lat, x.p.lon) / 20);
+      hits.push([sc, x]);
+    }
+    return hits.sort((a, b) => a[0] - b[0]).slice(0, max).map(h => placeItem(h[1]));
+  }
   function syncClear() {
     $('origin-clear').hidden = !originInput.value;
     $('dest-clear').hidden = !destInput.value;
@@ -1086,10 +1144,19 @@
     }
   });
   makeSuggest(destInput, $('suggest-home'), {
-    onPick: it => { setDest(it.stop); runSearch(); },
+    onPick: it => { if (it.type === 'place') setDestPlace(it.place); else setDest(it.stop); runSearch(); },
     onEnter: () => runSearch(),
+    search: q => {
+      const stops = Core.searchStops(D, q, 6).map(withDist), places = searchPlaces(q, 5);
+      const out = [];
+      if (stops.length) out.push({ head: 'Arrêts' }, ...stops);
+      if (places.length) out.push({ head: 'Lieux' }, ...places);
+      return out;
+    },
     empty: () => {
       const out = [];
+      const mine = comm.mine.slice(0, 4).map(m => placeItem({ p: commPlace(m, true), kind: 'paiya' }));
+      if (mine.length) out.push({ head: 'Mes lieux' }, ...mine);
       const favs = state.profile.favorites.map(id => D.byId.get(id)).filter(Boolean);
       if (favs.length) { out.push({ head: 'Favoris' }); favs.forEach(s => out.push(withDist(s))); }
       const rec = state.recents.filter(id => !state.profile.favorites.includes(id)).map(id => D.byId.get(id)).filter(Boolean);
@@ -1098,7 +1165,7 @@
     }
   });
   originInput.addEventListener('input', () => { state.origin = null; syncClear(); });
-  destInput.addEventListener('input', () => { state.dest = null; syncClear(); });
+  destInput.addEventListener('input', () => { state.dest = null; state.destPlace = null; syncClear(); });
   $('origin-clear').innerHTML = ic('close');
   $('dest-clear').innerHTML = ic('close');
   $('origin-clear').onclick = () => { setOriginStop(null); originInput.focus(); };
@@ -1106,6 +1173,7 @@
   $('swap-btn').innerHTML = ic('swap');
   $('swap-btn').onclick = () => {
     const o = state.origin ? D.byId.get(state.origin.id) : Core.resolveStop(D, originInput.value);
+    if (state.destPlace) { toast('La destination est un lieu : choisissez un arrêt pour inverser.'); return; }
     const d = state.dest ? D.byId.get(state.dest) : Core.resolveStop(D, destInput.value);
     if (!o) {
       if (!d) { toast('Choisissez d\'abord un départ et une destination.'); return; }
@@ -1179,6 +1247,7 @@
     return { error: 'Position inconnue : activez la localisation ou choisissez un arrêt de départ.' };
   }
   function getDest() {
+    if (state.destPlace && destInput.value === state.destPlace.label) return state.destPlace;
     if (state.dest && D.byId.has(state.dest)) return D.byId.get(state.dest);
     const s = Core.resolveStop(D, destInput.value);
     if (s) setDest(s);
@@ -1189,7 +1258,7 @@
     closeSuggests();
     const dest = getDest();
     if (!dest) {
-      toast(destInput.value.trim() ? 'Destination introuvable : choisissez un arrêt dans la liste.' : 'Indiquez votre destination.', 'error');
+      toast(destInput.value.trim() ? 'Destination introuvable : choisissez un arrêt ou un lieu dans la liste.' : 'Indiquez votre destination.', 'error');
       destInput.focus(); return;
     }
     const origin = getOrigin();
@@ -1953,6 +2022,12 @@
     if (d >= today - 864e5) return `hier à ${hm}`;
     return 'le ' + d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
   }
+  $('ph-garde').addEventListener('click', e => {
+    const h = e.target.closest('.gb-head'); if (!h) return;
+    const open = !$('ph-garde').classList.contains('open');
+    store.set('gardeOpen', open);
+    $('ph-garde').classList.toggle('open', open); h.setAttribute('aria-expanded', String(open));
+  });
   function freshLine(stt) {
     const g = week();
     const maj = g && g.maj ? fmtDay(g.maj) : null;
@@ -1971,7 +2046,9 @@
       el.className = 'garde-banner';
       const nInt = g.pharmacies.filter(p => p.interieur).length, villes = new Set(g.pharmacies.filter(p => p.interieur).map(p => p.commune)).size;
       const detail = nInt ? `${g.pharmacies.length - nInt} à Abidjan · ${nInt} dans ${villes} villes de l'intérieur` : `${g.pharmacies.length} pharmacies`;
-      el.innerHTML = `${ic('cross')}<span><b>Pharmacies de garde</b> du ${esc(fmtDay(g.du))} au ${esc(fmtDay(g.au))}<small>${detail} · source : UNPPCI</small>${freshLine(stt)}</span>`;
+      const open = !!store.get('gardeOpen', false);
+      el.className = 'garde-banner fold' + (open ? ' open' : '');
+      el.innerHTML = `<button type="button" class="gb-head" aria-expanded="${open}">${ic('cross')}<span class="gb-title"><b>De garde</b> du ${esc(fmtDay(g.du))} au ${esc(fmtDay(g.au))}</span><span class="fresh ok${ph.checking ? ' checking' : ''}"><i></i>À jour</span>${ic('chevron')}</button><div class="gb-body"><div><small>${detail} · source : UNPPCI</small>${freshLine(stt)}</div></div>`;
     } else {
       el.className = 'garde-banner warn';
       el.innerHTML = `${ic('info')}<span><b>Liste de garde ${stt === 'expired' ? 'expirée' : stt === 'future' ? 'pas encore en vigueur' : 'indisponible'}</b><small>${stt === 'expired' ? `Dernière liste : semaine du ${esc(fmtDay(g.du))}. ` : ''}Connectez-vous à internet pour recevoir la liste de la semaine. En attendant, les pharmacies ouvertes sont indiquées selon leurs horaires.</small>${freshLine(stt)}</span>`;
@@ -1983,7 +2060,9 @@
     const meta = [p.garde && p.garde.adresse || p.street, p.commune || (p.garde && p.garde.commune)].filter(Boolean).join(' · ') || (ns ? `Près de l'arrêt ${ns.name}` : '');
     const tags = [`<span class="st ${p.st}">${esc(statusLabel(p, true))}</span>`];
     if (p.garde && p.os.open === true) tags.push('<span class="st open">Ouverte</span>');
-    return `<article class="ph-card${p.garde ? ' garde' : ''}" data-ph="${esc(p.id)}" tabindex="0">
+    const fol = isFollowed('pharma', p.id);
+    if (fol) tags.unshift('<span class="st follow">Suivie en direct</span>');
+    return `<article class="ph-card${p.garde ? ' garde' : ''}${fol ? ' following' : ''}" data-ph="${esc(p.id)}" tabindex="0" aria-pressed="${fol}">
       <div class="ph-top"><span class="ph-ic">${ic('cross')}</span>
         <div class="ph-main"><div class="ph-name">${esc(p.name)}</div><div class="ph-meta">${esc(meta)}</div></div>
         <div class="ph-dist">${p.d != null ? (p.approx ? `<b>≈ ${fmtDist(p.d)}</b><small>centre-ville</small>` : `<b>${fmtDist(p.d)}</b><small>~${fmtMin(Core.walkMin(p.d * Core.CFG.DETOUR))} à pied</small>`) : '<small>position<br>inconnue</small>'}</div>
@@ -2005,7 +2084,7 @@
     const list = phFiltered();
     const top = list.filter(p => p.d != null).slice(0, 5);
     $('ph-board').innerHTML = top.length ? `<div class="board green"><div class="board-row head"><span>Pharmacie</span><span class="b-dist">Distance</span><span class="b-st">Statut</span></div>${top.map((p, i) =>
-      `<button class="board-row" style="animation-delay:${i * 80}ms" data-ph="${esc(p.id)}"><span class="b-name">${esc(p.name.replace(/^pharmacie\s+/i, '').replace(/^./, c => c.toUpperCase()))}</span><span class="b-dist">${p.approx ? '≈' : ''}${fmtDist(p.d)}</span><span class="b-st ${p.st}">${esc(p.st === 'garde' ? 'GARDE' : p.st === 'open' ? 'OUVERTE' : p.st === 'closed' ? 'FERMÉE' : '—')}</span></button>`).join('')}</div>` : '';
+      `<button class="board-row${isFollowed('pharma', p.id) ? ' following' : ''}" style="animation-delay:${i * 80}ms" data-ph="${esc(p.id)}"><span class="b-name">${esc(p.name.replace(/^pharmacie\s+/i, '').replace(/^./, c => c.toUpperCase()))}</span><span class="b-dist">${p.approx ? '≈' : ''}${fmtDist(p.d)}</span><span class="b-st ${p.st}">${esc(p.st === 'garde' ? 'GARDE' : p.st === 'open' ? 'OUVERTE' : p.st === 'closed' ? 'FERMÉE' : '—')}</span></button>`).join('')}</div>` : '';
     if (!list.length) {
       const total = PH_EMBED.length + (ph.cache ? ph.cache.list.length : 0);
       $('ph-list').innerHTML = `<div class="empty">${ic('cross')}<p><b>${ph.q ? 'Aucune pharmacie ne correspond' : f === 'garde' ? 'Aucune pharmacie de garde trouvée' : 'Aucune pharmacie trouvée'}</b></p><p>${!total ? 'Connectez-vous à internet puis touchez « Actualiser » pour charger les pharmacies autour de vous.' : f !== 'all' ? 'Essayez le filtre « Toutes ».' : 'Modifiez votre recherche.'}</p>${f !== 'all' ? '<button class="btn ghost sm" data-ph-all>Voir toutes les pharmacies</button>' : ''}</div>`;
@@ -2047,13 +2126,16 @@
     if (e.target.closest('[data-ph-call]')) return; // lien tel: natif
     if (e.target.closest('[data-ph-all]')) { ph.filter = 'all'; store.set('phFilter', 'all'); renderPharma(); return; }
     const go = e.target.closest('[data-ph-go]');
-    const el = go || e.target.closest('[data-ph]');
+    if (go) { openPharmacy(go.dataset.phGo, current); return; }
+    const el = e.target.closest('[data-ph]');
     if (!el) return;
-    openPharmacy(go ? go.dataset.phGo : el.dataset.ph, current);
+    const p = allPharmacies().find(x => x.id === el.dataset.ph);
+    if (!p || p.approx || !Number.isFinite(p.lat) || isFollowed('pharma', p.id)) openPharmacy(el.dataset.ph, current);
+    else followPlace('pharma', p.id);
   }
   $('ph-list').addEventListener('click', onPhClick);
   $('ph-board').addEventListener('click', onPhClick);
-  $('ph-list').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('.ph-card')) openPharmacy(e.target.dataset.ph, current); });
+  $('ph-list').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('.ph-card')) e.target.click(); });
   $('ph-teaser').onclick = () => { const id = $('ph-teaser').dataset.ph; if (id) openPharmacy(id, 'screen-home'); else show('screen-pharma'); };
 
   /* ---------- Détail ---------- */
@@ -2383,11 +2465,13 @@
       $('py-list').classList.remove('is-empty');
       $('py-list').innerHTML = shown.map(p => {
         const status = p.hours ? `<small class="py-st ${p.st}">${esc(pyStatus(p))}</small>` : '';
-        return `<button class="py-row" data-py="${esc(p.id)}" type="button">
+        const fol = isFollowed('paiya', p.id);
+        return `<div class="py-row${fol ? ' following' : ''}" data-py="${esc(p.id)}" role="button" tabindex="0" aria-pressed="${fol}">
           <span class="py-ic">${ic(PY_ICON[p.cat])}</span>
           <span class="py-main"><b><span>${esc(p.name)}</span>${p.community ? `<em class="py-tag${p.pending ? ' wait' : ''}">${p.pending ? 'en attente' : 'ZUPA'}</em>` : ''}</b><small>${esc([p.sub, p.street || p.commune].filter(Boolean).join(' · '))}</small></span>
-          <span class="py-d">${p.d != null ? `<b>${fmtDist(p.d)}</b>` : ''}${status || (p.d != null ? `<small>${fmtMin(Core.walkMin(p.d * Core.CFG.DETOUR))} à pied</small>` : '')}</span>
-        </button>`;
+          <span class="py-d">${p.d != null ? `<b>${fmtDist(p.d)}</b>` : ''}${fol ? '<small class="py-st follow">suivi</small>' : status || (p.d != null ? `<small>${fmtMin(Core.walkMin(p.d * Core.CFG.DETOUR))} à pied</small>` : '')}</span>
+          <button class="py-more-btn" type="button" data-py-go="${esc(p.id)}" aria-label="Fiche et carte de ${esc(p.name)}">${ic('chevron')}</button>
+        </div>`;
       }).join('');
       $('py-more').hidden = list.length <= py.shown;
       $('py-more').textContent = `Afficher plus (${list.length - py.shown})`;
@@ -2412,12 +2496,15 @@
     if (e.target.closest('[data-py-all]')) { py.open = false; renderPaiya(); return; }
     if (e.target.closest('[data-py-new]')) { openAddPlace(py.cat, 'screen-paiya'); return; }
     if (e.target.closest('[data-ph-call]')) return;
-    const el = e.target.closest('[data-py-go]') || e.target.closest('[data-py]');
+    const go = e.target.closest('[data-py-go]'), el = go || e.target.closest('[data-py]');
     if (!el) return;
     const id = el.dataset.pyGo || el.dataset.py;
     const p0 = placesBase().find(x => x.id === id);
-    if (p0) openDetail(withStatus(p0), 'screen-paiya', 'paiya');
+    if (!p0) return;
+    if (go || isFollowed('paiya', id) || !state.pos) openDetail(withStatus(p0), 'screen-paiya', 'paiya');
+    else followPlace('paiya', id);
   });
+  $('py-list').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('.py-row')) e.target.click(); });
   document.addEventListener('click', e => { const a = e.target.closest('a[data-ext]'); if (a) { e.preventDefault(); openExternal(a.href); } });
 
   /* ---------- Ajouter un lieu : position trouvée automatiquement, confirmée par « Géolocaliser » ---------- */
