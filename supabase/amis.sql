@@ -53,6 +53,8 @@ create table if not exists public.partages (
   created_at timestamptz not null default now()
 );
 create index if not exists partages_pour_idx on public.partages (pour, created_at desc);
+-- « lieu » = un lieu envoyé ; « position » = « je suis ici » avec un message
+alter table public.partages add column if not exists genre text not null default 'lieu' check (genre in ('lieu', 'position'));
 
 create table if not exists public.visites (
   place_id text not null check (char_length(place_id) between 2 and 64),
@@ -210,14 +212,36 @@ begin
   return n;
 end $$;
 
+drop function if exists public.lieux_recus(uuid);
+-- « Je suis ici » : position de l'expéditeur + message, envoyée à des amis
+create or replace function public.position_partager(p_secret uuid, p_codes text[], p_message text, p_lat double precision, p_lon double precision, p_lieu text default null, p_cat text default null)
+returns int
+language plpgsql security definer set search_path = public, extensions as $$
+declare moi uuid := zupa_qui(p_secret); n int;
+begin
+  if char_length(btrim(coalesce(p_message, ''))) not between 1 and 200 then
+    raise exception 'Message vide ou trop long' using errcode = 'P0001';
+  end if;
+  if (select count(*) from partages where de = moi and created_at > now() - interval '1 day') >= 60 then
+    raise exception 'Trop de partages aujourd''hui. Réessayez demain.' using errcode = 'P0001';
+  end if;
+  insert into partages (de, pour, nom, cat, lat, lon, note, genre)
+    select moi, p.id, coalesce(nullif(left(btrim(p_lieu), 80), ''), 'Ma position'), left(p_cat, 20), p_lat, p_lon, btrim(p_message), 'position'
+    from profils p
+    where p.code = any (select upper(btrim(x)) from unnest(p_codes) x)
+      and exists (select 1 from amities a where a.statut = 'ami' and ((a.demandeur = moi and a.destinataire = p.id) or (a.demandeur = p.id and a.destinataire = moi)));
+  get diagnostics n = row_count;
+  return n;
+end $$;
+
 create or replace function public.lieux_recus(p_secret uuid)
-returns table (id uuid, de_code text, de_pseudo text, nom text, cat text, lat double precision, lon double precision, note text, lu boolean, created_at timestamptz)
+returns table (id uuid, de_code text, de_pseudo text, nom text, cat text, lat double precision, lon double precision, note text, lu boolean, created_at timestamptz, genre text)
 language plpgsql security definer set search_path = public, extensions as $$
 declare moi uuid := zupa_qui(p_secret);
 begin
   delete from partages where pour = moi and partages.created_at < now() - interval '90 days';
   return query
-    select s.id, p.code, p.pseudo, s.nom, s.cat, s.lat, s.lon, s.note, s.lu, s.created_at
+    select s.id, p.code, p.pseudo, s.nom, s.cat, s.lat, s.lon, s.note, s.lu, s.created_at, s.genre
     from partages s join profils p on p.id = s.de
     where s.pour = moi order by s.created_at desc limit 100;
 end $$;
@@ -274,7 +298,7 @@ begin
   foreach f in array array[
     'zupa_moi(uuid, text)', 'ami_demander(uuid, text)', 'ami_repondre(uuid, text, boolean)', 'ami_retirer(uuid, text)',
     'amis_liste(uuid)', 'lieu_partager(uuid, text[], text, text, double precision, double precision, text)', 'lieux_recus(uuid)',
-    'lieu_recu_maj(uuid, uuid, boolean)', 'ami_bloquer(uuid, text)', 'ami_debloquer(uuid, text)', 'bloques_liste(uuid)', 'visite_ajouter(text, text, text, text, double precision, double precision)',
+    'lieu_recu_maj(uuid, uuid, boolean)', 'position_partager(uuid, text[], text, double precision, double precision, text, text)', 'ami_bloquer(uuid, text)', 'ami_debloquer(uuid, text)', 'bloques_liste(uuid)', 'visite_ajouter(text, text, text, text, double precision, double precision)',
     'lieux_populaires(double precision, double precision, double precision)', 'mes_donnees_supprimer(uuid, uuid)']
   loop
     execute format('revoke all on function public.%s from public', f);

@@ -385,6 +385,9 @@
         </div>
         <form class="fr-row" id="fr-add"><input class="input" id="fr-code-in" maxlength="9" autocomplete="off" autocapitalize="characters" placeholder="Code ami, ex. 7KQ4-92XZ" aria-label="Code ami"><button class="btn primary sm" type="submit">Ajouter</button></form>
         <ul class="fav-list fr-list" id="fr-list"></ul>
+        <button class="btn primary block pos-cta" id="fr-pos" type="button"><span data-icon="navigation"></span>Envoyer ma position</button>
+        <div class="grp-head"><h4>Mes listes</h4><button class="link" id="grp-new" type="button">+ Nouvelle liste</button></div>
+        <ul class="fav-list grp-list" id="grp-list"></ul>
         <details class="fr-blocked" id="fr-blocked" hidden><summary id="fr-blocked-sum">Utilisateurs bloqués</summary><ul class="fav-list fr-list" id="fr-blocked-list"></ul></details>
         <label class="switch-row"><input type="checkbox" id="fr-notif"><span>Me notifier quand un ami m'envoie un lieu</span></label>
       </div>
@@ -451,6 +454,7 @@
       <input class="input" id="share-note" maxlength="200" placeholder="Petit mot (facultatif) : « rendez-vous ici à 19 h »">
       <button class="btn primary block" id="share-send" type="button">Envoyer</button>
     </div>
+    <button class="btn ghost block" id="share-here" type="button"><span data-icon="navigation"></span>J'y suis : envoyer ma position</button>
     <button class="btn ghost block" id="share-out" type="button"><span data-icon="share"></span>Autre application (WhatsApp, SMS…)</button>
     <button class="btn ghost block" data-share-close type="button">Fermer</button>
   </div>
@@ -463,6 +467,35 @@
     <div class="act-list" id="act-list"></div>
     <button class="btn ghost block" data-act-close type="button">Annuler</button>
   </div>
+</div>
+<div class="share-sheet" id="pos-sheet" hidden>
+  <div class="share-backdrop" data-pos-close></div>
+  <div class="share-panel pos-panel" role="dialog" aria-modal="true" aria-labelledby="pos-title">
+    <div class="share-grab"></div>
+    <h3 id="pos-title">Envoyer ma position</h3>
+    <div class="pos-where" id="pos-where"></div>
+    <div class="ap-chips pos-cats" id="pos-cats" role="radiogroup" aria-label="Type de lieu"></div>
+    <div class="pos-msgs" id="pos-msgs" role="listbox" aria-label="Messages"></div>
+    <textarea class="input" id="pos-text" maxlength="200" rows="2" placeholder="Votre message…" aria-label="Message"></textarea>
+    <div class="pos-tools"><button class="link" id="pos-save" type="button">Garder ce message</button><small id="pos-count">0/200</small></div>
+    <div class="pos-to-h">À qui ?</div>
+    <div id="pos-to"></div>
+    <button class="btn primary block" id="pos-send" type="button">Envoyer</button>
+    <button class="btn ghost block" data-pos-close type="button">Annuler</button>
+  </div>
+</div>
+<div class="share-sheet" id="grp-sheet" hidden>
+  <div class="share-backdrop" data-grp-close></div>
+  <form class="share-panel" id="grp-form" role="dialog" aria-modal="true" aria-labelledby="grp-title">
+    <div class="share-grab"></div>
+    <h3 id="grp-title">Nouvelle liste</h3>
+    <input class="input" id="grp-name" maxlength="30" placeholder="Nom de la liste : Famille, Les gars du quartier…" aria-label="Nom de la liste">
+    <div class="pos-to-h">Membres</div>
+    <div id="grp-members"></div>
+    <button class="btn primary block" type="submit" id="grp-save">Enregistrer</button>
+    <button class="btn ghost block danger-txt" type="button" id="grp-del" hidden>Supprimer la liste</button>
+    <button class="btn ghost block" type="button" data-grp-close>Annuler</button>
+  </form>
 </div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 </div>

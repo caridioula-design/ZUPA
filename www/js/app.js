@@ -55,6 +55,9 @@
     more: 'M6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z',
     block: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM4 12c0-4.42 3.58-8 8-8 1.85 0 3.55.63 4.9 1.69L5.69 16.9A7.902 7.902 0 0 1 4 12zm8 8c-1.85 0-3.55-.63-4.9-1.69L18.31 7.1A7.902 7.902 0 0 1 20 12c0 4.42-3.58 8-8 8z',
     person_remove: 'M14 8c0-2.21-1.79-4-4-4S6 5.79 6 8s1.79 4 4 4 4-1.79 4-4zm3 2v2h6v-2h-6zM2 18v2h16v-2c0-2.66-5.33-4-8-4s-8 1.34-8 4z',
+    groups: 'M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z',
+    night: 'M12.34 2.02C6.59 1.82 2 6.42 2 12c0 5.52 4.48 10 10 10 3.71 0 6.93-2.02 8.66-5.02-7.51-.25-12.09-8.43-8.32-14.96z',
+    chat: 'M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z',
     clock: 'M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z'
   };
   const ic = n => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONS[n]}"/></svg>`;
@@ -1644,7 +1647,7 @@
       : `<li class="muted">Aucun favori pour l'instant (${FAV_LIMIT} maximum).</li>`;
     renderCustomList();
     renderMyPlaces();
-    renderFriends(); renderPrivList();
+    renderFriends(); renderPrivList(); renderGroups();
     frRefresh(true);
     // les lieux reçus affichés sont considérés comme vus
     setTimeout(() => { if (current === 'screen-profile' && fr.recus.some(r => !r.lu)) { fr.recus.forEach(r => { if (!r.lu) { r.lu = true; rpc('lieu_recu_maj', { p_id: r.id }); } }); store.set('recus', fr.recus); syncBadge(); renderFriends(); } }, 4000);
@@ -2244,14 +2247,16 @@
     else { call.href = '#'; call.setAttribute('aria-disabled', 'true'); call.classList.add('disabled'); }
     const ns = p.approx || (p.garde && p.garde.interieur) ? null : nearStop(p);
     const rows = kind === 'paiya' ? [
-      [PY_ICON[p.cat] || 'explore', 'Type', esc(p.sub || '')],
+      !p.position && [PY_ICON[p.cat] || 'explore', 'Type', esc(p.sub || '')],
       p.hours && ['clock', 'Statut', esc(pyStatus(p, true))],
       p.phone && ['phone', 'Téléphone', String(p.phone).split(/[;,/]/).map(t => t.trim()).filter(Boolean).map(t => `<a href="${esc(telHref(t))}">${esc(fmtPhone(t))}</a>`).join('<br>')],
       (p.street || p.commune) && ['pin', 'Adresse', esc([p.street, p.commune].filter(Boolean).join(' · '))],
       ns && ['bus', 'Arrêt de bus le plus proche', `${esc(ns.name)} · ${fmtDist(ns.d)}`],
       p.hours && ['clock', 'Horaires', esc(fmtHours(p.hours))],
       p.note && ['info', 'Remarque', esc(p.note)],
-      p.shared && ['user', 'Source', `Envoyé par ${esc(p.from)}${p.created ? ' le ' + esc(new Date(p.created).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })) : ''}`],
+      p.msg && ['chat', `Message de ${esc(p.from)}`, `<span class="pd-msg">« ${esc(p.msg)} »</span>`],
+      p.position && ['navigation', 'Position partagée', `${esc(fmtAgo(new Date(p.created).getTime()))}${Date.now() - new Date(p.created).getTime() > 6 * 3600e3 ? ' · <b>ancienne position</b>, il est peut-être parti' : ''}`],
+      p.shared && !p.position && ['user', 'Source', `Envoyé par ${esc(p.from)}${p.created ? ' le ' + esc(new Date(p.created).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })) : ''}`],
       p.private && ['lock', 'Confidentiel', 'Visible par vous seul, enregistré sur ce téléphone.'],
       p.community && ['user', 'Source', `Ajouté par ${p.mine ? 'vous' : 'un utilisateur de ZUPA'}${p.created ? ' le ' + esc(new Date(p.created).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })) : ''}${p.pending ? ' · en attente d\u2019envoi' : ''}`],
       p.web && ['share', 'Site web', `<a href="${esc(/^https?:/.test(p.web) ? p.web : 'https://' + p.web)}" data-ext>${esc(p.web.replace(/^https?:\/\//, '').slice(0, 40))}</a>`]
@@ -2276,6 +2281,7 @@
       : 'Vérifiez par téléphone avant de vous déplacer : les informations proviennent d\'OpenStreetMap et de la liste de garde publiée.';
     renderPdComm(kind === 'paiya' ? p : null);
     if (p.private) $('pd-note').textContent = 'Lieu confidentiel : il n\u2019est ni envoyé ni partagé.';
+    else if (p.position) $('pd-note').textContent = `Position envoyée par ${p.from}. Appelez-le si vous ne le trouvez pas.`;
     else if (p.shared) $('pd-note').textContent = 'Lieu envoyé par un ami. Vérifiez sur place avant de vous déplacer loin.';
     if (p.community) $('pd-note').textContent = 'Lieu ajouté par la communauté ZUPA. Signalez-le s\u2019il est faux ou n\u2019existe plus.';
     $('screen-pharma-detail').classList.toggle('py', kind === 'paiya');
@@ -2830,9 +2836,11 @@
         : `<button class="qp add" data-qp-add="${k}">${ic('plus')}<span>${PRIV_KINDS[k].label}</span></button>`;
     });
     priv.filter(r => r.kind === 'other').slice(0, 2).forEach(r => chips.push(`<button class="qp" data-qp="${esc(r.id)}">${ic('lock')}<span>${esc(r.name)}</span></button>`));
+    if (fr.me && fr.list.some(f => f.etat === 'ami')) chips.unshift(`<button class="qp send" data-qp-pos>${ic('navigation')}<span>Je suis ici</span></button>`);
     box.innerHTML = chips.join('');
   }
   $('quick-places').addEventListener('click', e => {
+    if (e.target.closest('[data-qp-pos]')) { openPos(); return; }
     const a = e.target.closest('[data-qp-add]');
     if (a) { openAddPlace(null, 'screen-home', { private: true, kind: a.dataset.qpAdd }); return; }
     const b = e.target.closest('[data-qp]'); if (!b) return;
@@ -2880,11 +2888,13 @@
         notify(f.code.replace('-', '') + '0f', 'Nouvelle demande d\u2019ami', `${f.pseudo} veut devenir votre ami sur ZUPA.`, { friend: f.code });
       });
       const fresh = fr.recus.filter(r => !r.lu && !fr.seen.includes(r.id));
-      fresh.forEach(r => notify(r.id, `${r.de_pseudo} vous a envoyé un lieu`, r.nom + (r.note ? ` · « ${r.note} »` : ''), { recu: r.id }));
-      if (fresh.length && visible) toast(fresh.length === 1 ? `${fresh[0].de_pseudo} vous a envoyé un lieu : ${fresh[0].nom}` : `${fresh.length} nouveaux lieux reçus de vos amis`, 'success', 6000, { text: 'Voir', fn: () => fresh.length === 1 ? openRecu(fresh[0]) : show('screen-profile') });
+      fresh.forEach(r => isPos(r)
+        ? notify(r.id, `${r.de_pseudo} partage sa position`, `« ${r.note} »${r.nom !== 'Ma position' ? ' — ' + r.nom : ''}`, { recu: r.id })
+        : notify(r.id, `${r.de_pseudo} vous a envoyé un lieu`, r.nom + (r.note ? ` · « ${r.note} »` : ''), { recu: r.id }));
+      if (fresh.length && visible) toast(fresh.length === 1 ? (isPos(fresh[0]) ? `${fresh[0].de_pseudo} : « ${fresh[0].note} »` : `${fresh[0].de_pseudo} vous a envoyé un lieu : ${fresh[0].nom}`) : `${fresh.length} nouveaux lieux reçus de vos amis`, 'success', 6000, { text: 'Voir', fn: () => fresh.length === 1 ? openRecu(fresh[0]) : show('screen-profile') });
       fr.seen = [...new Set([...fr.seen, ...fresh.map(r => r.id)])].slice(-200); store.set('recusSeen', fr.seen);
     }
-    renderFriends(); syncBadge();
+    renderFriends(); syncBadge(); renderGroups(); renderQuickPlaces();
   }
   function syncBadge() {
     const n = fr.list.filter(f => f.etat === 'recue').length + fr.recus.filter(r => !r.lu).length;
@@ -2908,9 +2918,12 @@
     $('fr-blocked-list').innerHTML = bl.map(b => `<li><span class="fr-avatar off">${initial(b.pseudo)}</span><span>${esc(b.pseudo)}<br><small class="muted">bloqué</small></span><button class="btn ghost sm" data-fr-unblock="${esc(b.code)}">Débloquer</button></li>`).join('');
     const rc = fr.recus;
     $('recus-card').hidden = !rc.length;
-    $('recus-list').innerHTML = rc.map(r => `<li class="${r.lu ? '' : 'unread'}"><span class="fr-avatar">${initial(r.de_pseudo)}</span><span><b>${esc(r.nom)}</b><br><small class="muted">de ${esc(r.de_pseudo)} · ${esc(fmtAgo(new Date(r.created_at).getTime()))}${r.note ? ' · « ' + esc(r.note) + ' »' : ''}</small></span><button class="btn ghost sm" data-rc-go="${esc(r.id)}">Voir</button><button class="btn ghost sm fr-more" data-rc-menu="${esc(r.id)}" aria-label="Options">${ic('more')}</button></li>`).join('');
+    $('recus-list').innerHTML = rc.map(r => `<li class="${r.lu ? '' : 'unread'}${isPos(r) ? ' pos' : ''}"><span class="fr-avatar">${isPos(r) ? ic('navigation') : initial(r.de_pseudo)}</span><span>${isPos(r) ? `<b>${esc(r.de_pseudo)}</b> <small class="muted">est ici</small><br><span class="rc-msg">« ${esc(r.note || '')} »</span><br><small class="muted">${r.nom !== 'Ma position' ? esc(r.nom) + ' · ' : ''}${esc(fmtAgo(new Date(r.created_at).getTime()))}</small>` : `<b>${esc(r.nom)}</b><br><small class="muted">de ${esc(r.de_pseudo)} · ${esc(fmtAgo(new Date(r.created_at).getTime()))}${r.note ? ' · « ' + esc(r.note) + ' »' : ''}</small>`}</span><button class="btn ${isPos(r) ? 'primary' : 'ghost'} sm" data-rc-go="${esc(r.id)}">${isPos(r) ? 'Rejoindre' : 'Voir'}</button><button class="btn ghost sm fr-more" data-rc-menu="${esc(r.id)}" aria-label="Options">${ic('more')}</button></li>`).join('');
   }
-  const recuPlace = r => ({ id: 'r' + r.id, cat: PYC.CATS[r.cat] ? r.cat : 'shop', name: r.nom, sub: `Envoyé par ${r.de_pseudo}`, lat: r.lat, lon: r.lon, note: r.note || '', shared: true, from: r.de_pseudo, created: r.created_at });
+  const isPos = r => r.genre === 'position';
+  const recuPlace = r => isPos(r)
+    ? { id: 'r' + r.id, cat: PYC.CATS[r.cat] ? r.cat : 'shop', name: r.nom === 'Ma position' ? `Position de ${r.de_pseudo}` : r.nom, sub: `${r.de_pseudo} est ici · ${fmtAgo(new Date(r.created_at).getTime())}`, lat: r.lat, lon: r.lon, msg: r.note || '', shared: true, position: true, from: r.de_pseudo, created: r.created_at }
+    : { id: 'r' + r.id, cat: PYC.CATS[r.cat] ? r.cat : 'shop', name: r.nom, sub: `Envoyé par ${r.de_pseudo}`, lat: r.lat, lon: r.lon, note: r.note || '', shared: true, from: r.de_pseudo, created: r.created_at };
   function openRecu(r) {
     if (!r.lu) { r.lu = true; store.set('recus', fr.recus); rpc('lieu_recu_maj', { p_id: r.id }); syncBadge(); }
     openDetail(withStatus(recuPlace(r)), current, 'paiya');
@@ -2998,6 +3011,171 @@
     setTimeout(() => { if (!undone) rpc('lieu_recu_maj', { p_id: r.id, p_supprimer: true }); }, 5200);
   }
 
+  /* ---------- Listes d'amis (groupes) : sur ce téléphone, pour envoyer à plusieurs d'un coup ---------- */
+  let groups = store.get('groups', []); if (!Array.isArray(groups)) groups = [];
+  const saveGroups = () => { store.set('groups', groups); renderGroups(); };
+  const friendsOnly = () => fr.list.filter(f => f.etat === 'ami');
+  const groupMembers = g => g.codes.filter(c => friendsOnly().some(f => f.code === c));
+  function recipHtml() {
+    const friends = friendsOnly();
+    const gs = groups.filter(g => groupMembers(g).length);
+    return (gs.length ? `<div class="rc-groups">${gs.map(g => `<button type="button" class="rc-group" data-grp="${esc(g.id)}" aria-pressed="false">${ic('groups')}<span>${esc(g.name)}</span><small>${groupMembers(g).length}</small></button>`).join('')}</div>` : '')
+      + `<div class="share-list">${friends.map(f => `<label class="share-friend"><input type="checkbox" value="${esc(f.code)}"><span class="fr-avatar">${initial(f.pseudo)}</span><span>${esc(f.pseudo)}</span></label>`).join('')}</div>`;
+  }
+  // toucher une liste coche ou décoche tous ses membres
+  function wireRecip(box, onChange) {
+    const sync = () => {
+      box.querySelectorAll('[data-grp]').forEach(b => {
+        const g = groups.find(x => x.id === b.dataset.grp), m = g ? groupMembers(g) : [];
+        const on = m.length && m.every(c => box.querySelector(`input[value="${c}"]`)?.checked);
+        b.classList.toggle('on', !!on); b.setAttribute('aria-pressed', String(!!on));
+      });
+      onChange();
+    };
+    box.onclick = e => {
+      const b = e.target.closest('[data-grp]'); if (!b) return;
+      const g = groups.find(x => x.id === b.dataset.grp); if (!g) return;
+      const m = groupMembers(g), all = m.every(c => box.querySelector(`input[value="${c}"]`)?.checked);
+      m.forEach(c => { const i = box.querySelector(`input[value="${c}"]`); if (i) i.checked = !all; });
+      sync();
+    };
+    box.onchange = sync;
+    sync();
+  }
+  const picked = box => [...box.querySelectorAll('input[type=checkbox]:checked')].map(i => i.value);
+  const pickedLabel = codes => { const n = codes.map(c => (fr.list.find(f => f.code === c) || {}).pseudo).filter(Boolean); return n.length <= 2 ? n.join(' et ') : `${n.length} amis`; };
+
+  function renderGroups() {
+    const ul = $('grp-list'); if (!ul) return;
+    ul.innerHTML = groups.length ? groups.map(g => { const m = groupMembers(g); return `<li><span class="fr-avatar grp">${ic('groups')}</span><span><b>${esc(g.name)}</b><br><small class="muted">${m.length ? m.map(c => (fr.list.find(f => f.code === c) || {}).pseudo).join(', ') : 'aucun ami'}</small></span><button class="btn ghost sm fr-more" data-grp-menu="${esc(g.id)}" aria-label="Options de la liste ${esc(g.name)}">${ic('more')}</button></li>`; }).join('')
+      : '<li class="muted">Regroupez vos amis (Famille, Bureau, Les gars du quartier…) pour leur envoyer un lieu ou votre position en un geste.</li>';
+  }
+  const grpEd = { id: null };
+  function openGroupEditor(g) {
+    if (!friendsOnly().length) { toast('Ajoutez d\u2019abord des amis avec leur code.', 'error'); return; }
+    grpEd.id = g ? g.id : null;
+    $('grp-title').textContent = g ? 'Modifier la liste' : 'Nouvelle liste';
+    $('grp-name').value = g ? g.name : '';
+    $('grp-members').innerHTML = `<div class="share-list">${friendsOnly().map(f => `<label class="share-friend"><input type="checkbox" value="${esc(f.code)}"${g && g.codes.includes(f.code) ? ' checked' : ''}><span class="fr-avatar">${initial(f.pseudo)}</span><span>${esc(f.pseudo)}</span></label>`).join('')}</div>`;
+    $('grp-del').hidden = !g;
+    const sh = $('grp-sheet'); sh.hidden = false; requestAnimationFrame(() => sh.classList.add('open'));
+  }
+  function closeGroupEditor() { const sh = $('grp-sheet'); sh.classList.remove('open'); setTimeout(() => { sh.hidden = true; }, 250); }
+  $('grp-new').onclick = () => openGroupEditor(null);
+  $('grp-sheet').addEventListener('click', e => { if (e.target.closest('[data-grp-close]')) closeGroupEditor(); });
+  $('grp-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const name = $('grp-name').value.trim().replace(/\s+/g, ' '), codes = picked($('grp-members'));
+    if (name.length < 2) { toast('Donnez un nom à la liste.', 'error'); $('grp-name').focus(); return; }
+    if (!codes.length) { toast('Choisissez au moins un ami.', 'error'); return; }
+    const g = groups.find(x => x.id === grpEd.id);
+    if (g) Object.assign(g, { name, codes }); else groups.push({ id: 'g-' + uuid(), name, codes });
+    saveGroups(); closeGroupEditor(); toast(`Liste « ${name} » enregistrée.`, 'success');
+  });
+  $('grp-del').onclick = () => {
+    const i = groups.findIndex(x => x.id === grpEd.id); if (i < 0) return;
+    const g = groups.splice(i, 1)[0]; saveGroups(); closeGroupEditor();
+    toast(`Liste « ${g.name} » supprimée.`, 'info', 5000, { text: 'Annuler', fn: () => { groups.splice(i, 0, g); saveGroups(); } });
+  };
+  $('grp-list').addEventListener('click', e => {
+    const m = e.target.closest('[data-grp-menu]'); if (!m) return;
+    const g = groups.find(x => x.id === m.dataset.grpMenu); if (!g) return;
+    openActions({ title: g.name, sub: `${groupMembers(g).length} ami(s)`, actions: [
+      { icon: 'navigation', label: 'Envoyer ma position à cette liste', fn: () => openPos({ codes: groupMembers(g) }) },
+      { icon: 'edit', label: 'Modifier la liste', fn: () => openGroupEditor(g) },
+      { icon: 'trash', danger: true, label: 'Supprimer la liste', hint: 'Vos amis ne sont pas retirés.', fn: () => { grpEd.id = g.id; $('grp-del').onclick(); } }] });
+  });
+
+  /* ---------- « Je suis ici » : envoyer sa position avec un message ----------
+     Bibliothèque de messages par type de lieu (expressions ivoiriennes et nouchi) + messages perso. */
+  const POS_CATS = {
+    resto: { label: 'Resto', icon: 'resto', msgs: ['Y\u2019a bon paiya ici ! Retrouve-moi ici.', 'J\u2019ai trouvé un bon coin pour manger. Rejoins-moi !', 'Le garba est chaud ici, viens vite !', 'On mange bien ici, je te garde une place.', 'C\u2019est doux ici, viens on mange ensemble.'] },
+    maquis: { label: 'Maquis & sortie', icon: 'night', msgs: ['C\u2019est gâté ici, hein ! Voici notre position.', 'L\u2019ambiance est douce ici. Rejoins-nous !', 'On est dans un bon coin ce soir. Tu viens ?', 'Ça chauffe ici ! Viens on s\u2019enjaille.', 'On est posés au maquis, y\u2019a la place pour toi.'] },
+    shop: { label: 'Boutique', icon: 'shop', msgs: ['Y\u2019a de vrais trucs ici, hein ! Viens voir ça.', 'J\u2019ai trouvé un coin intéressant. Regarde ma position !', 'Les prix sont doux ici, viens voir !', 'Y\u2019a tout ici, je t\u2019attends.'] },
+    rdv: { label: 'Rendez-vous', icon: 'pin', msgs: ['Je suis ici, viens me trouver.', 'Je suis arrivé. Voici ma position.', 'On se retrouve ici ?', 'Je t\u2019attends ici, ne tarde pas !'] }
+  };
+  let myMsgs = store.get('myMsgs', {}); if (!myMsgs || typeof myMsgs !== 'object') myMsgs = {};
+  const pos = { cat: 'rdv', place: null, withPlace: true, at: null, acc: null };
+  // lieu où l'on se trouve : le lieu indiqué, sinon le lieu Paiya le plus proche (moins de 50 m)
+  function detectPlace(here, hint) {
+    if (hint && Number.isFinite(hint.lat) && !hint.private && Core.haversine(here[0], here[1], hint.lat, hint.lon) < 0.15) return hint;
+    let best = null, bd = 0.05;
+    for (const p of placesBase()) {
+      if (Math.abs(p.lat - here[0]) > 0.0006 || Math.abs(p.lon - here[1]) > 0.0006) continue;
+      const d = Core.haversine(here[0], here[1], p.lat, p.lon); if (d < bd) { bd = d; best = p; }
+    }
+    return best;
+  }
+  function catFor(p) {
+    if (!p) return 'rdv';
+    const h = new Date().getHours();
+    if (p.cat === 'resto') return /maquis|bar|lounge|grill|club/i.test(p.name + ' ' + (p.sub || '')) || h >= 19 ? 'maquis' : 'resto';
+    return p.cat === 'shop' ? 'shop' : 'rdv';
+  }
+  function openPos(o = {}) {
+    if (!sbOn() || !fr.me) { toast('Créez d\u2019abord votre profil d\u2019amis (Profil › Amis).', 'error'); show('screen-profile'); return; }
+    if (!friendsOnly().length) { toast('Ajoutez d\u2019abord un ami avec son code.', 'error'); show('screen-profile'); return; }
+    const here = state.gpsLast && state.gpsAcc ? state.gpsLast : state.pos;
+    if (!here) { toast('Position inconnue : activez la localisation.', 'error'); return; }
+    pos.at = here.slice(); pos.acc = state.gpsLast ? state.gpsAcc : state.accuracy;
+    pos.place = detectPlace(here, o.place); pos.withPlace = !!pos.place; pos.cat = catFor(pos.place);
+    $('pos-to').innerHTML = recipHtml();
+    (o.codes || []).forEach(c => { const i = $('pos-to').querySelector(`input[value="${c}"]`); if (i) i.checked = true; });
+    wireRecip($('pos-to'), syncPosBtn);
+    $('pos-text').value = POS_CATS[pos.cat].msgs[0];
+    renderPos();
+    const sh = $('pos-sheet'); sh.hidden = false; requestAnimationFrame(() => sh.classList.add('open'));
+  }
+  function closePos() { const sh = $('pos-sheet'); sh.classList.remove('open'); setTimeout(() => { sh.hidden = true; }, 250); }
+  function renderPos() {
+    const hp = priv.find(r => Core.haversine(r.lat, r.lon, pos.at[0], pos.at[1]) < 0.15);
+    const acc = pos.acc ? ` · ± ${fmtDist(pos.acc / 1000)}` : '';
+    $('pos-where').innerHTML = `<span class="pos-pin">${ic('navigation')}</span><span>${pos.place ? `<label class="pos-place"><input type="checkbox" id="pos-with"${pos.withPlace ? ' checked' : ''}> Indiquer le lieu : <b>${esc(pos.place.name)}</b></label>` : '<b>Ma position actuelle</b>'}<small>Votre position exacte sera envoyée${acc}${pos.acc > 150 ? ' — précision faible' : ''}</small>${hp ? `<small class="warn-txt">Vous êtes à votre lieu confidentiel « ${esc(hp.name)} » : vos amis le verront.</small>` : ''}</span>`;
+    $('pos-cats').innerHTML = Object.entries(POS_CATS).map(([k, v]) => `<button type="button" role="radio" aria-checked="${pos.cat === k}" class="${pos.cat === k ? 'on' : ''}" data-pcat="${k}">${esc(v.label)}</button>`).join('');
+    const mine = myMsgs[pos.cat] || [], cur = $('pos-text').value;
+    $('pos-msgs').innerHTML = [...mine.map(m => [m, true]), ...POS_CATS[pos.cat].msgs.map(m => [m, false])].map(([m, own]) =>
+      `<button type="button" class="pos-msg${m === cur ? ' on' : ''}${own ? ' own' : ''}" data-msg="${esc(m)}">${own ? ic('star') : ''}<span>${esc(m)}</span>${own ? `<i data-msg-del="${esc(m)}" aria-label="Retirer ce message">${ic('close')}</i>` : ''}</button>`).join('');
+    syncPosBtn();
+  }
+  function syncPosBtn() {
+    const codes = picked($('pos-to')), t = $('pos-text').value.trim();
+    $('pos-count').textContent = `${t.length}/200`;
+    $('pos-send').disabled = !codes.length || !t;
+    $('pos-send').textContent = !codes.length ? 'Choisissez à qui l\u2019envoyer' : !t ? 'Écrivez un message' : `Envoyer à ${pickedLabel(codes)}`;
+  }
+  $('pos-sheet').addEventListener('click', e => {
+    if (e.target.closest('[data-pos-close]')) { closePos(); return; }
+    const del = e.target.closest('[data-msg-del]');
+    if (del) { myMsgs[pos.cat] = (myMsgs[pos.cat] || []).filter(m => m !== del.dataset.msgDel); store.set('myMsgs', myMsgs); renderPos(); return; }
+    const c = e.target.closest('[data-pcat]');
+    if (c) { const old = POS_CATS[pos.cat].msgs.includes($('pos-text').value) || (myMsgs[pos.cat] || []).includes($('pos-text').value); pos.cat = c.dataset.pcat; if (old || !$('pos-text').value.trim()) $('pos-text').value = (myMsgs[pos.cat] || [])[0] || POS_CATS[pos.cat].msgs[0]; renderPos(); return; }
+    const m = e.target.closest('[data-msg]');
+    if (m) { $('pos-text').value = m.dataset.msg; renderPos(); }
+  });
+  $('pos-sheet').addEventListener('change', e => { if (e.target.id === 'pos-with') pos.withPlace = e.target.checked; });
+  $('pos-text').addEventListener('input', () => { syncPosBtn(); $('pos-msgs').querySelectorAll('.pos-msg').forEach(b => b.classList.toggle('on', b.dataset.msg === $('pos-text').value)); });
+  $('pos-save').onclick = () => {
+    const t = $('pos-text').value.trim().replace(/\s+/g, ' ');
+    if (!t) return;
+    if (/https?:|www\./i.test(t)) { toast('Pas de lien internet dans les messages.', 'error'); return; }
+    const l = myMsgs[pos.cat] = myMsgs[pos.cat] || [];
+    if (l.includes(t) || POS_CATS[pos.cat].msgs.includes(t)) { toast('Ce message est déjà dans la liste.'); return; }
+    l.unshift(t); myMsgs[pos.cat] = l.slice(0, 8); store.set('myMsgs', myMsgs); renderPos();
+    toast('Message gardé pour la prochaine fois.', 'success');
+  };
+  $('pos-send').onclick = async () => {
+    const codes = picked($('pos-to')), msg = $('pos-text').value.trim().replace(/\s+/g, ' ');
+    if (!codes.length || !msg) return;
+    if (/https?:|www\./i.test(msg)) { toast('Pas de lien internet dans les messages.', 'error'); return; }
+    if (pos.acc > 300 && !confirm(`Votre position est imprécise (± ${fmtDist(pos.acc / 1000)}). Envoyer quand même ?`)) return;
+    $('pos-send').disabled = true;
+    const lieu = pos.withPlace && pos.place ? pos.place.name : null;
+    const r = await rpc('position_partager', { p_codes: codes, p_message: msg, p_lat: +pos.at[0].toFixed(6), p_lon: +pos.at[1].toFixed(6), p_lieu: lieu, p_cat: pos.place && PYC.CATS[pos.place.cat] ? pos.place.cat : null });
+    if (r.ok) { closePos(); toast(`Position envoyée à ${pickedLabel(codes)}.`, 'success'); }
+    else { syncPosBtn(); toast(r.net ? 'Pas de connexion internet : réessayez.' : r.status === 404 ? 'Fonction absente de la base : relancez supabase/amis.sql.' : 'Envoi impossible : ' + sbErr(r), 'error', 6000); }
+  };
+  $('fr-pos').onclick = () => openPos();
+
   // Feuille de partage : amis ZUPA ou autre application
   const share = { p: null };
   function openShare(p) {
@@ -3006,27 +3184,28 @@
     const friends = fr.list.filter(f => f.etat === 'ami');
     const box = $('share-friends');
     $('share-send-box').hidden = true; $('share-out').hidden = !!p.private;
+    $('share-here').hidden = !!p.private || !p.lat || !state.pos || Core.haversine(state.pos[0], state.pos[1], p.lat, p.lon) > 0.2;
     if (p.private) { $('share-sub').innerHTML = `${ic('lock')} Lieu confidentiel : visible par vous seul. Il ne peut pas être partagé.`; box.innerHTML = ''; }
     else if (!sbOn() || !fr.me) { $('share-sub').textContent = 'Avec vos amis ZUPA : créez d\u2019abord votre profil d\u2019amis.'; box.innerHTML = '<button class="btn ghost sm" data-share-setup>Créer mon profil d\u2019amis</button>'; }
     else if (!friends.length) { $('share-sub').textContent = 'Aucun ami pour l\u2019instant. Ajoutez-en avec leur code dans Profil › Amis.'; box.innerHTML = '<button class="btn ghost sm" data-share-setup>Ajouter un ami</button>'; }
     else {
       $('share-sub').textContent = 'Choisissez à qui l\u2019envoyer :';
-      box.innerHTML = `<div class="share-list">${friends.map(f => `<label class="share-friend"><input type="checkbox" value="${esc(f.code)}"><span class="fr-avatar">${initial(f.pseudo)}</span><span>${esc(f.pseudo)}</span></label>`).join('')}</div>`;
+      box.innerHTML = recipHtml();
       $('share-send-box').hidden = false; $('share-note').value = '';
-      syncShareBtn();
+      wireRecip(box, syncShareBtn);
     }
     const sh = $('share-sheet'); sh.hidden = false; requestAnimationFrame(() => sh.classList.add('open'));
   }
   function closeShare() { const sh = $('share-sheet'); sh.classList.remove('open'); setTimeout(() => { sh.hidden = true; }, 250); }
-  function syncShareBtn() { const n = $('share-friends').querySelectorAll('input:checked').length; $('share-send').disabled = !n; $('share-send').textContent = n ? `Envoyer à ${n} ami${n > 1 ? 's' : ''}` : 'Choisissez un ami'; }
-  $('share-friends').addEventListener('change', syncShareBtn);
+  function syncShareBtn() { const c = picked($('share-friends')); $('share-send').disabled = !c.length; $('share-send').textContent = c.length ? `Envoyer à ${pickedLabel(c)}` : 'Choisissez un ami'; }
   $('share-sheet').addEventListener('click', e => {
     if (e.target.closest('[data-share-close]')) { closeShare(); return; }
     if (e.target.closest('[data-share-setup]')) { closeShare(); show('screen-profile'); setTimeout(() => $('friends-card').scrollIntoView({ behavior: 'smooth', block: 'start' }), 350); }
   });
   $('share-out').onclick = () => { const p = share.p; closeShare(); nativeShare(p); };
+  $('share-here').onclick = () => { const p = share.p; closeShare(); setTimeout(() => openPos({ place: p }), 260); };
   $('share-send').onclick = async () => {
-    const p = share.p, codes = [...$('share-friends').querySelectorAll('input:checked')].map(i => i.value);
+    const p = share.p, codes = picked($('share-friends'));
     if (!p || !codes.length || p.private) return;
     $('share-send').disabled = true;
     const r = await rpc('lieu_partager', { p_codes: codes, p_nom: p.name, p_cat: p.cat && PYC.CATS[p.cat] ? p.cat : (p.st ? 'pharma' : null), p_lat: p.lat, p_lon: p.lon, p_note: $('share-note').value.trim() || null });
@@ -3223,6 +3402,8 @@
     if (open) { closeSuggests(); return true; }
     if (!$('share-sheet').hidden) { closeShare(); return true; }
     if (!$('act-sheet').hidden) { closeActions(); return true; }
+    if (!$('pos-sheet').hidden) { closePos(); return true; }
+    if (!$('grp-sheet').hidden) { closeGroupEditor(); return true; }
     if (live.open && LIVE_HOST[current]) { live.open = false; $('live').classList.remove('open'); $('live-pill').setAttribute('aria-expanded', 'false'); return true; }
     const to = navStack.length > 1 ? navStack[navStack.length - 2] : current !== 'screen-home' ? 'screen-home' : null;
     if (!to) return false;
