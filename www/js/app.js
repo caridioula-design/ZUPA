@@ -83,6 +83,7 @@
     tracking: null,
     profile: loadProfile(),
     recents: (store.get('recents', []) || []).filter(id => D.byId.has(id)),
+    recentPlaces: (store.get('recentPlaces', []) || []).filter(r => r && Number.isFinite(r.lat)),
     theme: store.get('theme', null) || (() => { try { return localStorage.getItem('themePreference') || 'auto'; } catch (_) { return 'auto'; } })()
   };
   let current = 'screen-home';
@@ -125,7 +126,25 @@
   }
 
   /* ---------- Navigation ---------- */
-  function show(id) {
+  /* Navigation : pile d'écrans (le bouton retour revient vraiment à l'écran précédent),
+     garde-fous avant de quitter un formulaire, et verrou de 300 ms contre les « clics fantômes »
+     (le doigt qui a ouvert un écran ne doit pas toucher un bouton du nouvel écran). */
+  const ROOTS = ['screen-home', 'screen-pharma', 'screen-paiya', 'screen-track', 'screen-profile'];
+  const navStack = ['screen-home'];
+  const leaveGuards = {};
+  let navLockT = 0;
+  function show(id, opts = {}) {
+    if (current && current !== id && !opts.force && leaveGuards[current] && !leaveGuards[current](id)) return false;
+    const prev = current;
+    let dir = 'tab';
+    if (ROOTS.includes(id) && !opts.keepStack) { navStack.length = 0; navStack.push(id); }
+    else {
+      const k = navStack.indexOf(id);
+      if (k >= 0) { navStack.length = k + 1; dir = 'pop'; }
+      else { navStack.push(id); dir = 'push'; }
+    }
+    document.body.classList.add('nav-lock');
+    clearTimeout(navLockT); navLockT = setTimeout(() => document.body.classList.remove('nav-lock'), 300);
     current = id;
     document.querySelectorAll('.screen').forEach(s => {
       const a = s.id === id;
@@ -135,6 +154,8 @@
     const tab = { 'screen-results': 'screen-home', 'screen-addstop': 'screen-home', 'screen-fixpos': 'screen-home', 'screen-addplace': 'screen-paiya', 'screen-pharma-detail': (typeof ph !== 'undefined' && ph.kind === 'paiya') ? 'screen-paiya' : 'screen-pharma' }[id] || id;
     document.querySelectorAll('[data-nav]').forEach(b => b.classList.toggle('active', b.dataset.nav === tab));
     $(id).scrollTop = 0;
+    if (prev !== id) document.querySelectorAll('#toasts .toast.error').forEach(t => t.remove()); // une erreur ne suit pas l'utilisateur sur un autre écran
+    if (prev !== id) { const el = $(id); el.classList.remove('in-push', 'in-pop', 'in-tab'); void el.offsetWidth; el.classList.add('in-' + dir); }
     closeSuggests();
     if (sheets[id]) sheets[id].snapTo(sheets[id].idx);
     requestAnimationFrame(() => {
@@ -143,7 +164,7 @@
       if (id === 'screen-results') ensureResMap();
       if (id === 'screen-track') ensureTrkMap();
       if (id === 'screen-profile') renderProfile();
-      if (id === 'screen-addstop') ensureAsMap();
+      if (id === 'screen-addstop') { ensureAsMap(); if (prev !== id) asSnap = snapDraft(); }
       if (id === 'screen-fixpos') ensureFpMap();
       if (id === 'screen-addplace') ensureApMap();
       if (id === 'screen-pharma') renderPharma();
@@ -152,6 +173,7 @@
       if (id === 'screen-pharma-detail') ensurePdMap();
       scheduleAutoZoom(id);
     });
+    return true;
   }
 
   /* 3 s après l'ouverture d'une carte, zoom sur la position de l'utilisateur
@@ -657,7 +679,7 @@
   const isFollowed = (kind, id) => !!(live.dest && live.dest.kind === kind && live.dest.id === id && Date.now() - live.dest.t < DEST_TTL);
   // Toucher un lieu dans une liste : la bulle le suit (sans ouvrir la carte) ; le toucher à nouveau ouvre sa fiche
   function followPlace(kind, id) {
-    live.dest = { kind, id, t: Date.now() }; store.set('liveDest', live.dest);
+    live.dest = { kind, id, t: Date.now() }; store.set('liveDest', live.dest); live.followT = Date.now();
     live.open = true; $('live').classList.add('open'); $('live-pill').setAttribute('aria-expanded', 'true');
     vibrate(25);
     if (kind === 'pharma') renderPharma(); else renderPaiya();
@@ -1025,7 +1047,7 @@
     if (st) setManual(st.lat, st.lon, `Position : arrêt ${st.label}.`);
   });
   $('fp-back').innerHTML = ic('back');
-  $('fp-back').onclick = () => show(fpBack);
+  $('fp-back').onclick = () => goBack();
 
   /* ---------- Autocomplétion ---------- */
   const suggests = [];
@@ -1092,35 +1114,46 @@
   function setOriginStop(s) { state.origin = s ? { type: 'stop', id: s.id } : null; originInput.value = s ? s.label : ''; syncClear(); }
   function setDest(s) { state.dest = s ? s.id : null; state.destPlace = null; destInput.value = s ? s.label : ''; syncClear(); }
   // Destination = un lieu (Paiya, pharmacie, lieu ajouté) : l'itinéraire vise les arrêts les plus proches de ce lieu
-  function setDestPlace(p) { state.dest = null; state.destPlace = { id: null, place: true, lat: p.lat, lon: p.lon, label: p.name }; destInput.value = p.name; syncClear(); }
+  function setDestPlace(p) { state.dest = null; state.destPlace = { id: null, place: true, lat: p.lat, lon: p.lon, label: p.name, icon: p.icon }; destInput.value = p.name; syncClear(); }
+  function addRecentPlace(d) {
+    state.recentPlaces = [{ name: d.label, lat: d.lat, lon: d.lon, icon: d.icon || 'pin' }, ...state.recentPlaces.filter(x => x.name !== d.label)].slice(0, 4);
+    store.set('recentPlaces', state.recentPlaces);
+  }
+  // quartiers, villages et lieux-dits du Grand Abidjan (destination = le quartier)
+  const ZONES = (window.ZUPA_VILLES || []).filter(v => v[2] > 5.15 && v[2] < 5.62 && v[3] > -4.3 && v[3] < -3.7)
+    .map(v => ({ name: v[0], lat: v[2], lon: v[3], zone: v[1] }));
   let placeIndex = null, placeIndexKey = '';
   function placeIdx() { // noms normalisés, recalculés seulement quand les listes changent
     placesBase();
     const key = `${pyBaseKey}|${(ph.cache && ph.cache.t) || 0}`;
     if (placeIndex && key === placeIndexKey) return placeIndex;
     const all = [];
-    for (const p of placesBase()) if (p.name && p.name !== PYC.CATS[p.cat].one) all.push({ p, kind: 'paiya', n: PC.norm(p.name + ' ' + (p.sub || '')) });
-    for (const p of PC.mergeLists(PH_EMBED, ph.cache && ph.cache.list)) if (Number.isFinite(p.lat)) all.push({ p, kind: 'pharma', n: PC.norm(p.name + ' ' + (p.commune || '')) });
+    for (const z of ZONES) all.push({ p: z, kind: 'zone', n: Core.key(z.name) });
+    for (const p of placesBase()) if (p.name && p.name !== PYC.CATS[p.cat].one) all.push({ p, kind: 'paiya', n: Core.key(p.name + ' ' + (p.sub || '')) });
+    for (const p of PC.mergeLists(PH_EMBED, ph.cache && ph.cache.list)) if (Number.isFinite(p.lat)) all.push({ p, kind: 'pharma', n: Core.key(p.name + ' ' + (p.commune || '')) });
     placeIndex = all; placeIndexKey = key;
     return all;
   }
   function placeItem(x) {
-    const p = x.p, cat = x.kind === 'pharma' ? null : p.cat;
-    const icn = cat ? PY_ICON[cat] : 'cross', col = cat ? PY_COLOR[cat] : 'var(--ph)';
+    const p = x.p, cat = x.kind === 'paiya' ? p.cat : null;
+    const icn = cat ? PY_ICON[cat] : x.kind === 'zone' ? 'pin' : 'cross', col = cat ? PY_COLOR[cat] : x.kind === 'zone' ? 'var(--info)' : 'var(--ph)';
+    p.icon = icn;
     const n = Core.nearbyStops(D, p.lat, p.lon, 0.8, 1)[0];
     const near = n ? `près de l'arrêt ${n.stop.label} · ${fmtDist(n.d)}` : 'aucun arrêt à moins de 800 m';
-    const tag = p.community ? '<span class="utag">ZUPA</span>' : '';
+    const ZT = { suburb: 'quartier', quarter: 'quartier', neighbourhood: 'quartier', village: 'village', town: 'ville', city: 'ville', hamlet: 'lieu-dit' };
+    const tag = p.community ? '<span class="utag">ZUPA</span>' : x.kind === 'zone' ? `<span class="utag zone">${ZT[p.zone] || 'quartier'}</span>` : '';
     return { type: 'place', place: p, html: `<span class="sg-ic place" style="--c:${col}">${ic(icn)}</span><span class="sg-main"><span class="sg-name">${esc(p.name)}${tag}</span><span class="sg-sub">${esc(near)}</span></span>${state.pos ? `<span class="sg-extra">${fmtDist(Core.haversine(state.pos[0], state.pos[1], p.lat, p.lon))}</span>` : ''}` };
   }
   function searchPlaces(q, max = 5) {
-    const nq = PC.norm(q);
+    const nq = Core.key(q);
     if (nq.length < 2) return [];
-    const words = nq.split(' ').filter(Boolean);
     const hits = [];
     for (const x of placeIdx()) {
-      if (!words.every(w => x.n.includes(w))) continue;
-      let sc = x.n.startsWith(nq) ? 0 : (' ' + x.n).includes(' ' + words[0]) ? 1 : 2;
+      let sc = Core.matchScore(nq, x.n);
+      if (sc < 0) sc = Core.partialScore(nq, x.n);
+      if (sc < 0) continue;
       if (x.p.community) sc -= 1.5;
+      if (x.kind === 'zone') sc -= 0.5;
       if (state.pos) sc += Math.min(1, Core.haversine(state.pos[0], state.pos[1], x.p.lat, x.p.lon) / 20);
       hits.push([sc, x]);
     }
@@ -1147,7 +1180,7 @@
     onPick: it => { if (it.type === 'place') setDestPlace(it.place); else setDest(it.stop); runSearch(); },
     onEnter: () => runSearch(),
     search: q => {
-      const stops = Core.searchStops(D, q, 6).map(withDist), places = searchPlaces(q, 5);
+      const stops = Core.searchStops(D, q, 6).map(withDist), places = searchPlaces(q, 6);
       const out = [];
       if (stops.length) out.push({ head: 'Arrêts' }, ...stops);
       if (places.length) out.push({ head: 'Lieux' }, ...places);
@@ -1157,6 +1190,8 @@
       const out = [];
       const mine = comm.mine.slice(0, 4).map(m => placeItem({ p: commPlace(m, true), kind: 'paiya' }));
       if (mine.length) out.push({ head: 'Mes lieux' }, ...mine);
+      const rp = state.recentPlaces.map(r => ({ type: 'place', place: r, html: `<span class="sg-ic place" style="--c:var(--text-2)">${ic('clock')}</span><span class="sg-main"><span class="sg-name">${esc(r.name)}</span></span>${state.pos ? `<span class="sg-extra">${fmtDist(Core.haversine(state.pos[0], state.pos[1], r.lat, r.lon))}</span>` : ''}` }));
+      if (rp.length) out.push({ head: 'Lieux récents' }, ...rp);
       const favs = state.profile.favorites.map(id => D.byId.get(id)).filter(Boolean);
       if (favs.length) { out.push({ head: 'Favoris' }); favs.forEach(s => out.push(withDist(s))); }
       const rec = state.recents.filter(id => !state.profile.favorites.includes(id)).map(id => D.byId.get(id)).filter(Boolean);
@@ -1218,14 +1253,21 @@
 
   function renderRecents() {
     const ids = state.recents.filter(id => D.byId.has(id));
-    $('recents-section').hidden = !ids.length;
-    $('recents').innerHTML = ids.map(id => `<button class="chip" data-recent="${esc(id)}">${ic('clock')}<span>${esc(D.byId.get(id).label)}</span></button>`).join('');
+    $('recents-section').hidden = !ids.length && !state.recentPlaces.length;
+    $('recents').innerHTML = ids.map(id => `<button class="chip" data-recent="${esc(id)}">${ic('clock')}<span>${esc(D.byId.get(id).label)}</span></button>`).join('')
+      + state.recentPlaces.map((r, i) => `<button class="chip" data-recent-place="${i}">${ic(r.icon || 'pin')}<span>${esc(r.name)}</span></button>`).join('');
   }
   $('recents').addEventListener('click', e => {
     const c = e.target.closest('[data-recent]');
-    if (c) { setDest(D.byId.get(c.dataset.recent)); runSearch(); }
+    if (c) { setDest(D.byId.get(c.dataset.recent)); runSearch(); return; }
+    const r = e.target.closest('[data-recent-place]');
+    if (r) { const pl = state.recentPlaces[+r.dataset.recentPlace]; if (pl) { setDestPlace(pl); runSearch(); } }
   });
-  $('clear-recents').onclick = () => { state.recents = []; store.set('recents', []); renderRecents(); };
+  $('clear-recents').onclick = () => {
+    const old = state.recents.slice(), oldP = state.recentPlaces.slice();
+    state.recents = []; state.recentPlaces = []; store.set('recents', []); store.set('recentPlaces', []); renderRecents();
+    toast('Historique effacé.', 'info', 5000, { text: 'Annuler', fn: () => { state.recents = old; state.recentPlaces = oldP; store.set('recents', old); store.set('recentPlaces', oldP); renderRecents(); } });
+  };
   function addRecent(id) {
     state.recents = [id, ...state.recents.filter(x => x !== id)].slice(0, 6);
     store.set('recents', state.recents);
@@ -1263,6 +1305,7 @@
     }
     const origin = getOrigin();
     if (origin.error) { toast(origin.error, 'error', 5000); originInput.focus(); return; }
+    if (origin.stopId && dest.id === origin.stopId) { toast('Le départ et la destination sont le même arrêt.', 'error'); destInput.focus(); return; }
     searchRoutes(origin, dest, $('search-btn'));
   }
 
@@ -1281,7 +1324,7 @@
         if (res.status === 'noDestStops') { toast(`Aucun arrêt de bus à moins de 800 m de ${dest.label}.`, 'error', 5000); return; }
         state.lastSearch = { origin, dest, res };
         state.routes = res.routes; state.selected = 0;
-        if (dest.id) addRecent(dest.id);
+        if (dest.id) addRecent(dest.id); else if (dest.place && current === 'screen-home') addRecentPlace(dest);
         state.resBack = dest.place ? current : 'screen-home';
         renderResults();
         show('screen-results');
@@ -1437,7 +1480,7 @@
     state.tracking = { r, pts: buildTrackPoints(r), idx: -1, alerted: new Set(), arrived: false, dest: state.lastSearch.dest.label, destObj: state.lastSearch.dest, origin: state.lastSearch.origin };
     $('nav-badge').hidden = false;
     trkFollow = true; trkRotate = true;
-    show('screen-track');
+    show('screen-track', { keepStack: true });
     renderTracking(true);
     requestWakeLock();
     if (state.pos) onTrackPos();
@@ -1608,7 +1651,11 @@
   });
   $('fav-list').addEventListener('click', e => {
     const b = e.target.closest('[data-remove]');
-    if (b) { toggleFav(b.dataset.remove); renderProfile(); }
+    if (b) {
+      const id = b.dataset.remove, pos = state.profile.favorites.indexOf(id);
+      state.profile.favorites = state.profile.favorites.filter(x => x !== id); saveProfile(); renderProfile();
+      toast(`${D.byId.get(id).label} retiré des favoris.`, 'info', 5000, { text: 'Annuler', fn: () => { if (!state.profile.favorites.includes(id)) { state.profile.favorites.splice(pos, 0, id); saveProfile(); renderProfile(); } } });
+    }
   });
   $('theme-seg').addEventListener('click', e => { const b = e.target.closest('[data-theme]'); if (b) setTheme(b.dataset.theme); });
   $('theme-quick').onclick = () => setTheme(isDark() ? 'light' : 'dark');
@@ -1827,7 +1874,14 @@
     show('screen-profile');
   };
   $('as-back').innerHTML = ic('back');
-  $('as-back').onclick = () => { draft = null; show(asBackTo === 'screen-addstop' ? 'screen-profile' : asBackTo); };
+  $('as-back').onclick = () => goBack();
+  // garde-fou : quitter l'ajout d'un arrêt avec des changements non enregistrés
+  const snapDraft = () => draft ? JSON.stringify([draft.name || '', draft.lat, draft.lon, (draft.links || []).join(), $('as-note').value]) : '';
+  let asSnap = '';
+  leaveGuards['screen-addstop'] = () => {
+    if (draft && snapDraft() !== asSnap && !confirm('Quitter sans enregistrer cet arrêt ?')) return false;
+    draft = null; return true;
+  };
   $('cta-addstop').onclick = () => openAddStop(null, 'screen-home');
   $('add-stop-btn').onclick = () => openAddStop(null, 'screen-profile');
 
@@ -2005,8 +2059,8 @@
     const f = ph.filter || 'all';
     if (f === 'garde') list = list.filter(p => p.garde);
     else if (f === 'open') list = list.filter(p => p.st === 'garde' || p.st === 'open');
-    const q = PC.norm(ph.q);
-    if (q) list = list.filter(p => PC.norm([p.name, p.commune, p.street, p.garde && p.garde.commune, (nearStop(p) || {}).name].filter(Boolean).join(' ')).includes(q));
+    const q = Core.key(ph.q);
+    if (q) list = list.filter(p => Core.matchScore(q, Core.key([p.name, p.commune, p.street, p.garde && p.garde.commune, p.garde && p.garde.quartier, (nearStop(p) || {}).name].filter(Boolean).join(' '))) >= 0);
     list.sort((a, b) => (a.d == null) - (b.d == null) || (a.d ?? 0) - (b.d ?? 0) || (b.st === 'garde') - (a.st === 'garde') || a.name.localeCompare(b.name, 'fr'));
     return list;
   }
@@ -2130,6 +2184,7 @@
     const el = e.target.closest('[data-ph]');
     if (!el) return;
     const p = allPharmacies().find(x => x.id === el.dataset.ph);
+    if (isFollowed('pharma', el.dataset.ph) && Date.now() - (live.followT || 0) < 700) return;
     if (!p || p.approx || !Number.isFinite(p.lat) || isFollowed('pharma', p.id)) openPharmacy(el.dataset.ph, current);
     else followPlace('pharma', p.id);
   }
@@ -2235,7 +2290,7 @@
     if (d && confirm('Supprimer ce lieu pour tous les utilisateurs ?')) { await deleteMine(d.dataset.pdDel); if (!comm.mine.some(x => x.id === d.dataset.pdDel)) show(ph.back || 'screen-paiya'); }
   });
   $('pd-back').innerHTML = ic('back');
-  $('pd-back').onclick = () => show(ph.back || 'screen-pharma');
+  $('pd-back').onclick = () => goBack();
   $('pd-share').innerHTML = ic('share');
   $('pd-call').addEventListener('click', e => { if ($('pd-call').classList.contains('disabled')) { e.preventDefault(); toast('Numéro de téléphone non renseigné.'); } });
   $('pd-gmaps').onclick = () => {
@@ -2447,8 +2502,8 @@
     $('py-open').setAttribute('aria-pressed', String(py.open));
     $('py-sub').textContent = state.pos ? (state.placeName ? state.placeName : '') : 'triés par nom';
     let list = base.filter(p => p.cat === py.cat);
-    const q = PC.norm(py.q);
-    if (q) list = list.filter(p => PC.norm([p.name, p.sub, p.street, p.commune].filter(Boolean).join(' ')).includes(q));
+    const q = Core.key(py.q);
+    if (q) list = list.filter(p => Core.matchScore(q, Core.key([p.name, p.sub, p.street, p.commune].filter(Boolean).join(' '))) >= 0);
     if (py.open) list = list.filter(p => p.hours && withStatus(p).st === 'open');
     if (state.pos) { const dk = new Map(list.map(p => [p, quickKm(p)])); list.sort((a, b) => dk.get(a) - dk.get(b)); }
     else list.sort((a, b) => a.name.localeCompare(b.name, 'fr'));
@@ -2501,6 +2556,7 @@
     const id = el.dataset.pyGo || el.dataset.py;
     const p0 = placesBase().find(x => x.id === id);
     if (!p0) return;
+    if (!go && isFollowed('paiya', id) && Date.now() - (live.followT || 0) < 700) return;
     if (go || isFollowed('paiya', id) || !state.pos) openDetail(withStatus(p0), 'screen-paiya', 'paiya');
     else followPlace('paiya', id);
   });
@@ -2517,7 +2573,12 @@
   const AP_PH = { resto: 'ex. Maquis Chez Tantie', hotel: 'ex. Hôtel Le Baobab', wc: 'ex. Toilettes de la gare', shop: 'ex. Boutique Awa' };
   const ap = { cat: 'wc', st: 'auto', pos: null, acc: null, kind: null, fee: null, hours: '', back: 'screen-paiya', timer: 0 };
   let apMap = null, apUser = null, apMoving = false;
+  // nom plausible : au moins 2 lettres, pas de lien ni d'adresse e-mail, pas de répétitions absurdes
+  const nameValid = v => { const t = v.trim(); return t.length >= 2 && (t.match(/\p{L}/gu) || []).length >= 2 && !/https?:|www\.|@|\.(com|net|org|ci)\b/i.test(t) && !/(.)\1{4,}/.test(t); };
+  const phoneDigits = v => v.replace(/\D/g, '').replace(/^225(?=\d{10}$)/, '');
   function openAddPlace(cat, from) {
+    const lastHour = comm.mine.filter(m => Date.now() - new Date(m.created).getTime() < 3600e3).length;
+    if (lastHour >= 10) { toast('Vous avez déjà ajouté 10 lieux en une heure. Réessayez un peu plus tard.', 'error', 5000); return; }
     ap.cat = cat || py.cat; ap.back = from || current;
     ap.kind = AP_KINDS[ap.cat][0]; ap.fee = null; ap.hours = '';
     ap.pos = state.gpsLast || state.pos; ap.acc = state.gpsLast ? state.gpsAcc : state.accuracy;
@@ -2549,17 +2610,18 @@
       locating: ['<span class="spinner"></span>', `Recherche du meilleur signal GPS…${acc ? ' ' + acc : ''}`, ''],
       ok: [ic('check'), `Position confirmée${acc ? ' · ' + acc : ''}${weak ? '. Précision moyenne : déplacez la carte si le repère n\u2019est pas sur le lieu.' : ''}`, weak ? 'ok warn' : 'ok'],
       moved: [ic('edit'), 'Repère déplacé à la main. Touchez « Valider ce point » pour le garder.', ''],
+      weak: [ic('info'), `Signal GPS trop faible (${acc}) pour confirmer. Déplacez la carte pour mettre le repère sur le lieu, puis touchez « Valider ce point ».`, 'warn'],
       pin: [ic('check'), 'Point validé sur la carte.', 'ok']
     }[ap.st];
     el.className = 'ap-state ' + T[2];
     el.innerHTML = `${T[0]}<span>${T[1]}</span>`;
     $('ap-locate').disabled = ap.st === 'locating';
     $('ap-locate').lastChild.textContent = ap.st === 'ok' ? 'Géolocaliser à nouveau' : 'Géolocaliser';
-    $('ap-pin-ok').hidden = ap.st !== 'moved';
+    $('ap-pin-ok').hidden = ap.st !== 'moved' && ap.st !== 'weak';
     const confirmed = ap.st === 'ok' || ap.st === 'pin';
-    const nameOk = ap.cat === 'wc' || $('ap-name').value.trim().length >= 2;
+    const nameOk = ap.cat === 'wc' && !$('ap-name').value.trim() || nameValid($('ap-name').value);
     $('ap-save').disabled = !(confirmed && nameOk);
-    $('ap-why').textContent = !confirmed ? 'Confirmez d\u2019abord la position avec « Géolocaliser ».' : !nameOk ? 'Indiquez le nom du lieu.' : '';
+    $('ap-why').textContent = !confirmed ? 'Confirmez d\u2019abord la position avec « Géolocaliser ».' : !nameOk ? 'Indiquez le vrai nom du lieu (lettres, sans lien internet).' : '';
   }
   function ensureApMap() {
     if (!hasL) { mapOff('ap-map'); return; }
@@ -2587,6 +2649,11 @@
       if (state.gpsLast && (!best || state.gpsAcc < best.acc)) best = { p: state.gpsLast.slice(), acc: state.gpsAcc };
       if (best) { ap.acc = best.acc; renderApState(); }
       if (best && (best.acc <= 15 || Date.now() - t0 > 8000)) {
+        if (best.acc > 100) { // signal trop faible pour confirmer : placement à la main obligatoire
+          ap.pos = best.p; ap.st = 'weak';
+          if (apMap) apMap.setView(ap.pos, 17);
+          renderApState(); return;
+        }
         ap.pos = best.p; ap.st = 'ok';
         if (apMap) apMap.setView(ap.pos, Math.max(apMap.getZoom(), 18));
         vibrate(60); renderApState(); return;
@@ -2600,7 +2667,11 @@
     tick();
   }
   $('ap-back').innerHTML = ic('back');
-  $('ap-back').onclick = () => show(ap.back || 'screen-paiya');
+  $('ap-back').onclick = () => goBack();
+  leaveGuards['screen-addplace'] = () => {
+    const dirty = ['ok', 'pin', 'moved'].includes(ap.st) || ['ap-name', 'ap-phone', 'ap-note'].some(i => $(i).value.trim());
+    return !dirty || confirm('Abandonner l\u2019ajout de ce lieu ? Les informations saisies seront perdues.');
+  };
   $('ap-locate').onclick = apLocate;
   $('ap-pin-ok').onclick = () => { ap.st = 'pin'; renderApState(); };
   $('ap-cats').addEventListener('click', e => {
@@ -2618,25 +2689,33 @@
     renderApState();
     if ($('ap-save').disabled) return;
     const name = $('ap-name').value.trim().replace(/\s+/g, ' ') || (ap.cat === 'wc' ? 'Toilettes publiques' : '');
+    const tel = phoneDigits($('ap-phone').value);
+    if ($('ap-phone').value.trim() && (tel.length < 8 || tel.length > 10)) { toast('Numéro de téléphone invalide : 10 chiffres, par ex. 07 00 00 00 00.', 'error', 5000); $('ap-phone').focus(); return; }
+    const gp = state.gpsLast || state.pos;
+    if (gp && ap.st === 'pin') {
+      const far = Core.haversine(gp[0], gp[1], ap.pos[0], ap.pos[1]);
+      if (far > 1 && !confirm(`Ce point est à ${fmtDist(far)} de vous. N'ajoutez que des lieux que vous connaissez bien. Continuer ?`)) return;
+    }
     const sub = ap.cat === 'wc'
       ? ['Toilettes', ap.fee === 'yes' ? 'payantes' : ap.fee === 'no' ? 'gratuites' : '', $('ap-wheel').checked ? 'accessibles' : ''].filter(Boolean).join(' · ')
       : ap.kind;
     const [lat, lon] = ap.pos;
     const twin = placesBase().find(x => x.cat === ap.cat && Core.haversine(lat, lon, x.lat, x.lon) < 0.025 && (ap.cat === 'wc' || PC.norm(x.name) === PC.norm(name)));
     if (twin && !confirm(`« ${twin.name} » existe déjà à ${fmtDist(Core.haversine(lat, lon, twin.lat, twin.lon))}. L'ajouter quand même ?`)) return;
-    const rec = { id: uuid(), cat: ap.cat, name, sub, lat: +lat.toFixed(6), lon: +lon.toFixed(6), acc: ap.acc, phone: $('ap-phone').value.trim(), hours: ap.hours,
+    const rec = { id: uuid(), cat: ap.cat, name, sub, lat: +lat.toFixed(6), lon: +lon.toFixed(6), acc: ap.acc, phone: tel ? tel.replace(/(\d{2})(?=\d)/g, '$1 ') : '', hours: ap.hours,
       note: $('ap-note').value.trim(), fee: ap.cat === 'wc' ? ap.fee : null, wheelchair: ap.cat === 'wc' && $('ap-wheel').checked ? true : null, created: new Date().toISOString(), synced: false };
     comm.mine.unshift(rec);
     saveMine();
-    $('ap-save').disabled = true;
+    $('ap-save').disabled = true; $('ap-save').classList.add('loading');
     const res = await syncMine();
+    $('ap-save').classList.remove('loading');
     if (!sbOn()) toast('Lieu enregistré sur ce téléphone.', 'success');
     else if (rec.synced) toast('Merci ! Le lieu est partagé avec tous les utilisateurs de ZUPA.', 'success', 5000);
     else if (rec.err) toast('Lieu gardé sur ce téléphone, mais refusé par la base : ' + rec.err, 'error', 7000);
     else toast('Lieu enregistré. Il sera partagé dès que vous aurez internet.', 'success', 5000);
     py.cat = rec.cat; store.set('pyCat', py.cat);
     live.dest = { kind: 'paiya', id: 'z' + rec.id, t: Date.now() }; store.set('liveDest', live.dest);
-    show(ap.back === 'screen-profile' ? 'screen-profile' : 'screen-paiya');
+    show(ap.back === 'screen-profile' ? 'screen-profile' : 'screen-paiya', { force: true });
   });
   $('py-add').onclick = () => openAddPlace(py.cat, 'screen-paiya');
   $('my-places-add').onclick = () => openAddPlace(py.cat, 'screen-profile');
@@ -2650,8 +2729,23 @@
   }
   $('my-places').addEventListener('click', e => {
     const b = e.target.closest('[data-del-place]');
-    if (b && confirm('Supprimer ce lieu ?')) deleteMine(b.dataset.delPlace);
+    if (!b) return;
+    const m = comm.mine.find(x => x.id === b.dataset.delPlace);
+    if (m && !m.synced) { // pas encore envoyé : suppression locale, annulable
+      const i = comm.mine.indexOf(m); comm.mine.splice(i, 1); saveMine();
+      toast('Lieu supprimé.', 'info', 5000, { text: 'Annuler', fn: () => { comm.mine.splice(i, 0, m); saveMine(); } });
+    } else if (confirm('Supprimer ce lieu pour tous les utilisateurs ?')) deleteMine(b.dataset.delPlace);
   });
+
+  /* ---------- Anti double appui ---------- */
+  let lastTap = { el: null, t: 0 };
+  document.addEventListener('click', e => {
+    const el = e.target.closest('button, a, [role="button"], .board-row');
+    if (!el || el.matches('.live-pill, .gb-head, .sheet-grab, .ap-chips button, .py-cat, .segmented button')) return;
+    const now = Date.now();
+    if (lastTap.el === el && now - lastTap.t < 450) { e.stopImmediatePropagation(); e.preventDefault(); return; }
+    lastTap = { el, t: now };
+  }, true);
 
   /* ---------- Navigation globale ---------- */
   document.querySelectorAll('[data-icon]').forEach(el => { el.outerHTML = ic(el.dataset.icon); });
@@ -2664,6 +2758,7 @@
       show(to); return;
     }
     const nav = e.target.closest('[data-nav]');
+    if (nav && nav.dataset.nav === current) { $(current).scrollTo({ top: 0, behavior: 'smooth' }); return; }
     if (nav) {
       if (nav.dataset.nav === 'screen-track' && !state.tracking) {
         toast(state.lastSearch ? 'Choisissez un itinéraire puis « Suivre ».' : 'Aucun trajet en cours. Lancez une recherche.');
@@ -2679,14 +2774,9 @@
     if (document.querySelector('.map-wrap.full')) { exitFull(); return true; }
     const open = [...document.querySelectorAll('.suggest')].some(b => !b.hidden);
     if (open) { closeSuggests(); return true; }
-    const map = {
-      'screen-results': state.resBack || 'screen-home', 'screen-track': state.lastSearch ? 'screen-results' : 'screen-home',
-      'screen-addstop': asBackTo === 'screen-addstop' ? 'screen-profile' : asBackTo, 'screen-fixpos': fpBack,
-      'screen-pharma-detail': ph.back || 'screen-pharma', 'screen-addplace': ap.back || 'screen-paiya', 'screen-pharma': 'screen-home', 'screen-paiya': 'screen-home', 'screen-profile': 'screen-home'
-    };
-    const to = map[current];
-    if (!to || to === current) return false;
-    if (current === 'screen-addstop') draft = null;
+    if (live.open && LIVE_HOST[current]) { live.open = false; $('live').classList.remove('open'); $('live-pill').setAttribute('aria-expanded', 'false'); return true; }
+    const to = navStack.length > 1 ? navStack[navStack.length - 2] : current !== 'screen-home' ? 'screen-home' : null;
+    if (!to) return false;
     show(to);
     return true;
   }
