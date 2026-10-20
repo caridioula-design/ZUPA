@@ -45,6 +45,10 @@
     wc: 'M5.5 22v-7.5H4V9c0-1.1.9-2 2-2h3c1.1 0 2 .9 2 2v5.5H9.5V22h-4zM18 22v-6h3l-2.54-7.63A2.01 2.01 0 0 0 16.56 7h-.12a2 2 0 0 0-1.9 1.37L12 16h3v6h3zM7.5 6c1.11 0 2-.89 2-2s-.89-2-2-2-2 .89-2 2 .89 2 2 2zm9 0c1.11 0 2-.89 2-2s-.89-2-2-2-2 .89-2 2 .89 2 2 2z',
     shop: 'M20 4H4v2h16V4zm1 10v-2l-1-5H4l-1 5v2h1v6h10v-6h4v6h2v-6h1zm-9 4H6v-4h6v4z',
     navigation: 'M12 2 4.5 20.29l.71.71L12 18l6.79 3 .71-.71z',
+    plus: 'M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z',
+    check: 'M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z',
+    flag: 'M14.4 6 14 4H5v17h2v-7h5.6l.4 2h7V6z',
+    trash: 'M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z',
     clock: 'M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z'
   };
   const ic = n => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONS[n]}"/></svg>`;
@@ -128,7 +132,7 @@
       s.classList.toggle('active', a);
       s.setAttribute('aria-hidden', String(!a));
     });
-    const tab = { 'screen-results': 'screen-home', 'screen-addstop': 'screen-home', 'screen-fixpos': 'screen-home', 'screen-pharma-detail': (typeof ph !== 'undefined' && ph.kind === 'paiya') ? 'screen-paiya' : 'screen-pharma' }[id] || id;
+    const tab = { 'screen-results': 'screen-home', 'screen-addstop': 'screen-home', 'screen-fixpos': 'screen-home', 'screen-addplace': 'screen-paiya', 'screen-pharma-detail': (typeof ph !== 'undefined' && ph.kind === 'paiya') ? 'screen-paiya' : 'screen-pharma' }[id] || id;
     document.querySelectorAll('[data-nav]').forEach(b => b.classList.toggle('active', b.dataset.nav === tab));
     $(id).scrollTop = 0;
     closeSuggests();
@@ -141,6 +145,7 @@
       if (id === 'screen-profile') renderProfile();
       if (id === 'screen-addstop') ensureAsMap();
       if (id === 'screen-fixpos') ensureFpMap();
+      if (id === 'screen-addplace') ensureApMap();
       if (id === 'screen-pharma') renderPharma();
       if (id === 'screen-paiya') renderPaiya();
       renderLive();
@@ -1515,6 +1520,7 @@
       ? favs.map(s => `<li>${ic('star')}<span>${esc(s.label)}</span><button class="btn ghost sm" data-remove="${esc(s.id)}" aria-label="Retirer ${esc(s.label)}">Retirer</button></li>`).join('')
       : `<li class="muted">Aucun favori pour l'instant (${FAV_LIMIT} maximum).</li>`;
     renderCustomList();
+    renderMyPlaces();
     $('data-stats').textContent = `${D.lines.length} trajets de bus et ${D.stops.length} arrêts intégrés à l'application. Vos favoris et réglages restent sur cet appareil.`;
     applyTheme();
   }
@@ -2058,6 +2064,8 @@
     openDetail(p, from, 'pharma');
   }
   /* Fiche détaillée commune aux pharmacies et aux lieux Paiya */
+  // Horaires OpenStreetMap lisibles : « 24/7 » → « 24h/24 », « Mo-Su » → « Tous les jours »
+  const fmtHours = h => String(h).replace(/^24\/7$/, '24h/24').replace(/\bMo-Su\b/g, 'Tous les jours,').replace(/\bMo-Sa\b/g, 'Lun-sam').replace(/\bMo-Fr\b/g, 'Lun-ven').replace(/(\d{2}:\d{2})-(\d{2}:\d{2})/g, '$1–$2');
   function openDetail(p, from, kind) {
     const home = kind === 'paiya' ? 'screen-paiya' : 'screen-pharma';
     ph.sel = p; ph.kind = kind; ph.back = from && from !== 'screen-pharma-detail' ? from : home;
@@ -2070,11 +2078,13 @@
     const ns = p.approx || (p.garde && p.garde.interieur) ? null : nearStop(p);
     const rows = kind === 'paiya' ? [
       [PY_ICON[p.cat] || 'explore', 'Type', esc(p.sub || '')],
-      p.hours && ['clock', 'Statut', esc(statusLabel(p, true))],
+      p.hours && ['clock', 'Statut', esc(pyStatus(p, true))],
       p.phone && ['phone', 'Téléphone', String(p.phone).split(/[;,/]/).map(t => t.trim()).filter(Boolean).map(t => `<a href="${esc(telHref(t))}">${esc(fmtPhone(t))}</a>`).join('<br>')],
       (p.street || p.commune) && ['pin', 'Adresse', esc([p.street, p.commune].filter(Boolean).join(' · '))],
       ns && ['bus', 'Arrêt de bus le plus proche', `${esc(ns.name)} · ${fmtDist(ns.d)}`],
-      p.hours && ['clock', 'Horaires', esc(p.hours)],
+      p.hours && ['clock', 'Horaires', esc(fmtHours(p.hours))],
+      p.note && ['info', 'Remarque', esc(p.note)],
+      p.community && ['user', 'Source', `Ajouté par ${p.mine ? 'vous' : 'un utilisateur de ZUPA'}${p.created ? ' le ' + esc(new Date(p.created).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })) : ''}${p.pending ? ' · en attente d\u2019envoi' : ''}`],
       p.web && ['share', 'Site web', `<a href="${esc(/^https?:/.test(p.web) ? p.web : 'https://' + p.web)}" data-ext>${esc(p.web.replace(/^https?:\/\//, '').slice(0, 40))}</a>`]
     ].filter(Boolean) : [
       ['cross', 'Statut', esc(statusLabel(p, true)) + (p.garde ? ` <small style="text-transform:none;letter-spacing:0">(semaine du ${esc(fmtDay(week().du))} au ${esc(fmtDay(week().au))})</small>` : '')],
@@ -2091,10 +2101,12 @@
     $('pd-gmaps').disabled = false;
     $('pd-gmaps').lastChild.textContent = p.approx || !Number.isFinite(p.lat) ? 'Rechercher dans Google Maps' : 'Itinéraire à pied dans Google Maps';
     $('pd-bus').hidden = !!(p.garde && p.garde.interieur);
-    $('pd-status').textContent = kind === 'paiya' ? [p.sub, p.hours ? statusLabel(p, true) : ''].filter(Boolean).join(' · ') : statusLabel(p, true);
+    $('pd-status').textContent = kind === 'paiya' ? [p.sub, p.hours ? pyStatus(p, true) : ''].filter(Boolean).join(' · ') : statusLabel(p, true);
     $('pd-note').textContent = kind === 'paiya'
       ? 'Informations issues d\'OpenStreetMap : elles peuvent être incomplètes. Appelez avant de vous déplacer si possible.'
       : 'Vérifiez par téléphone avant de vous déplacer : les informations proviennent d\'OpenStreetMap et de la liste de garde publiée.';
+    renderPdComm(kind === 'paiya' ? p : null);
+    if (p.community) $('pd-note').textContent = 'Lieu ajouté par la communauté ZUPA. Signalez-le s\u2019il est faux ou n\u2019existe plus.';
     $('screen-pharma-detail').classList.toggle('py', kind === 'paiya');
     $('screen-pharma-detail').style.setProperty('--c', kind === 'paiya' ? PY_COLOR[p.cat] : '');
     show('screen-pharma-detail');
@@ -2125,6 +2137,21 @@
       $('pd-walk').innerHTML = `${ic('info')}<span>Activez la localisation pour voir le trajet.</span>`;
     }
   }
+  function renderPdComm(p) {
+    const box = $('pd-comm');
+    if (!p || !p.community) { box.hidden = true; box.innerHTML = ''; return; }
+    box.hidden = false;
+    if (p.mine) box.innerHTML = `<button class="btn ghost block" data-pd-del="${esc(p.rid)}">${ic('trash')}Supprimer ce lieu</button>`;
+    else if (comm.reported.includes(p.rid)) box.innerHTML = `<p class="muted pd-reported">${ic('check')}Vous avez signalé ce lieu.</p>`;
+    else box.innerHTML = `<button class="btn ghost block" data-pd-report>${ic('flag')}Signaler une erreur</button><div class="ap-chips pd-motifs" hidden><button type="button" data-motif="N'existe pas">N'existe pas</button><button type="button" data-motif="Mauvais emplacement">Mauvais emplacement</button><button type="button" data-motif="Infos fausses">Infos fausses</button></div>`;
+  }
+  $('pd-comm').addEventListener('click', async e => {
+    const p = ph.sel; if (!p) return;
+    if (e.target.closest('[data-pd-report]')) { $('pd-comm').querySelector('.pd-motifs').hidden = false; e.target.closest('[data-pd-report]').hidden = true; return; }
+    const m = e.target.closest('[data-motif]'); if (m) { reportPlace(p, m.dataset.motif); return; }
+    const d = e.target.closest('[data-pd-del]');
+    if (d && confirm('Supprimer ce lieu pour tous les utilisateurs ?')) { await deleteMine(d.dataset.pdDel); if (!comm.mine.some(x => x.id === d.dataset.pdDel)) show(ph.back || 'screen-paiya'); }
+  });
   $('pd-back').innerHTML = ic('back');
   $('pd-back').onclick = () => show(ph.back || 'screen-pharma');
   $('pd-share').innerHTML = ic('share');
@@ -2161,11 +2188,13 @@
   // Liste fusionnée (intégrée + actualisée), recalculée seulement quand le cache change
   let pyBase = null, pyBaseKey = '';
   function placesBase() {
-    const key = (py.cache && py.cache.t) || 0;
+    const key = `${(py.cache && py.cache.t) || 0}|${comm.ver}`;
     if (pyBase && pyBaseKey === key) return pyBase;
     const m = new Map();
     for (const p of PY_EMBED) m.set(p.id, p);
     for (const p of (py.cache && py.cache.list) || []) m.set(p.id, p);
+    for (const r of (comm.list && comm.list.rows) || []) m.set('z' + r.id, commPlace(r, false));
+    for (const r of comm.mine) m.set('z' + r.id, commPlace(r, true));
     pyBase = [...m.values()]; pyBaseKey = key;
     return pyBase;
   }
@@ -2179,6 +2208,99 @@
     return p;
   }
   function allPlaces() { return placesBase().map(withStatus); }
+
+  /* ---------- Lieux ajoutés par les utilisateurs : base partagée (Supabase) ----------
+     Chaque lieu est d'abord gardé sur le téléphone, puis envoyé dès qu'il y a internet.
+     L'identifiant est créé ici : un renvoi ne crée jamais de doublon. */
+  const SB = { url: String(CONFIG.supabaseUrl || '').replace(/\/+$/, ''), key: String(CONFIG.supabaseKey || '') };
+  const sbOn = () => !!(SB.url && SB.key);
+  function uuid() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    const b = crypto.getRandomValues(new Uint8Array(16)); b[6] = (b[6] & 15) | 64; b[8] = (b[8] & 63) | 128;
+    const x = [...b].map(v => v.toString(16).padStart(2, '0')).join('');
+    return `${x.slice(0, 8)}-${x.slice(8, 12)}-${x.slice(12, 16)}-${x.slice(16, 20)}-${x.slice(20)}`;
+  }
+  const deviceId = (() => { let d = store.get('device', null); if (!/^[0-9a-f-]{36}$/.test(d || '')) { d = uuid(); store.set('device', d); } return d; })();
+  const comm = { list: store.get('community', null), mine: store.get('myPlaces', []), ver: 0, syncing: false, lastFetch: 0, reported: store.get('reported', []) };
+  if (!Array.isArray(comm.mine)) comm.mine = [];
+  function commPlace(r, mine) {
+    const o = { id: 'z' + r.id, rid: r.id, cat: r.cat, name: r.name, sub: r.sub || PYC.CATS[r.cat].one, lat: r.lat, lon: r.lon, community: true, created: r.created_at || r.created };
+    if (r.phone) o.phone = r.phone;
+    if (r.hours) o.hours = r.hours;
+    if (r.note) o.note = r.note;
+    if (mine) { o.mine = true; o.pending = !r.synced; o.err = r.err || null; }
+    return o;
+  }
+  function commChanged() { comm.ver++; if (current === 'screen-paiya') renderPaiya(); if (current === 'screen-profile') renderMyPlaces(); }
+  function saveMine() { store.set('myPlaces', comm.mine); commChanged(); }
+  async function sb(path, opts = {}) {
+    const headers = { apikey: SB.key, 'Content-Type': 'application/json', ...(opts.headers || {}) };
+    if (!SB.key.startsWith('sb_')) headers.Authorization = 'Bearer ' + SB.key; // ancienne clé « anon » (JWT)
+    const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), opts.timeout || 12000);
+    try {
+      const r = await fetch(SB.url + path, { method: opts.method || 'GET', headers, body: opts.body ? JSON.stringify(opts.body) : undefined, signal: ctl.signal, cache: 'no-store' });
+      const txt = await r.text();
+      let data = null; try { data = txt ? JSON.parse(txt) : null; } catch (_) {}
+      return { ok: r.ok, status: r.status, data, net: false };
+    } catch (_) { return { ok: false, status: 0, data: null, net: true }; }
+    finally { clearTimeout(t); }
+  }
+  async function fetchCommunity(force) {
+    if (!sbOn() || (!force && Date.now() - comm.lastFetch < 10 * 60e3)) return;
+    comm.lastFetch = Date.now();
+    const r = await sb('/rest/v1/lieux?select=id,cat,name,sub,lat,lon,phone,hours,note,fee,wheelchair,created_at&order=created_at.desc&limit=5000');
+    if (r.ok && Array.isArray(r.data)) {
+      comm.list = { t: Date.now(), rows: r.data };
+      store.set('community', comm.list);
+      // un lieu présent en ligne est forcément envoyé
+      const online = new Set(r.data.map(x => x.id));
+      let fixed = false;
+      comm.mine.forEach(m => { if (!m.synced && online.has(m.id)) { m.synced = true; fixed = true; } });
+      if (fixed) store.set('myPlaces', comm.mine);
+      commChanged();
+    }
+  }
+  const sbErr = r => (r.data && (r.data.message || r.data.hint)) || `Erreur ${r.status}`;
+  async function syncMine() {
+    if (!sbOn() || comm.syncing) return { sent: 0 };
+    comm.syncing = true;
+    let sent = 0, net = false, err = null;
+    for (const m of comm.mine.filter(x => !x.synced)) {
+      const body = { id: m.id, cat: m.cat, name: m.name, sub: m.sub, lat: m.lat, lon: m.lon, acc: m.acc == null ? null : Math.min(1000, Math.round(m.acc)),
+        phone: m.phone || null, hours: m.hours || null, note: m.note || null, fee: m.fee || null, wheelchair: m.wheelchair == null ? null : m.wheelchair, device: deviceId };
+      const r = await sb('/rest/v1/lieux', { method: 'POST', body, headers: { Prefer: 'return=minimal,resolution=ignore-duplicates' } });
+      if (r.ok) { m.synced = true; m.err = null; sent++; }
+      else if (r.net || r.status >= 500 || r.status === 429) { net = true; break; }
+      else { m.err = sbErr(r); err = m.err; if (/Trop de lieux/.test(m.err)) break; }
+    }
+    comm.syncing = false;
+    store.set('myPlaces', comm.mine);
+    if (sent) { comm.lastFetch = 0; fetchCommunity(true); } else commChanged();
+    return { sent, net, err };
+  }
+  async function deleteMine(id) {
+    const m = comm.mine.find(x => x.id === id);
+    if (!m) return;
+    if (m.synced && sbOn()) {
+      const r = await sb('/rest/v1/rpc/supprimer_lieu', { method: 'POST', body: { p_id: id, p_device: deviceId } });
+      if (!r.ok) { toast(r.net ? 'Suppression impossible sans internet.' : 'Suppression impossible : ' + sbErr(r), 'error'); return; }
+      if (comm.list) { comm.list.rows = comm.list.rows.filter(x => x.id !== id); store.set('community', comm.list); }
+    }
+    comm.mine = comm.mine.filter(x => x.id !== id);
+    if (live.dest && live.dest.id === 'z' + id) live.dest = null;
+    saveMine();
+    toast('Lieu supprimé.', 'success');
+  }
+  async function reportPlace(p, motif) {
+    if (!sbOn()) return;
+    const r = await sb('/rest/v1/rpc/signaler_lieu', { method: 'POST', body: { p_id: p.rid, p_device: deviceId, p_motif: motif } });
+    if (!r.ok) { toast(r.net ? 'Signalement impossible sans internet.' : 'Signalement impossible : ' + sbErr(r), 'error'); return; }
+    comm.reported.push(p.rid); store.set('reported', comm.reported);
+    if ((r.data | 0) >= 3 && comm.list) { comm.list.rows = comm.list.rows.filter(x => x.id !== p.rid); store.set('community', comm.list); comm.ver++; }
+    toast('Merci, le signalement est enregistré.', 'success');
+    renderPdComm(p);
+  }
+  window.addEventListener('online', () => { syncMine(); fetchCommunity(true); });
   async function refreshPaiya(force) {
     if (!state.pos || py.loading) return;
     const c = py.cache;
@@ -2254,7 +2376,7 @@
       const msg = q ? 'Modifiez votre recherche.'
         : py.open ? 'Peu de lieux indiquent leurs horaires. Retirez le filtre « Ouvert » pour tout voir.'
         : 'Connectez-vous à internet puis touchez le bouton d’actualisation pour charger les lieux autour de vous.';
-      $('py-list').innerHTML = `<div class="py-empty">${ic(PY_ICON[py.cat])}<p><b>Aucun lieu trouvé</b></p><p>${msg}</p>${py.open ? '<button class="btn ghost sm" data-py-all>Tout afficher</button>' : ''}</div>`;
+      $('py-list').innerHTML = `<div class="py-empty">${ic(PY_ICON[py.cat])}<p><b>Aucun lieu trouvé</b></p><p>${msg}</p>${py.open ? '<button class="btn ghost sm" data-py-all>Tout afficher</button>' : '<button class="btn ghost sm" data-py-new>Ajouter un lieu</button>'}</div>`;
       $('py-list').classList.add('is-empty');
       $('py-more').hidden = true;
     } else {
@@ -2263,7 +2385,7 @@
         const status = p.hours ? `<small class="py-st ${p.st}">${esc(pyStatus(p))}</small>` : '';
         return `<button class="py-row" data-py="${esc(p.id)}" type="button">
           <span class="py-ic">${ic(PY_ICON[p.cat])}</span>
-          <span class="py-main"><b>${esc(p.name)}</b><small>${esc([p.sub, p.street || p.commune].filter(Boolean).join(' · '))}</small></span>
+          <span class="py-main"><b><span>${esc(p.name)}</span>${p.community ? `<em class="py-tag${p.pending ? ' wait' : ''}">${p.pending ? 'en attente' : 'ZUPA'}</em>` : ''}</b><small>${esc([p.sub, p.street || p.commune].filter(Boolean).join(' · '))}</small></span>
           <span class="py-d">${p.d != null ? `<b>${fmtDist(p.d)}</b>` : ''}${status || (p.d != null ? `<small>${fmtMin(Core.walkMin(p.d * Core.CFG.DETOUR))} à pied</small>` : '')}</span>
         </button>`;
       }).join('');
@@ -2274,6 +2396,7 @@
     $('py-note').textContent = `Données © OpenStreetMap${upd ? ' · base du ' + new Date(upd).toLocaleDateString('fr-FR') : ''}${py.cache ? ' · actualisée le ' + new Date(py.cache.t).toLocaleDateString('fr-FR') : ''}`;
     renderLive();
     if (state.pos) refreshPaiya(false);
+    fetchCommunity(false);
   }
   $('py-open').onclick = () => { py.open = !py.open; py.shown = 20; renderPaiya(); };
   $('py-cats').addEventListener('click', e => {
@@ -2287,6 +2410,7 @@
   $('py-refresh').onclick = () => { if (!state.pos) { toast('Position inconnue : activez la localisation.', 'error'); return; } refreshPaiya(true); };
   $('py-list').addEventListener('click', e => {
     if (e.target.closest('[data-py-all]')) { py.open = false; renderPaiya(); return; }
+    if (e.target.closest('[data-py-new]')) { openAddPlace(py.cat, 'screen-paiya'); return; }
     if (e.target.closest('[data-ph-call]')) return;
     const el = e.target.closest('[data-py-go]') || e.target.closest('[data-py]');
     if (!el) return;
@@ -2295,6 +2419,152 @@
     if (p0) openDetail(withStatus(p0), 'screen-paiya', 'paiya');
   });
   document.addEventListener('click', e => { const a = e.target.closest('a[data-ext]'); if (a) { e.preventDefault(); openExternal(a.href); } });
+
+  /* ---------- Ajouter un lieu : position trouvée automatiquement, confirmée par « Géolocaliser » ---------- */
+  const AP_KINDS = {
+    resto: ['Restaurant', 'Maquis', 'Fast-food', 'Café', 'Glacier'],
+    hotel: ['Hôtel', 'Résidence meublée', 'Auberge', 'Motel'],
+    wc: ['Toilettes publiques'],
+    shop: ['Supérette', 'Supermarché', 'Boutique', 'Téléphonie', 'Coiffure', 'Pressing', 'Quincaillerie', 'Commerce']
+  };
+  const AP_PH = { resto: 'ex. Maquis Chez Tantie', hotel: 'ex. Hôtel Le Baobab', wc: 'ex. Toilettes de la gare', shop: 'ex. Boutique Awa' };
+  const ap = { cat: 'wc', st: 'auto', pos: null, acc: null, kind: null, fee: null, hours: '', back: 'screen-paiya', timer: 0 };
+  let apMap = null, apUser = null, apMoving = false;
+  function openAddPlace(cat, from) {
+    ap.cat = cat || py.cat; ap.back = from || current;
+    ap.kind = AP_KINDS[ap.cat][0]; ap.fee = null; ap.hours = '';
+    ap.pos = state.gpsLast || state.pos; ap.acc = state.gpsLast ? state.gpsAcc : state.accuracy;
+    ap.st = ap.pos ? 'auto' : 'none';
+    $('ap-form').reset(); $('ap-range').hidden = true;
+    renderAddPlace();
+    show('screen-addplace');
+  }
+  function renderAddPlace() {
+    const scr = $('screen-addplace');
+    scr.style.setProperty('--c', PY_COLOR[ap.cat]);
+    $('ap-cats').innerHTML = PYC.ORDER.map(c => `<button type="button" class="py-cat${ap.cat === c ? ' on' : ''}" role="radio" aria-checked="${ap.cat === c}" data-cat="${c}" style="--c:${PY_COLOR[c]}">${ic(PY_ICON[c])}<span>${esc(PYC.CATS[c].label)}</span></button>`).join('');
+    const kinds = AP_KINDS[ap.cat];
+    $('ap-kind').innerHTML = kinds.map(k => `<button type="button" role="radio" aria-checked="${ap.kind === k}" class="${ap.kind === k ? 'on' : ''}" data-v="${esc(k)}">${esc(k)}</button>`).join('');
+    $('ap-kind').previousElementSibling.hidden = $('ap-kind').hidden = kinds.length < 2;
+    $('ap-wc').hidden = ap.cat !== 'wc';
+    $('ap-name').placeholder = AP_PH[ap.cat];
+    $('ap-name-l').innerHTML = ap.cat === 'wc' ? 'Nom <small>(facultatif)</small>' : 'Nom';
+    [['ap-fee', ap.fee], ['ap-hours', ap.hours === '' || ap.hours === '24/7' ? ap.hours : 'range']].forEach(([id, v]) =>
+      $(id).querySelectorAll('button').forEach(b => { const on = b.dataset.v === (v == null ? '\u0000' : v); b.classList.toggle('on', on); b.setAttribute('aria-checked', String(on)); }));
+    renderApState();
+  }
+  function renderApState() {
+    const el = $('ap-state'), acc = ap.acc ? `± ${fmtDist(ap.acc / 1000)}` : '';
+    const weak = ap.acc > 40;
+    const T = {
+      none: [ic('info'), 'Aucune position pour le moment. Touchez « Géolocaliser » ou déplacez la carte sur le lieu.', 'warn'],
+      auto: [ic('locate'), `Position trouvée automatiquement${acc ? ' · ' + acc : ''}. Touchez « Géolocaliser » pour la confirmer.`, weak ? 'warn' : ''],
+      locating: ['<span class="spinner"></span>', `Recherche du meilleur signal GPS…${acc ? ' ' + acc : ''}`, ''],
+      ok: [ic('check'), `Position confirmée${acc ? ' · ' + acc : ''}${weak ? '. Précision moyenne : déplacez la carte si le repère n\u2019est pas sur le lieu.' : ''}`, weak ? 'ok warn' : 'ok'],
+      moved: [ic('edit'), 'Repère déplacé à la main. Touchez « Valider ce point » pour le garder.', ''],
+      pin: [ic('check'), 'Point validé sur la carte.', 'ok']
+    }[ap.st];
+    el.className = 'ap-state ' + T[2];
+    el.innerHTML = `${T[0]}<span>${T[1]}</span>`;
+    $('ap-locate').disabled = ap.st === 'locating';
+    $('ap-locate').lastChild.textContent = ap.st === 'ok' ? 'Géolocaliser à nouveau' : 'Géolocaliser';
+    $('ap-pin-ok').hidden = ap.st !== 'moved';
+    const confirmed = ap.st === 'ok' || ap.st === 'pin';
+    const nameOk = ap.cat === 'wc' || $('ap-name').value.trim().length >= 2;
+    $('ap-save').disabled = !(confirmed && nameOk);
+    $('ap-why').textContent = !confirmed ? 'Confirmez d\u2019abord la position avec « Géolocaliser ».' : !nameOk ? 'Indiquez le nom du lieu.' : '';
+  }
+  function ensureApMap() {
+    if (!hasL) { mapOff('ap-map'); return; }
+    if (!apMap) {
+      apMap = baseMap($('ap-map'), { onLocate: () => { apLocate(); return false; } });
+      apMap.on('dragstart', () => { apMoving = true; });
+      apMap.on('moveend', () => {
+        if (!apMoving) return;
+        apMoving = false;
+        const c = apMap.getCenter(); ap.pos = [c.lat, c.lng]; ap.acc = null; ap.st = 'moved'; renderApState();
+      });
+    }
+    apMap.invalidateSize();
+    apUser = userMarker(apMap, apUser);
+    apMap.setView(ap.pos || [5.33, -4.01], ap.pos ? 18 : 12, { animate: false });
+  }
+  // « Géolocaliser » : garde la meilleure mesure GPS des 8 prochaines secondes (arrêt dès ± 15 m)
+  function apLocate() {
+    clearTimeout(ap.timer);
+    ap.st = 'locating'; renderApState();
+    if (!gotFix && !watchHigh) startGeo(true);
+    const t0 = Date.now(); let best = null;
+    const tick = () => {
+      if (current !== 'screen-addplace') return;
+      if (state.gpsLast && (!best || state.gpsAcc < best.acc)) best = { p: state.gpsLast.slice(), acc: state.gpsAcc };
+      if (best) { ap.acc = best.acc; renderApState(); }
+      if (best && (best.acc <= 15 || Date.now() - t0 > 8000)) {
+        ap.pos = best.p; ap.st = 'ok';
+        if (apMap) apMap.setView(ap.pos, Math.max(apMap.getZoom(), 18));
+        vibrate(60); renderApState(); return;
+      }
+      if (!best && Date.now() - t0 > 10000) {
+        ap.st = ap.pos ? 'moved' : 'none'; renderApState();
+        toast('GPS indisponible. Déplacez la carte sur le lieu, puis touchez « Valider ce point ».', 'error', 6000); return;
+      }
+      ap.timer = setTimeout(tick, 500);
+    };
+    tick();
+  }
+  $('ap-back').innerHTML = ic('back');
+  $('ap-back').onclick = () => show(ap.back || 'screen-paiya');
+  $('ap-locate').onclick = apLocate;
+  $('ap-pin-ok').onclick = () => { ap.st = 'pin'; renderApState(); };
+  $('ap-cats').addEventListener('click', e => {
+    const b = e.target.closest('[data-cat]'); if (!b) return;
+    ap.cat = b.dataset.cat; ap.kind = AP_KINDS[ap.cat][0]; renderAddPlace();
+  });
+  const chipPick = (id, fn) => $(id).addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if (b) { fn(b.dataset.v); renderAddPlace(); } });
+  chipPick('ap-kind', v => { ap.kind = v; });
+  chipPick('ap-fee', v => { ap.fee = ap.fee === v ? null : v; });
+  chipPick('ap-hours', v => { ap.hours = v === 'range' ? `Mo-Su ${$('ap-open').value}-${$('ap-close').value}` : v; $('ap-range').hidden = v !== 'range'; });
+  ['ap-open', 'ap-close'].forEach(id => $(id).addEventListener('change', () => { ap.hours = `Mo-Su ${$('ap-open').value || '08:00'}-${$('ap-close').value || '20:00'}`; }));
+  $('ap-name').addEventListener('input', renderApState);
+  $('ap-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    renderApState();
+    if ($('ap-save').disabled) return;
+    const name = $('ap-name').value.trim().replace(/\s+/g, ' ') || (ap.cat === 'wc' ? 'Toilettes publiques' : '');
+    const sub = ap.cat === 'wc'
+      ? ['Toilettes', ap.fee === 'yes' ? 'payantes' : ap.fee === 'no' ? 'gratuites' : '', $('ap-wheel').checked ? 'accessibles' : ''].filter(Boolean).join(' · ')
+      : ap.kind;
+    const [lat, lon] = ap.pos;
+    const twin = placesBase().find(x => x.cat === ap.cat && Core.haversine(lat, lon, x.lat, x.lon) < 0.025 && (ap.cat === 'wc' || PC.norm(x.name) === PC.norm(name)));
+    if (twin && !confirm(`« ${twin.name} » existe déjà à ${fmtDist(Core.haversine(lat, lon, twin.lat, twin.lon))}. L'ajouter quand même ?`)) return;
+    const rec = { id: uuid(), cat: ap.cat, name, sub, lat: +lat.toFixed(6), lon: +lon.toFixed(6), acc: ap.acc, phone: $('ap-phone').value.trim(), hours: ap.hours,
+      note: $('ap-note').value.trim(), fee: ap.cat === 'wc' ? ap.fee : null, wheelchair: ap.cat === 'wc' && $('ap-wheel').checked ? true : null, created: new Date().toISOString(), synced: false };
+    comm.mine.unshift(rec);
+    saveMine();
+    $('ap-save').disabled = true;
+    const res = await syncMine();
+    if (!sbOn()) toast('Lieu enregistré sur ce téléphone.', 'success');
+    else if (rec.synced) toast('Merci ! Le lieu est partagé avec tous les utilisateurs de ZUPA.', 'success', 5000);
+    else if (rec.err) toast('Lieu gardé sur ce téléphone, mais refusé par la base : ' + rec.err, 'error', 7000);
+    else toast('Lieu enregistré. Il sera partagé dès que vous aurez internet.', 'success', 5000);
+    py.cat = rec.cat; store.set('pyCat', py.cat);
+    live.dest = { kind: 'paiya', id: 'z' + rec.id, t: Date.now() }; store.set('liveDest', live.dest);
+    show(ap.back === 'screen-profile' ? 'screen-profile' : 'screen-paiya');
+  });
+  $('py-add').onclick = () => openAddPlace(py.cat, 'screen-paiya');
+  $('my-places-add').onclick = () => openAddPlace(py.cat, 'screen-profile');
+  function renderMyPlaces() {
+    const ul = $('my-places');
+    if (!comm.mine.length) { ul.innerHTML = '<li class="muted">Aucun lieu ajouté pour l\u2019instant.</li>'; return; }
+    ul.innerHTML = comm.mine.map(m => {
+      const st = m.synced ? '<em class="py-tag">partagé</em>' : m.err ? '<em class="py-tag bad">refusé</em>' : `<em class="py-tag wait">${sbOn() ? 'en attente' : 'sur ce téléphone'}</em>`;
+      return `<li style="--c:${PY_COLOR[m.cat]}">${ic(PY_ICON[m.cat])}<span>${esc(m.name)} ${st}<br><small class="muted">${esc(m.sub || '')}${m.err ? ' · ' + esc(m.err) : ''}</small></span><button class="btn ghost sm" data-del-place="${esc(m.id)}" aria-label="Supprimer ${esc(m.name)}">${ic('trash')}</button></li>`;
+    }).join('');
+  }
+  $('my-places').addEventListener('click', e => {
+    const b = e.target.closest('[data-del-place]');
+    if (b && confirm('Supprimer ce lieu ?')) deleteMine(b.dataset.delPlace);
+  });
 
   /* ---------- Navigation globale ---------- */
   document.querySelectorAll('[data-icon]').forEach(el => { el.outerHTML = ic(el.dataset.icon); });
@@ -2325,7 +2595,7 @@
     const map = {
       'screen-results': state.resBack || 'screen-home', 'screen-track': state.lastSearch ? 'screen-results' : 'screen-home',
       'screen-addstop': asBackTo === 'screen-addstop' ? 'screen-profile' : asBackTo, 'screen-fixpos': fpBack,
-      'screen-pharma-detail': ph.back || 'screen-pharma', 'screen-pharma': 'screen-home', 'screen-paiya': 'screen-home', 'screen-profile': 'screen-home'
+      'screen-pharma-detail': ph.back || 'screen-pharma', 'screen-addplace': ap.back || 'screen-paiya', 'screen-pharma': 'screen-home', 'screen-paiya': 'screen-home', 'screen-profile': 'screen-home'
     };
     const to = map[current];
     if (!to || to === current) return false;
@@ -2354,6 +2624,7 @@
   syncClear();
   renderHome();
   startGeo();
+  setTimeout(() => { syncMine(); fetchCommunity(false); }, 4000);
   renderPhTeaser();
   loadGardes();
 })();

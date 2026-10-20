@@ -243,6 +243,7 @@
         </div>
         <button class="btn ghost block" id="pd-gmaps"><span data-icon="walk"></span>Itinéraire à pied dans Google Maps</button>
         <div class="card pd-info" id="pd-info"></div>
+        <div class="pd-comm" id="pd-comm" hidden></div>
         <p class="foot-note" id="pd-note">Vérifiez par téléphone avant de vous déplacer : les informations proviennent d'OpenStreetMap et de la liste de garde publiée.</p>
       </div>
     </div>
@@ -272,6 +273,51 @@
     <button class="btn ghost block" id="py-more" hidden>Afficher plus</button>
     <div class="ad-slot">Espace publicitaire</div>
     <p class="foot-note" id="py-note"></p>
+    <div class="py-fab-wrap"><button class="py-fab" id="py-add" type="button"><span data-icon="plus"></span>Ajouter un lieu</button></div>
+  </section>
+
+  <!-- ================= AJOUTER UN LIEU (Paiya) ================= -->
+  <section class="screen py" id="screen-addplace" aria-label="Ajouter un lieu">
+    <div class="topbar">
+      <button class="icon-btn" id="ap-back" aria-label="Retour"></button>
+      <div class="topbar-text"><div class="title">Ajouter un lieu</div><div class="subtitle" id="ap-sub">Visible par tous les utilisateurs de ZUPA</div></div>
+    </div>
+    <div class="py-cats" id="ap-cats" role="radiogroup" aria-label="Catégorie"></div>
+    <div class="card ap-geo">
+      <div class="map-wrap ap-map-wrap">
+        <div class="map" id="ap-map"></div>
+        <svg class="center-pin" viewBox="0 0 24 34" width="30" height="43" aria-hidden="true"><path d="M12 0C5.4 0 0 5.3 0 11.9 0 20.6 12 34 12 34s12-13.4 12-22.1C24 5.3 18.6 0 12 0z" fill="var(--c)" stroke="rgba(0,0,0,.35)"/><circle cx="12" cy="12" r="4.3" fill="#fff"/></svg>
+      </div>
+      <div class="ap-state" id="ap-state" aria-live="polite"></div>
+      <div class="ap-geo-btns">
+        <button class="btn primary block" id="ap-locate" type="button"><span data-icon="locate"></span>Géolocaliser</button>
+        <button class="btn ghost block" id="ap-pin-ok" type="button" hidden><span data-icon="check"></span>Valider ce point</button>
+      </div>
+      <p class="ap-hint">Placez-vous à l'entrée du lieu, puis touchez « Géolocaliser » pour confirmer la position trouvée. Vous pouvez aussi déplacer la carte sous le repère.</p>
+    </div>
+    <form class="card form" id="ap-form" novalidate>
+      <label for="ap-name" id="ap-name-l">Nom</label>
+      <input class="input" id="ap-name" maxlength="80" autocomplete="off">
+      <label>Type</label>
+      <div class="ap-chips" id="ap-kind" role="radiogroup" aria-label="Type"></div>
+      <div id="ap-wc" hidden>
+        <label>Accès</label>
+        <div class="ap-chips" id="ap-fee" role="radiogroup" aria-label="Accès"><button type="button" data-v="no">Gratuites</button><button type="button" data-v="yes">Payantes</button></div>
+        <label class="ap-check"><input type="checkbox" id="ap-wheel"> Accessibles en fauteuil roulant</label>
+      </div>
+      <label>Horaires</label>
+      <div class="ap-chips" id="ap-hours" role="radiogroup" aria-label="Horaires"><button type="button" data-v="">Je ne sais pas</button><button type="button" data-v="24/7">24h/24</button><button type="button" data-v="range">Horaires</button></div>
+      <div class="ap-range" id="ap-range" hidden>
+        <label for="ap-open">Ouvre à</label><input class="input" type="time" id="ap-open" value="08:00">
+        <label for="ap-close">Ferme à</label><input class="input" type="time" id="ap-close" value="20:00">
+      </div>
+      <label for="ap-phone">Téléphone <small>(facultatif)</small></label>
+      <input class="input" id="ap-phone" type="tel" inputmode="tel" maxlength="20" autocomplete="off" placeholder="07 00 00 00 00">
+      <label for="ap-note">Remarque <small>(facultatif)</small></label>
+      <textarea class="input" id="ap-note" maxlength="200" rows="2" placeholder="ex. derrière la station, au 1er étage…"></textarea>
+      <button class="btn primary block ap-save" id="ap-save" type="submit">Enregistrer le lieu</button>
+      <p class="ap-why" id="ap-why"></p>
+    </form>
   </section>
 
   <!-- ================= PROFIL ================= -->
@@ -303,6 +349,12 @@
         <button class="btn ghost sm" id="import-stops">Importer</button>
         <input type="file" id="import-file" accept="application/json,.json" hidden>
       </div>
+    </div>
+    <div class="card">
+      <h3>Lieux ajoutés</h3>
+      <p class="muted" id="my-places-sub">Toilettes, restaurants, hôtels et commerces que vous avez ajoutés dans Paiya.</p>
+      <ul class="fav-list my-places" id="my-places"></ul>
+      <div class="btn-row"><button class="btn primary sm" id="my-places-add">Ajouter un lieu</button></div>
     </div>
     <div class="card">
       <h3>Apparence</h3>
