@@ -90,6 +90,7 @@ jobs:
             const on = /supabaseUrl: ["\x27]https:/.test(s) && !/supabaseKey: \x27\x27/.test(s);
             console.log("::notice title=Base partagée des lieux::" + (on ? "configurée : les lieux ajoutés sont partagés" : "non configurée : les lieux restent sur le téléphone (voir supabase/LISEZMOI.md)"));
           '
+          node scripts/supabase-check.mjs || true
 
       - name: Copier l'application web dans le projet Android
         run: npx cap sync android

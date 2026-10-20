@@ -8,8 +8,8 @@ window.ZUPA_CONFIG = {
   // Base partagée des lieux ajoutés par les utilisateurs (Supabase, voir supabase/LISEZMOI.md).
   // Laisser vide : les lieux restent sur le téléphone et seront envoyés dès que la base sera configurée.
   // Ces deux valeurs peuvent aussi être fournies par les secrets GitHub ZUPA_SUPABASE_URL et ZUPA_SUPABASE_KEY.
-  supabaseUrl: '',
-  supabaseKey: '',
+  supabaseUrl: 'https://nxayxkrrwpdhnqznjzhb.supabase.co',
+  supabaseKey: 'sb_publishable_L5_kBI28iwPKV0OD-JugBA_VevMSUXe', // clé publique : lecture et ajout seulement
   // Serveurs OpenStreetMap utilisés pour actualiser les pharmacies autour de l'utilisateur
   overpass: [
     'https://overpass-api.de/api/interpreter',
