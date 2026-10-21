@@ -1016,3 +1016,10 @@ button,a,[role="button"],input,label{touch-action:manipulation}
 .live-dir svg{transition:transform .18s linear!important}
 @media(prefers-reduced-motion:reduce){.btn,.qp,.chip,.py-row{transition:none}.btn:active,.qp:active{transform:none}}
 #screen-addline .btn.primary{background:var(--c);color:#fff}
+
+/* ---------- Filtre des moyens de transport (résultats) ---------- */
+.res-modes{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -16px 10px;padding:2px 16px 6px}
+.res-modes::-webkit-scrollbar{display:none}
+.res-mode{flex:none;display:inline-flex;align-items:center;gap:6px;padding:8px 13px;border-radius:999px;background:var(--surface-2);border:1.5px solid var(--border);font-weight:600;font-size:.84rem;color:var(--text-2);min-height:40px}
+.res-mode .ic{width:18px;height:18px}
+.res-mode.on{background:var(--brand);border-color:var(--brand);color:#fff}

@@ -23,6 +23,7 @@ const Core = (() => {
     ORIGIN_STOP_WALK_KM: 0.3
   };
   const GENERIC = new Set(['arret']);
+  const COLL = typeof Intl !== 'undefined' ? new Intl.Collator('fr', { sensitivity: 'base' }) : { compare: (a, b) => a < b ? -1 : a > b ? 1 : 0 }; // tri alphabétique rapide (un seul comparateur)
   const VEH = { bus: 'Bus', gbaka: 'Gbaka', woro: 'Wôrô-wôrô', saloni: 'Saloni' };
 
   const norm = s => String(s || '')
@@ -236,7 +237,7 @@ const Core = (() => {
     nbr.forEach(v => v.sort((p, q) => p.d - q.d));
 
     const stops = clusters.filter(c => !c.generic)
-      .sort((a, b) => a.label.localeCompare(b.label, 'fr', { sensitivity: 'base' }));
+      .sort((a, b) => COLL.compare(a.label, b.label));
 
     return { lines, stops, all: clusters, byId, occ, nbr, skipped, duplicates };
   }

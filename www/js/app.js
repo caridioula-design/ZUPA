@@ -117,6 +117,7 @@
     profile: loadProfile(),
     recents: (store.get('recents', []) || []).filter(id => D.byId.has(id)),
     recentPlaces: (store.get('recentPlaces', []) || []).filter(r => r && Number.isFinite(r.lat)),
+    mode: store.get('mode', 'all'),
     theme: store.get('theme', null) || (() => { try { return localStorage.getItem('themePreference') || 'auto'; } catch (_) { return 'auto'; } })()
   };
   let current = 'screen-home';
@@ -1413,7 +1414,7 @@
     if (btn) { btn.classList.add('loading'); btn.disabled = true; }
     setTimeout(() => {
       try {
-        const res = Core.findRoutes(D, origin, dest.place ? { lat: dest.lat, lon: dest.lon } : dest.id);
+        const res = Core.findRoutes(D, origin, dest.place ? { lat: dest.lat, lon: dest.lon } : dest.id, state.mode && state.mode !== 'all' ? { kinds: [state.mode] } : null);
         if (res.status === 'near') {
           toast(res.walkKm < 0.03 ? 'Vous êtes déjà à destination !' :
             `${dest.label} est à ${fmtDist(res.walkKm)} : environ ${fmtMin(Core.walkMin(res.walkKm * Core.CFG.DETOUR))} à pied.`, 'success', 5000);
@@ -1435,13 +1436,29 @@
   }
 
   /* ---------- Résultats ---------- */
+  // filtre par moyen de transport : tous, bus SOTRA, gbaka, wôrô-wôrô, saloni
+  const MODES = [['all', 'Tous', 'route'], ['bus', 'Bus', 'bus'], ['gbaka', 'Gbaka', 'gbaka'], ['woro', 'Wôrô-wôrô', 'taxi'], ['saloni', 'Saloni', 'saloni']];
+  function renderModes() {
+    const has = new Set(D.lines.map(l => l.kind));
+    $('res-modes').innerHTML = MODES.filter(([k]) => k === 'all' || has.has(k)).map(([k, l, i]) => `<button type="button" class="res-mode${(state.mode || 'all') === k ? ' on' : ''}" data-mode="${k}" role="tab" aria-selected="${(state.mode || 'all') === k}">${ic(i)}<span>${l}</span></button>`).join('');
+  }
+  $('res-list').addEventListener('click', e => { const b = e.target.closest('.empty [data-mode]'); if (b && state.lastSearch) { state.mode = 'all'; store.set('mode', 'all'); searchRoutes(state.lastSearch.origin, state.lastSearch.dest); } });
+  $('res-modes').addEventListener('click', e => {
+    const b = e.target.closest('[data-mode]'); if (!b || !state.lastSearch) return;
+    state.mode = b.dataset.mode; store.set('mode', state.mode);
+    const { origin, dest } = state.lastSearch;
+    searchRoutes(origin, dest);
+  });
   function renderResults() {
+    renderModes();
     const { origin, dest } = state.lastSearch;
     $('res-sub').innerHTML = `${esc(origin.label)} → <b>${esc(dest.label)}</b>`;
     updateFavToggle();
     const list = $('res-list');
     if (!state.routes.length) {
-      list.innerHTML = `<div class="empty">${ic('bus')}<p><b>Aucun itinéraire trouvé</b></p><p>Aucune ligne, même avec deux correspondances, ne relie ces arrêts dans nos données. Essayez un arrêt voisin.</p></div>`;
+      const mf = state.mode && state.mode !== 'all' ? MODES.find(m => m[0] === state.mode) : null;
+      list.innerHTML = mf ? `<div class="empty">${ic(mf[2])}<p><b>Aucun trajet en ${esc(mf[1].toLowerCase())}</b></p><p>Aucune ligne de ce type ne relie ces points dans nos données.</p><button class="btn ghost sm" data-mode="all">Voir tous les moyens</button></div>`
+        : `<div class="empty">${ic('bus')}<p><b>Aucun itinéraire trouvé</b></p><p>Aucune ligne, même avec deux correspondances, ne relie ces arrêts dans nos données. Essayez un arrêt voisin.</p></div>`;
       return;
     }
     let html = '', lastT = -1;
