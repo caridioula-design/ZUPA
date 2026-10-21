@@ -24,5 +24,7 @@ const psh = await call('/rest/v1/rpc/position_partager', { method: 'POST', body:
 out.push(psh.s === 404 ? 'POSITION NON INSTALLÉE : relancez supabase/amis.sql' : 'envoi de position OK');
 const pub = await call('/rest/v1/publications?select=id&limit=1');
 out.push(pub.s === 200 ? 'publications OK' : pub.s === 404 ? 'PUBLICATIONS NON INSTALLÉES : exécutez supabase/pubs.sql' : 'publications : ' + pub.s);
-const ok = pub.s === 200 && psh.s !== 404 && blq.s !== 404 && popu.s === 200 && read.s === 200 && dev.s >= 400 && bad.s === 400 && upd.s >= 400;
+const lig = await call('/rest/v1/lignes?select=id&limit=1');
+out.push(lig.s === 200 ? 'lignes gbaka/wôrô/saloni OK' : lig.s === 404 ? 'MISE À JOUR 2 NON INSTALLÉE : exécutez supabase/v2.sql' : 'lignes : ' + lig.s);
+const ok = lig.s === 200 && pub.s === 200 && psh.s !== 404 && blq.s !== 404 && popu.s === 200 && read.s === 200 && dev.s >= 400 && bad.s === 400 && upd.s >= 400;
 note(ok ? 'notice' : 'warning', out.join(' · '));

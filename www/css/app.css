@@ -949,3 +949,70 @@ body.dark .live.t-bus,body.dark .live.t-py{box-shadow:0 10px 26px rgba(0,0,0,.5)
 .live-step{flex:1;padding:13px!important;font-size:.95rem!important}
 .live-step:disabled{opacity:.5}
 @media(prefers-reduced-motion:reduce){.live-stops li.current .tl-dot{animation:none}.live-stops li::after{transition:none}}
+
+/* ---------- Catégories en ruban défilant (Paiya, ajout de lieu) ---------- */
+#py-cats,#ap-cats{display:flex;overflow-x:auto;gap:8px;margin:0 -16px 12px;padding:4px 16px 8px;scroll-snap-type:x proximity;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 12px,#000 calc(100% - 16px),transparent);mask-image:linear-gradient(90deg,transparent 0,#000 12px,#000 calc(100% - 16px),transparent)}
+#py-cats::-webkit-scrollbar,#ap-cats::-webkit-scrollbar{display:none}
+#py-cats .py-cat,#ap-cats .py-cat{flex:0 0 auto;min-width:86px;padding:10px 12px 9px;scroll-snap-align:start}
+.med-cats{grid-template-columns:repeat(4,1fr)}
+.med-cats .py-cat{font-size:.7rem}
+.med-fab{background:#0a6b43}
+
+/* ---------- Lignes gbaka / wôrô-wôrô / saloni ---------- */
+.lines-section .section-head h2{font-size:1.02rem}
+.lines-modes{display:flex;gap:8px;margin:2px 0 8px;flex-wrap:wrap}
+.lm{display:inline-flex;align-items:center;gap:6px;padding:6px 12px 6px 8px;border-radius:999px;background:color-mix(in srgb,var(--c) 12%,var(--surface));color:var(--c);font-weight:700;font-size:.8rem}
+body.dark .lm{color:color-mix(in srgb,var(--c) 55%,#fff)}
+.lm .ic{width:18px;height:18px}
+#lines-sub{font-size:.84rem}
+#screen-addline{--c:#0f766e}
+.al-types{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.al-type{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;border-radius:18px;background:var(--surface);box-shadow:var(--shadow);font-weight:700;font-size:.84rem;color:var(--text-2);transition:background-color .3s,color .3s,transform .3s cubic-bezier(.16,1,.3,1)}
+.al-type .ic{width:28px;height:28px;color:var(--c)}
+body.dark .al-type .ic{color:color-mix(in srgb,var(--c) 55%,#fff)}
+.al-type.on{background:var(--c);color:#fff;transform:translateY(-2px)}
+.al-type.on .ic{color:#fff}
+.al-map-wrap .map{height:240px}
+.al-near{margin:8px 0}
+.al-near-btn{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--c) 10%,var(--surface-2));font-size:.84rem}
+.al-near-btn .ic{width:18px;height:18px;color:var(--c);flex:none}
+.al-add{display:flex;gap:8px;margin:8px 0}
+.al-add .input{flex:1;min-width:0}
+.al-add .btn{background:var(--c);color:#fff}
+#al-gps{display:flex;align-items:center;justify-content:center;gap:8px}
+#al-gps .ic{width:18px;height:18px}
+#al-save{background:var(--c);color:#fff;margin-top:6px}
+#al-save:disabled{opacity:.45}
+.al-list{list-style:none;margin-top:12px;display:flex;flex-direction:column;gap:0;counter-reset:al}
+.al-list li{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+.al-list li:last-child{border-bottom:0}
+.al-n{flex:none;min-width:70px;font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--c)}
+body.dark .al-n{color:color-mix(in srgb,var(--c) 55%,#fff)}
+.al-list b{flex:1;min-width:0;font-weight:600;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.al-del{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:var(--text-3)}
+.al-del .ic{width:18px;height:18px}
+.al-mk span{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--c);color:#fff;font:700 .72rem var(--font);border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.walk.ride{color:#7c3aed}
+
+/* ---------- Pharmacie de garde (administrateur) ---------- */
+#gd-form .input{margin-top:8px}
+.gd-row{display:flex;gap:8px}
+.gd-row>*{flex:1;min-width:0}
+.gd-date{display:flex;flex-direction:column;font-size:.76rem;font-weight:600;color:var(--text-2);margin-top:8px}
+.gd-date .input{margin-top:4px!important}
+.gd-pos{font-size:.78rem;margin-top:6px}
+#gd-suggest{position:relative;top:4px;max-height:220px}
+
+/* ---------- Fluidité ---------- */
+html{-webkit-text-size-adjust:100%}
+button,a,[role="button"],input,label{touch-action:manipulation}
+.btn,.qp,.chip,.ph-call,.py-more-btn,.act-btn,.rc-group,.pos-msg,.share-friend,.al-type,.pop-card{transition:transform .14s cubic-bezier(.16,1,.3,1),background-color .2s,box-shadow .2s}
+.btn:active,.qp:active,.chip:active,.ph-call:active,.act-btn:active,.rc-group:active,.pos-msg:active,.pop-card:active{transform:scale(.97)}
+.py-row,.ph-row,.fav-list li{content-visibility:auto;contain-intrinsic-size:auto 68px}
+.py-row:active{transform:scale(.99)}
+.sheet{will-change:transform}
+.screen{overscroll-behavior-y:contain}
+.live{transition:border-radius .45s cubic-bezier(.16,1,.3,1),box-shadow .6s ease,background .5s ease}
+.live-dir svg{transition:transform .18s linear!important}
+@media(prefers-reduced-motion:reduce){.btn,.qp,.chip,.py-row{transition:none}.btn:active,.qp:active{transform:none}}
+#screen-addline .btn.primary{background:var(--c);color:#fff}

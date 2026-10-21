@@ -61,5 +61,5 @@ if (lieux.length >= 200) {
   writeFileSync(out('paiya.js'), `/* ZUPA — Paiya : hôtels, restaurants, toilettes, commerces du Grand Abidjan (© contributeurs OpenStreetMap, ODbL) */
 window.ZUPA_PAIYA = ${JSON.stringify({ updated: new Date().toISOString(), list: lieux })};
 `);
-  console.log(`::notice title=Paiya OSM::${lieux.length} lieux (hôtels ${n('hotel')}, restaurants ${n('resto')}, toilettes ${n('wc')}, commerces ${n('shop')})`);
+  console.log(`::notice title=Paiya OSM::${lieux.length} lieux (${Object.keys(PY.CATS).map(c => PY.CATS[c].label.toLowerCase() + ' ' + n(c)).join(', ')})`);
 } else console.log(`::warning title=Paiya OSM::${lieux.length} reçus : fichier conservé`);

@@ -9,8 +9,21 @@
   const RAW = (Array.isArray(window.ZUPA_BUS) ? window.ZUPA_BUS : []).filter(l => !l.kind || l.kind === 'bus');
   // Arrêts ajoutés par l'utilisateur (stockés sur l'appareil)
   let customStops = (() => { try { const v = JSON.parse(localStorage.getItem('zupa:customStops') || '[]'); return Array.isArray(v) ? v : []; } catch (_) { return []; } })();
-  let D = Core.build(RAW, customStops);
-  function rebuildNetwork() { D = Core.build(RAW, customStops); }
+  /* Lignes ajoutées par les utilisateurs (gbaka, wôrô-wôrô, saloni) : base partagée + celles de ce téléphone */
+  const LINE_TYPES = { gbaka: { label: 'Gbaka', icon: 'gbaka', color: '#0f766e' }, woro: { label: 'Wôrô-wôrô', icon: 'taxi', color: '#b45309' }, saloni: { label: 'Saloni', icon: 'saloni', color: '#7c3aed' } };
+  function extraLines() {
+    let rows = [], mine = [];
+    try { rows = (JSON.parse(localStorage.getItem('zupa:lignes') || 'null') || {}).rows || []; mine = JSON.parse(localStorage.getItem('zupa:myLines') || '[]') || []; } catch (_) {}
+    const m = new Map(); [...rows, ...mine].forEach(r => r && m.set(r.id, r));
+    const used = new Map();
+    return [...m.values()].filter(r => LINE_TYPES[r.type] && Array.isArray(r.arrets) && r.arrets.length >= 2).map(r => {
+      const a = r.arrets, g = String(r.gare).replace(/^gare\s+(routi[eè]re\s+)?(de\s+|d['’]\s*|du\s+)?/i, '').trim() || r.gare;
+      let ref = g.length > 14 ? g.slice(0, 13) + '…' : g; const k = r.type + ref; used.set(k, (used.get(k) || 0) + 1); if (used.get(k) > 1) ref += ' ' + used.get(k);
+      return { name: `${LINE_TYPES[r.type].label} ${ref}: ${a[0].name} → ${a[a.length - 1].name}`, kind: r.type, ref, cost: r.tarif || null, stops: a.map(x => ({ name: x.name, lat: +x.lat, lon: +x.lon })) };
+    });
+  }
+  let D = Core.build(RAW.concat(extraLines()), customStops);
+  function rebuildNetwork() { D = Core.build(RAW.concat(extraLines()), customStops); }
 
   /* ---------- Icônes ---------- */
   const ICONS = {
@@ -58,6 +71,17 @@
     groups: 'M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z',
     night: 'M12.34 2.02C6.59 1.82 2 6.42 2 12c0 5.52 4.48 10 10 10 3.71 0 6.93-2.02 8.66-5.02-7.51-.25-12.09-8.43-8.32-14.96z',
     chat: 'M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z',
+    bar: 'M21 5V3H3v2l8 9v5H6v2h12v-2h-5v-5l8-9zM7.43 7L5.66 5h12.69l-1.78 2H7.43z',
+    fuel: 'M19.77 7.23l.01-.01-3.72-3.72L15 4.56l2.11 2.11c-.94.36-1.61 1.26-1.61 2.33 0 1.38 1.12 2.5 2.5 2.5.36 0 .69-.08 1-.21v7.21c0 .55-.45 1-1 1s-1-.45-1-1V14c0-1.1-.9-2-2-2h-1V5c0-1.1-.9-2-2-2H6c-1.1 0-2 .9-2 2v16h10v-7.5h1.5v5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V9c0-.69-.28-1.32-.73-1.77zM12 10H6V5h6v5zm6 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z',
+    cart: 'M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1.003 1.003 0 0 0 20 4H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z',
+    market: 'M20 4H4v2h16V4zm1 10v-2l-1-5H4l-1 5v2h1v6h10v-6h4v6h2v-6h1zm-9 4H6v-4h6v4z',
+    worship: 'M4 10h3v7H4zm6.5 0h3v7h-3zM2 19h20v3H2zm15-9h3v7h-3zm-5-9L2 6v2h20V6z',
+    church: 'M18 12.22V9l-5-2.5V5h2V3h-2V1h-2v2H9v2h2v1.5L6 9v3.22L2 14v8h8v-3c0-1.1.9-2 2-2s2 .9 2 2v3h8v-8l-4-1.78zM12 13.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z',
+    mosque: 'M7 8h10c.29 0 .57.06.84.11C17.27 5.9 15.13 4 12 2 9.13 3.78 6.73 5.9 6.16 8.11 6.43 8.06 6.71 8 7 8zM24 7c0-1.1-2-3-2-3s-2 1.9-2 3c0 .74.4 1.38 1 1.72V13h-2v-2c0-1.1-.9-2-2-2H7c-1.1 0-2 .9-2 2v2H3V8.72c.6-.34 1-.98 1-1.72 0-1.1-2-3-2-3S0 5.9 0 7c0 .74.4 1.38 1 1.72V21h9v-4c0-1.1.9-2 2-2s2 .9 2 2v4h9V8.72c.6-.34 1-.98 1-1.72z',
+    clinic: 'M10 4h4v2h2V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2h2V4zm10 4H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-4 8h-3v3h-2v-3H8v-2h3v-3h2v3h3v2z',
+    gbaka: 'M17 5H3c-1.1 0-2 .89-2 2v9h2c0 1.65 1.34 3 3 3s3-1.35 3-3h5.5c0 1.65 1.34 3 3 3s3-1.35 3-3H23v-5l-6-6zM3 11V7h4v4H3zm3 6.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM13 11H9V7h4v4zm4.5 6.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM15 11V7h1l4 4h-5z',
+    taxi: 'M18.92 6.01C18.72 5.42 18.16 5 17.5 5H15V3H9v2H6.5c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z',
+    saloni: 'M19 7c0-1.1-.9-2-2-2h-3v2h3v2.65L13.52 14H10V9H6c-2.21 0-4 1.79-4 4v3h2c0 1.66 1.34 3 3 3s3-1.34 3-3h4.48L19 10.35V7zM7 17c-.55 0-1-.45-1-1h2c0 .55-.45 1-1 1zM5 6h5v2H5zm14 7c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3zm0 4c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z',
     clock: 'M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z'
   };
   const ic = n => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONS[n]}"/></svg>`;
@@ -160,7 +184,7 @@
       s.classList.toggle('active', a);
       s.setAttribute('aria-hidden', String(!a));
     });
-    const tab = { 'screen-results': 'screen-home', 'screen-addstop': 'screen-home', 'screen-fixpos': 'screen-home', 'screen-addplace': 'screen-paiya', 'screen-pharma-detail': (typeof ph !== 'undefined' && ph.kind === 'paiya') ? 'screen-paiya' : 'screen-pharma' }[id] || id;
+    const tab = { 'screen-results': 'screen-home', 'screen-addstop': 'screen-home', 'screen-fixpos': 'screen-home', 'screen-addplace': 'screen-paiya', 'screen-addline': 'screen-home', 'screen-pharma-detail': (typeof ph !== 'undefined' && ph.kind === 'paiya') ? 'screen-paiya' : 'screen-pharma' }[id] || id;
     document.querySelectorAll('[data-nav]').forEach(b => b.classList.toggle('active', b.dataset.nav === tab));
     $(id).scrollTop = 0;
     if (prev !== id) document.querySelectorAll('#toasts .toast.error').forEach(t => t.remove()); // une erreur ne suit pas l'utilisateur sur un autre écran
@@ -176,6 +200,7 @@
       if (id === 'screen-addstop') { ensureAsMap(); if (prev !== id) asSnap = snapDraft(); }
       if (id === 'screen-fixpos') ensureFpMap();
       if (id === 'screen-addplace') ensureApMap();
+      if (id === 'screen-addline') ensureAlMap();
       if (id === 'screen-pharma') renderPharma();
       if (id === 'screen-paiya') renderPaiya();
       renderLive();
@@ -374,13 +399,20 @@
 
   /* ---------- Orientation (cap) de l'utilisateur ----------
      En marche : boussole du téléphone. En véhicule (vitesse > 1,2 m/s) : direction donnée par le GPS. */
-  const nav = { heading: null, gpsT: 0, raf: 0 };
+  const nav = { heading: null, gpsT: 0, compT: 0, raf: 0, anchor: null };
   const headingMarkers = new Set();
   function setHeading(h, src) {
     if (!Number.isFinite(h)) return;
+    if (src === 'compass') nav.compT = Date.now();
     if (src === 'compass' && Date.now() - nav.gpsT < 4000) return; // le GPS prime quand on roule
+    if (src === 'move' && Date.now() - nav.compT < 3000) return;   // la boussole prime à pied si elle existe
     if (nav.heading == null) nav.heading = (h + 360) % 360;
-    else { const d = ((h - nav.heading + 540) % 360) - 180; if (Math.abs(d) < 1) return; nav.heading = (nav.heading + d * (src === 'gps' ? 0.6 : 0.25) + 360) % 360; }
+    else {
+      const d = ((h - nav.heading + 540) % 360) - 180; if (Math.abs(d) < 0.5) return;
+      // lissage léger : réactif sans trembler (plus fort quand l'écart est grand)
+      const k = src === 'compass' ? (Math.abs(d) > 30 ? 0.7 : 0.45) : src === 'gps' ? 0.85 : 0.75;
+      nav.heading = (nav.heading + d * k + 360) % 360;
+    }
     if (!nav.raf) nav.raf = requestAnimationFrame(() => { nav.raf = 0; applyHeading(); });
   }
   function onOrientation(e) {
@@ -391,8 +423,19 @@
     const ang = (screen.orientation && screen.orientation.angle) || window.orientation || 0;
     setHeading((h + ang) % 360, 'compass');
   }
-  if ('ondeviceorientationabsolute' in window) window.addEventListener('deviceorientationabsolute', onOrientation);
-  else window.addEventListener('deviceorientation', onOrientation);
+  // boussole absolue si elle existe ; sinon orientation simple ; sinon le sens de la marche (positions GPS successives)
+  let gotAbs = false;
+  if ('ondeviceorientationabsolute' in window) window.addEventListener('deviceorientationabsolute', e => { gotAbs = true; onOrientation(e); });
+  window.addEventListener('deviceorientation', e => { if (!gotAbs && (typeof e.webkitCompassHeading === 'number' || e.absolute === true)) onOrientation(e); });
+  // sans boussole ni gyroscope : cap déduit du déplacement (dès 4 m parcourus, GPS précis)
+  function headingFromMove(lat, lon, acc) {
+    if (!(acc <= 30)) return;
+    const a = nav.anchor;
+    if (!a) { nav.anchor = [lat, lon]; return; }
+    const dm = Core.haversine(a[0], a[1], lat, lon) * 1000;
+    if (dm >= Math.max(4, acc * 0.6)) { setHeading(bearing(a, [lat, lon]), 'move'); nav.anchor = [lat, lon]; }
+    else if (dm > 60) nav.anchor = [lat, lon];
+  }
   function updateHeadingMarkers() {
     headingMarkers.forEach(mk => {
       const el = mk.getElement && mk.getElement(); if (!el) return;
@@ -692,6 +735,7 @@
      Elle verdit à l'approche (500 m -> 30 m) et clignote en vert à l'arrêt. Un appui l'agrandit. */
   const live = { open: false, shown: null, raf: 0, key: '', dest: store.get('liveDest', null) };
   const CARD = ['le nord', 'le nord-est', "l'est", 'le sud-est', 'le sud', 'le sud-ouest', "l'ouest", 'le nord-ouest'];
+  const CARD16 = ['le nord', 'le nord-nord-est', 'le nord-est', "l'est-nord-est", "l'est", "l'est-sud-est", 'le sud-est', 'le sud-sud-est', 'le sud', 'le sud-sud-ouest', 'le sud-ouest', "l'ouest-sud-ouest", "l'ouest", "l'ouest-nord-ouest", 'le nord-ouest', 'le nord-nord-ouest'];
   const LIVE_HOST = { 'screen-home': ['loc-chip', 'before'], 'screen-pharma': ['ph-filter', 'after'], 'screen-paiya': ['py-cats', 'after'], 'screen-track': ['trk-live-slot', 'in'] };
   function placeLive(id) { // la même bulle passe d'un onglet à l'autre
     const h = LIVE_HOST[id], box = $('live');
@@ -718,13 +762,14 @@
     const d = live.dest && live.dest.kind === kind && Date.now() - live.dest.t < DEST_TTL ? live.dest : null;
     if (kind === 'pharma') {
       const list = allPharmacies().filter(p => p.d != null && !p.approx).sort((a, b) => a.d - b.d);
-      const sel = d && list.find(p => p.id === d.id);
+      let sel = d && list.find(p => p.id === d.id);
+      if (!sel && d) { const c = clinics().find(x => x.id === d.id); if (c && c.d != null) sel = c; }
       const g = list.find(p => p.garde), o = list.find(p => p.st === 'open');
       const p = sel || g || o || list[0];
       if (!p) return null;
-      return { kind, p, icon: 'cross', color: '#10b981', dest: !!sel, far: FAR_KM, at: 0.04,
+      return { kind, p, icon: p.cat === 'sante' ? 'clinic' : 'cross', color: '#10b981', dest: !!sel, far: FAR_KM, at: 0.04,
         kicker: sel ? 'Votre destination' : p === g ? 'De garde, la plus proche' : p === o ? 'Ouverte, la plus proche' : 'La plus proche',
-        tags: `<span class="st ${p.st}">${esc(statusLabel(p, true))}</span>` };
+        tags: p.cat === 'sante' ? `<span class="live-sub">${esc(p.sub || 'Clinique')}</span>` : `<span class="st ${p.st}">${esc(statusLabel(p, true))}</span>` };
     }
     let p = null;
     if (d) { const p0 = placesBase().find(x => x.id === d.id); if (p0) p = withStatus(p0); }
@@ -739,8 +784,8 @@
       if (!best) return null;
       p = withStatus(best);
     }
-    const one = { hotel: 'Hôtel le plus proche', resto: 'Restaurant le plus proche', wc: 'Toilettes les plus proches', shop: 'Commerce le plus proche' }[p.cat];
-    return { kind, p, icon: PY_ICON[p.cat], color: PY_COLOR[p.cat], dest: sel, far: FAR_KM, at: 0.04,
+    const one = { hotel: 'Hôtel le plus proche', resto: 'Restaurant le plus proche', wc: 'Toilettes les plus proches', shop: 'Commerce le plus proche', maquis: 'Maquis le plus proche', station: 'Station la plus proche', supermarche: 'Supermarché le plus proche', marche: 'Marché le plus proche', culte: 'Lieu de culte le plus proche' }[p.cat] || 'Le plus proche';
+    return { kind, p, icon: placeIcon(p), color: PY_COLOR[p.cat], dest: sel, far: FAR_KM, at: 0.04,
       kicker: sel ? 'Votre destination' : one,
       tags: `<span class="live-sub">${esc(p.sub || '')}</span>${p.hours ? `<span class="st ${p.st}">${esc(pyStatus(p, true))}</span>` : ''}` };
   }
@@ -814,7 +859,8 @@
       : `~${fmtMin(walk)} à pied`;
     $('live-dir-txt').parentNode.hidden = at;
     updateLiveDir(tg);
-    $('live-lines').innerHTML = tg.tags || (tg.stop ? linesHtml(tg.stop) : tg.line ? lineBadge(tg.line, true) : '');
+    const lh = tg.tags || (tg.stop ? linesHtml(tg.stop) : tg.line ? lineBadge(tg.line, true) : '');
+    if (live.linesHtml !== lh) { live.linesHtml = lh; $('live-lines').innerHTML = lh; } // pas de réécriture inutile à chaque mesure GPS
     $('live-act').textContent = tg.kind ? (tg.p.phone ? 'Itinéraire et appel' : 'Itinéraire') : tg.act === 'track' ? 'Ouvrir le suivi du trajet' : 'Partir de cet arrêt';
     $('live-clear').hidden = !tg.dest;
     $('live-act').hidden = current === 'screen-track'; // déjà sur le suivi : pas de bouton inutile
@@ -830,10 +876,16 @@
     let rot = b, txt;
     if (nav.heading != null) {
       rot = (b - nav.heading + 360) % 360;
-      txt = rot < 25 || rot > 335 ? 'Droit devant' : rot < 155 ? 'Sur votre droite' : rot <= 205 ? 'Derrière vous' : 'Sur votre gauche';
-    } else txt = 'Vers ' + CARD[Math.round(b / 45) % 8];
-    $('live-arrow').style.transform = `rotate(${rot.toFixed(0)}deg)`;
-    $('live-dir-txt').textContent = txt;
+      const hr = Math.round(rot / 30) % 12 || 12; // position sur un cadran : 12 h = devant
+      const side = rot < 180 ? 'droite' : 'gauche', a = rot < 180 ? rot : 360 - rot;
+      txt = a < 12 ? 'Tout droit' : a < 40 ? `Légèrement à ${side}` : a < 75 ? `À ${side}, en biais` : a < 115 ? `À ${side}` : a < 160 ? `Derrière vous, à ${side}` : 'Faites demi-tour';
+      txt += ` · ${hr} h`;
+    } else txt = `Vers ${CARD16[Math.round(b / 22.5) % 16]} · ${Math.round(b)}°`;
+    // angle continu : la flèche tourne toujours par le plus court chemin, sans faire de tour complet
+    const prev = live.arrow == null ? rot : live.arrow, dd = ((rot - (prev % 360) + 540) % 360) - 180;
+    live.arrow = prev + dd;
+    $('live-arrow').style.transform = `rotate(${live.arrow.toFixed(1)}deg)`;
+    if ($('live-dir-txt').textContent !== txt) $('live-dir-txt').textContent = txt;
   }
   $('live-pill').addEventListener('click', () => {
     setTimeout(() => marquee($('live-name')), 480);
@@ -979,7 +1031,8 @@
   const renderBoardSoon = debounce(() => { if (current === 'screen-home') renderBoard(); if (typeof renderPhTeaser === 'function') { renderPhTeaser(); if (current === 'screen-pharma') renderPharma(); refreshLive(false); } }, 600);
   function onPos(p) {
     const c = p.coords;
-    if (c.heading != null && Number.isFinite(c.heading) && (c.speed || 0) > 1.2) { nav.gpsT = Date.now(); setHeading(c.heading, 'gps'); }
+    if (c.heading != null && Number.isFinite(c.heading) && (c.speed || 0) > 0.7) { nav.gpsT = Date.now(); setHeading(c.heading, 'gps'); }
+    else headingFromMove(c.latitude, c.longitude, c.accuracy);
     if (!Number.isFinite(c.latitude) || !Number.isFinite(c.longitude)) return;
     bestSeen = Math.min(bestSeen, c.accuracy || 9999);
     if (bestSeen <= 100) stopLowWatch();
@@ -1367,7 +1420,7 @@
           return;
         }
         if (res.status === 'noStops') { toast('Aucun arrêt de bus à moins de 2 km de votre point de départ.', 'error', 5000); return; }
-        if (res.status === 'noDestStops') { toast(`Aucun arrêt de bus à moins de 800 m de ${dest.label}.`, 'error', 5000); return; }
+        if (res.status === 'noDestStops') { toast(`Aucun arrêt à moins de 6 km de ${dest.label}. Prenez un taxi ou un saloni.`, 'error', 5000); return; }
         state.lastSearch = { origin, dest, res };
         state.routes = res.routes; state.selected = 0;
         if (dest.id) addRecent(dest.id); else if (dest.place && current === 'screen-home' && !priv.some(r => r.name === dest.label)) addRecentPlace(dest);
@@ -1411,11 +1464,11 @@
     const chain = [];
     if (r.walkStartKm > 0.02) chain.push(`<span class="walk">${ic('walk')}<small>${fmtDist(r.walkStartKm)}</small></span>`);
     r.legs.forEach(l => { if (chain.length) chain.push('<span class="chev">›</span>'); chain.push(lineBadge(l.line.num)); });
-    if (r.walkEndKm > 0.02) chain.push(`<span class="chev">›</span><span class="walk">${ic('walk')}<small>${fmtDist(r.walkEndKm)}</small></span>`);
+    if (r.walkEndKm > 0.02) chain.push(`<span class="chev">›</span><span class="walk${r.endRide ? ' ride' : ''}">${ic(r.endRide ? 'saloni' : 'walk')}<small>${fmtDist(r.walkEndKm)}</small></span>`);
     const steps = r.legs.map((l, k) => {
       const n = l.to - l.from;
       return `<li><span class="lg-dot" style="--c:${lineColor(l.line.num)}"></span><div><b>${k === 0 ? 'Montez' : 'Correspondance'} à ${esc(l.board.name)}</b>${l.walkBeforeKm > 0.02 ? ` <small>(${fmtDist(l.walkBeforeKm)} à pied)</small>` : ''}<br><small>${l.line.veh} ${esc(l.line.num)} direction ${esc(direction(l.line))} · ${n} arrêt${n > 1 ? 's' : ''}</small></div></li>`;
-    }).join('') + `<li><span class="lg-dot end"></span><div><b>Descendez à ${esc(r.legs[r.legs.length - 1].alight.name)}</b>${r.walkEndKm > 0.02 ? ` <small>puis ${fmtDist(r.walkEndKm)} à pied</small>` : ''}</div></li>`;
+    }).join('') + `<li><span class="lg-dot end"></span><div><b>Descendez à ${esc(r.legs[r.legs.length - 1].alight.name)}</b>${r.walkEndKm > 0.02 ? (r.endRide ? ` <small>puis ${fmtDist(r.walkEndKm)} en saloni, taxi ou gbaka (~${fmtMin(Core.endMin(r.walkEndKm))}) — ou ~${fmtMin(Core.walkMin(r.walkEndKm))} à pied</small>` : ` <small>puis ${fmtDist(r.walkEndKm)} à pied</small>`) : ''}</div></li>`;
     return `<article class="route-card${i === state.selected ? ' selected' : ''}" data-i="${i}" tabindex="0" aria-label="Itinéraire ${i + 1}, ${fmtMin(r.totalMin)}">
       <div class="rc-top"><div class="chain">${chain.join('')}</div><div class="rc-time"><b>${fmtMin(r.totalMin)}</b><small>estimé</small></div></div>
       <ul class="rc-steps">${steps}</ul>
@@ -1754,7 +1807,7 @@
       : `<li class="muted">Aucun favori pour l'instant (${FAV_LIMIT} maximum).</li>`;
     renderCustomList();
     renderMyPlaces();
-    renderFriends(); renderPrivList(); renderGroups();
+    renderFriends(); renderPrivList(); renderGroups(); renderMyLines();
     frRefresh(true);
     // les lieux reçus affichés sont considérés comme vus
     setTimeout(() => { if (current === 'screen-profile' && fr.recus.some(r => !r.lu)) { fr.recus.forEach(r => { if (!r.lu) { r.lu = true; rpc('lieu_recu_maj', { p_id: r.id }); } }); store.set('recus', fr.recus); syncBadge(); renderFriends(); } }, 4000);
@@ -2077,7 +2130,7 @@
     gardes: store.get('gardes', null),          // dernière liste de garde connue
     filter: store.get('phFilter', null),
     q: '', shown: 20, sel: null, back: 'screen-pharma', loading: false, lastLiveTry: 0,
-    checkedAt: store.get('gardesChecked', 0), checking: false, checkFailed: false
+    checkedAt: store.get('gardesChecked', 0), checking: false, checkFailed: false, manual: store.get('gardesManuelles', [])
   };
   const isNative = () => !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
   function openExternal(url) { if (isNative()) location.href = url; else window.open(url, '_blank', 'noopener'); }
@@ -2086,13 +2139,29 @@
     const d = String(t).replace(/[^\d+]/g, '').replace(/^\+?225/, '');
     return d.length === 10 ? d.replace(/(\d{2})(?=\d)/g, '$1 ').trim() : t;
   };
-  const gardeOn = () => PC.gardeState(ph.gardes) === 'current';
+  // liste de garde officielle + pharmacies de garde ajoutées par l'administrateur (actives aujourd'hui)
+  const manualToday = () => { const t = PC.dayStr(new Date()); return (ph.manual || []).filter(m => m.du <= t && t <= m.au); };
+  const gardeOn = () => PC.gardeState(ph.gardes) === 'current' || manualToday().length > 0;
+  function effGardes() {
+    const man = manualToday().map(m => ({ nom: m.nom, commune: m.commune || null, adresse: m.adresse || null, tel: m.tel || null, tels: m.tel ? [m.tel] : [], lat: m.lat ?? undefined, lon: m.lon ?? undefined, manuel: true }));
+    const off = PC.gardeState(ph.gardes) === 'current' ? PC.pickWeek(ph.gardes) : null;
+    if (!off && !man.length) return null;
+    const t = PC.dayStr(new Date());
+    return { du: off ? off.du : t, au: off ? off.au : t, source: off ? off.source : 'ZUPA', pharmacies: [...(off ? off.pharmacies : []), ...man] };
+  }
   const week = () => PC.pickWeek(ph.gardes);
   const fmtDay = s => { const d = new Date(s + 'T12:00:00'); return isNaN(d) ? s : d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }); };
 
+  // pharmacies ajoutées par les utilisateurs (base partagée) et cliniques (OpenStreetMap + ajouts)
+  function commPharmacies() {
+    const rows = [...((comm.list && comm.list.rows) || []), ...comm.mine].filter(r => r.cat === 'pharma');
+    const m = new Map(); rows.forEach(r => m.set(r.id, { id: 'z' + r.id, name: r.name, lat: r.lat, lon: r.lon, phone: r.phone || null, hours: r.hours || null, commune: null, street: null, community: true }));
+    return [...m.values()];
+  }
+  const clinics = () => placesBase().filter(p => p.cat === 'sante').map(withStatus);
   function allPharmacies() {
-    const base = PC.mergeLists(PH_EMBED, ph.cache && ph.cache.list);
-    const list = PC.applyGardes(base, gardeOn() ? ph.gardes : null);
+    const base = PC.mergeLists(PC.mergeLists(PH_EMBED, ph.cache && ph.cache.list), commPharmacies());
+    const list = PC.applyGardes(base, effGardes());
     const now = new Date();
     list.forEach(p => {
       p.d = state.pos && Number.isFinite(p.lat) ? Core.haversine(state.pos[0], state.pos[1], p.lat, p.lon) : null;
@@ -2136,6 +2205,10 @@
       cands.push(online);
     }
     ph.checking = false;
+    if (sbOn()) { // pharmacies de garde ajoutées par l'administrateur
+      const r = await sb('/rest/v1/gardes_manuelles?select=id,nom,commune,adresse,tel,lat,lon,du,au&order=du.desc&limit=200');
+      if (r.ok && Array.isArray(r.data)) { ph.manual = r.data; store.set('gardesManuelles', ph.manual); }
+    }
     const valid = cands.filter(g => { const w = PC.pickWeek(g); return w && w.du && w.au && Array.isArray(w.pharmacies) && w.pharmacies.length; });
     const rank = g => { const w = PC.pickWeek(g); return (PC.gardeState(g) === 'current' ? '2' : PC.gardeState(g) === 'future' ? '1' : '0') + w.au + (g.maj || ''); };
     const best = valid.sort((a, b) => rank(b).localeCompare(rank(a)))[0] || null;
@@ -2180,8 +2253,8 @@
   }
 
   function phFiltered() {
-    let list = allPharmacies();
     const f = ph.filter || 'all';
+    let list = f === 'clinic' ? clinics() : allPharmacies();
     if (f === 'garde') list = list.filter(p => p.garde);
     else if (f === 'open') list = list.filter(p => p.st === 'garde' || p.st === 'open');
     const q = Core.key(ph.q);
@@ -2224,7 +2297,8 @@
     if (stt === 'current') {
       el.className = 'garde-banner';
       const nInt = g.pharmacies.filter(p => p.interieur).length, villes = new Set(g.pharmacies.filter(p => p.interieur).map(p => p.commune)).size;
-      const detail = nInt ? `${g.pharmacies.length - nInt} à Abidjan · ${nInt} dans ${villes} villes de l'intérieur` : `${g.pharmacies.length} pharmacies`;
+      const nMan = manualToday().length;
+      const detail = (nInt ? `${g.pharmacies.length - nInt} à Abidjan · ${nInt} dans ${villes} villes de l'intérieur` : `${g.pharmacies.length} pharmacies`) + (nMan ? ` · ${nMan} ajoutée${nMan > 1 ? 's' : ''} par ZUPA` : '');
       const open = !!store.get('gardeOpen', false);
       el.className = 'garde-banner fold' + (open ? ' open' : '');
       el.innerHTML = `<button type="button" class="gb-head" aria-expanded="${open}">${ic('cross')}<span class="gb-title"><b>De garde</b> du ${esc(fmtDay(g.du))} au ${esc(fmtDay(g.au))}</span><span class="fresh ok${ph.checking ? ' checking' : ''}"><i></i>À jour</span>${ic('chevron')}</button><div class="gb-body"><div><small>${detail} · source : UNPPCI</small>${freshLine(stt)}</div></div>`;
@@ -2245,7 +2319,7 @@
       : (p.d != null && !p.approx ? `<small>${fmtMin(Core.walkMin(p.d * Core.CFG.DETOUR))} à pied</small>` : '');
     const tel = p.phone || (p.garde && p.garde.tels && p.garde.tels[0]);
     return `<div class="py-row ph-row${p.st === 'garde' ? ' garde' : ''}${fol ? ' following' : ''}" data-ph="${esc(p.id)}" role="button" tabindex="0" aria-pressed="${fol}">
-      <span class="py-ic">${ic('cross')}</span>
+      <span class="py-ic">${ic(p.cat === 'sante' ? 'clinic' : 'cross')}</span>
       <span class="py-main"><b>${fol ? `<span class="mq-host"><span class="mq-in">${esc(p.name)}</span></span>` : `<span>${esc(p.name)}</span>`}</b><small>${esc(meta)}</small></span>
       <span class="py-d">${p.d != null ? `<b>${p.approx ? '≈ ' : ''}${fmtDist(p.d)}</b>` : ''}${st}</span>
       ${tel ? `<a class="ph-call" href="${esc(telHref(tel))}" data-ph-call aria-label="Appeler ${esc(p.name)}">${ic('phone')}</a>` : '<span class="ph-call off" aria-hidden="true"></span>'}
@@ -2269,13 +2343,14 @@
     $('ph-n-garde').textContent = all.filter(p => p.garde).length || '';
     $('ph-n-open').textContent = all.filter(p => p.st === 'garde' || p.st === 'open').length || '';
     $('ph-n-all').textContent = all.length;
+    $('ph-n-clinic').textContent = placesBase().filter(p => p.cat === 'sante').length || '';
     const t = phTitle(), tEl = $('ph-title');
     if (tEl.textContent !== t) { tEl.textContent = t; tEl.classList.remove('swap'); void tEl.offsetWidth; tEl.classList.add('swap'); }
     const ng = near.filter(p => p.garde).length, closest = near.filter(p => p.garde).sort((a, b) => a.d - b.d)[0];
     $('ph-pulse').textContent = !state.pos ? 'Activez la localisation pour voir les pharmacies autour de vous.'
       : ng ? `${ng} de garde à moins de 3 km · la plus proche à ${fmtDist(closest.d)}`
       : gardeOn() ? 'Aucune pharmacie de garde à moins de 3 km' : `${near.length} pharmacies à moins de 3 km`;
-    $('ph-list-h').textContent = f === 'garde' ? 'De garde autour de vous' : f === 'open' ? 'Ouvertes maintenant' : 'Autour de vous';
+    $('ph-list-h').textContent = f === 'garde' ? 'De garde autour de vous' : f === 'open' ? 'Ouvertes maintenant' : f === 'clinic' ? 'Cliniques et centres de santé' : 'Autour de vous';
     $('ph-sub').textContent = state.pos ? (state.placeName || '') : 'triées par nom';
     const list = phFiltered();
     if (!list.length) {
@@ -2296,6 +2371,7 @@
   }
 
   function renderPhTeaser() {
+    if ($('ph-teaser').hidden) return; // retiré de l'onglet Go
     const list = allPharmacies().filter(p => p.d != null).sort((a, b) => a.d - b.d);
     const g = list.find(p => p.garde), o = list.find(p => p.st === 'open'), n = list[0];
     const p = g || o || n;
@@ -2304,6 +2380,79 @@
     $('ph-teaser-meta').textContent = p ? `${p.approx ? '≈ ' : ''}${fmtDist(p.d)}${p.approx ? ' (centre-ville)' : ''} · ${statusLabel(p, true)}` : '';
     $('ph-teaser').dataset.ph = p ? p.id : '';
   }
+
+  /* ---------- « + Ajouter » de l'onglet Pharmacies ---------- */
+  $('ph-add').onclick = () => openActions({ title: 'Ajouter', sub: 'Pharmacies et santé', actions: [
+    { icon: 'cross', label: 'Une pharmacie', hint: 'Visible par tous, comme les autres lieux ajoutés.', fn: () => openAddPlace('pharma', 'screen-pharma', { group: 'health' }) },
+    { icon: 'clinic', label: 'Une clinique ou un centre de santé', fn: () => openAddPlace('sante', 'screen-pharma', { group: 'health' }) },
+    { icon: 'lock', label: 'Une pharmacie de garde', hint: 'Réservé à l\u2019administrateur (code secret).', fn: openGarde }] });
+
+  /* ---------- Pharmacies de garde ajoutées à la main (administrateur) ---------- */
+  const gd = { pick: null, code: store.get('adminCode', '') };
+  function openGarde() {
+    if (!sbOn()) { toast('La base en ligne n\u2019est pas configurée.', 'error'); return; }
+    $('gd-login').hidden = !!gd.code; $('gd-main').hidden = !gd.code;
+    if (gd.code) prepGarde();
+    const sh = $('gd-sheet'); sh.hidden = false; requestAnimationFrame(() => sh.classList.add('open'));
+  }
+  function closeGarde() { const sh = $('gd-sheet'); sh.classList.remove('open'); setTimeout(() => { sh.hidden = true; }, 250); }
+  function prepGarde() {
+    const w = PC.gardeState(ph.gardes) === 'current' ? PC.pickWeek(ph.gardes) : null, t = PC.dayStr(new Date());
+    $('gd-du').value = w ? w.du : t;
+    $('gd-au').value = w ? w.au : PC.dayStr(new Date(Date.now() + 6 * 864e5));
+    gd.pick = null; ['gd-name', 'gd-commune', 'gd-tel', 'gd-adresse'].forEach(i => { $(i).value = ''; });
+    $('gd-pos').textContent = '';
+    renderGardeList();
+  }
+  function renderGardeList() {
+    const l = ph.manual || [];
+    $('gd-list-h').hidden = !l.length;
+    $('gd-list').innerHTML = l.map(m => `<li>${ic('cross')}<span>${esc(m.nom)}<br><small class="muted">${esc([m.commune, `du ${fmtDay(m.du)} au ${fmtDay(m.au)}`].filter(Boolean).join(' · '))}</small></span><button class="btn ghost sm" type="button" data-gd-del="${esc(m.id)}" aria-label="Retirer">${ic('trash')}</button></li>`).join('');
+  }
+  $('gd-sheet').addEventListener('click', async e => {
+    if (e.target.closest('[data-gd-close]')) { closeGarde(); return; }
+    const d = e.target.closest('[data-gd-del]');
+    if (d && confirm('Retirer cette pharmacie de la liste de garde ?')) {
+      const r = await sb('/rest/v1/rpc/garde_supprimer', { method: 'POST', body: { p_code: gd.code, p_id: d.dataset.gdDel } });
+      if (!r.ok) { toast('Suppression impossible : ' + (r.net ? 'pas de connexion.' : sbErr(r)), 'error'); return; }
+      ph.manual = ph.manual.filter(m => m.id !== d.dataset.gdDel); store.set('gardesManuelles', ph.manual); renderGardeList(); refreshPharmaViews();
+    }
+    const sg = e.target.closest('[data-gd-pick]');
+    if (sg) {
+      const p = allPharmacies().find(x => x.id === sg.dataset.gdPick); if (!p) return;
+      gd.pick = p; $('gd-name').value = p.name; $('gd-commune').value = p.commune || ''; $('gd-tel').value = p.phone || ''; $('gd-adresse').value = p.street || '';
+      $('gd-suggest').hidden = true;
+      $('gd-pos').textContent = Number.isFinite(p.lat) ? 'Position : celle de la pharmacie choisie.' : '';
+    }
+  });
+  $('gd-login-btn').onclick = async () => {
+    const c = $('gd-code').value.trim(); if (c.length < 8) { toast('Code trop court.', 'error'); return; }
+    const r = await sb('/rest/v1/rpc/admin_ok', { method: 'POST', body: { p_code: c } });
+    if (r.status === 404) { toast('Fonction absente : exécutez supabase/v2.sql.', 'error', 6000); return; }
+    if (!r.ok || r.data !== true) { toast(r.net ? 'Pas de connexion internet.' : 'Code administrateur incorrect.', 'error'); return; }
+    gd.code = c; store.set('adminCode', c); $('gd-login').hidden = true; $('gd-main').hidden = false; prepGarde();
+  };
+  $('gd-name').addEventListener('input', debounce(() => {
+    gd.pick = null; $('gd-pos').textContent = state.pos ? 'Pharmacie inconnue : votre position actuelle sera utilisée.' : '';
+    const q = Core.key($('gd-name').value);
+    const hits = q.length < 3 ? [] : allPharmacies().map(p => [Core.matchScore(q, Core.key(p.name + ' ' + (p.commune || ''))), p]).filter(x => x[0] >= 0).sort((a, b) => a[0] - b[0]).slice(0, 6);
+    $('gd-suggest').innerHTML = hits.map(([, p]) => `<div class="sg-item" data-gd-pick="${esc(p.id)}"><span class="sg-ic">${ic('cross')}</span><span class="sg-main"><span class="sg-name">${esc(p.name)}</span><span class="sg-sub">${esc(p.commune || p.street || '')}</span></span></div>`).join('');
+    $('gd-suggest').hidden = !hits.length;
+  }, 150));
+  $('gd-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const nom = $('gd-name').value.trim(), du = $('gd-du').value, au = $('gd-au').value;
+    if (nom.length < 3) { toast('Indiquez le nom de la pharmacie.', 'error'); return; }
+    if (!du || !au || au < du) { toast('Vérifiez les dates.', 'error'); return; }
+    const p = gd.pick, here = state.pos;
+    const lat = p && Number.isFinite(p.lat) ? p.lat : here ? here[0] : null, lon = p && Number.isFinite(p.lon) ? p.lon : here ? here[1] : null;
+    $('gd-save').disabled = true;
+    const r = await sb('/rest/v1/rpc/garde_ajouter', { method: 'POST', body: { p_code: gd.code, p_nom: nom, p_commune: $('gd-commune').value.trim() || null, p_adresse: $('gd-adresse').value.trim() || null, p_tel: $('gd-tel').value.trim() || null, p_lat: lat, p_lon: lon, p_du: du, p_au: au } });
+    $('gd-save').disabled = false;
+    if (!r.ok) { if (/Code administrateur/.test(sbErr(r))) { gd.code = ''; store.set('adminCode', ''); } toast(r.net ? 'Pas de connexion internet.' : 'Ajout impossible : ' + sbErr(r), 'error', 6000); return; }
+    toast(`« ${nom} » ajoutée à la liste de garde.`, 'success');
+    await loadGardes(); prepGarde();
+  });
 
   // Événements de la liste
   $('ph-filter').addEventListener('click', e => {
@@ -2325,7 +2474,7 @@
     if (go) { openPharmacy(go.dataset.phGo, current); return; }
     const el = e.target.closest('[data-ph]');
     if (!el) return;
-    const p = allPharmacies().find(x => x.id === el.dataset.ph);
+    const p = allPharmacies().find(x => x.id === el.dataset.ph) || clinics().find(x => x.id === el.dataset.ph);
     if (isFollowed('pharma', el.dataset.ph) && Date.now() - (live.followT || 0) < 700) return;
     if (!p || p.approx || !Number.isFinite(p.lat) || isFollowed('pharma', p.id)) openPharmacy(el.dataset.ph, current);
     else followPlace('pharma', p.id);
@@ -2338,8 +2487,10 @@
   let pdMap = null, pdLayer = null, pdUser = null;
   function openPharmacy(id, from) {
     const p = allPharmacies().find(x => x.id === id);
-    if (!p) { toast('Pharmacie introuvable.', 'error'); return; }
-    openDetail(p, from, 'pharma');
+    if (p) { openDetail(p, from, 'pharma'); return; }
+    const c = clinics().find(x => x.id === id);
+    if (c) { openDetail(c, from, 'paiya'); return; }
+    toast('Lieu introuvable.', 'error');
   }
   /* Fiche détaillée commune aux pharmacies et aux lieux Paiya */
   // Horaires OpenStreetMap lisibles : « 24/7 » → « 24h/24 », « Mo-Su » → « Tous les jours »
@@ -2466,10 +2617,15 @@
      PAIYA : hôtels, restaurants, toilettes publiques, commerces
      ===================================================================== */
   const PYC = PaiyaCore;
-  const PY_ICON = { hotel: 'hotel', resto: 'resto', wc: 'wc', shop: 'shop', private: 'lock' };
-  const PY_COLOR = { hotel: '#5b3cc4', resto: '#c24a12', wc: '#0b7a8f', shop: '#b3245f', private: '#3f4a5a' }; // texte blanc lisible (contraste ≥ 4,5)
+  const PY_ICON = { resto: 'resto', maquis: 'bar', hotel: 'hotel', wc: 'wc', station: 'fuel', shop: 'shop', supermarche: 'cart', marche: 'market', culte: 'worship', sante: 'clinic', pharma: 'cross', private: 'lock' };
+  const EXTRA_CATS = { pharma: { label: 'Pharmacies', one: 'Pharmacie' } };
+  const catInfo = c => PaiyaCore.CATS[c] || EXTRA_CATS[c] || { label: 'Lieux', one: 'Lieu' };
+  // icône d'un lieu : église ou mosquée pour les lieux de culte
+  const placeIcon = p => p.cat === 'culte' ? (/mosqu/i.test((p.sub || '') + ' ' + p.name) ? 'mosque' : /[ée]glise|chapelle|paroisse|temple|cath[ée]drale/i.test((p.sub || '') + ' ' + p.name) ? 'church' : 'worship') : (PY_ICON[p.cat] || 'explore');
+  // texte blanc lisible sur chaque couleur (contraste ≥ 4,5)
+  const PY_COLOR = { resto: '#c24a12', maquis: '#a21caf', hotel: '#5b3cc4', wc: '#0b7a8f', station: '#475569', shop: '#b3245f', supermarche: '#1d4ed8', marche: '#4d7c0f', culte: '#854d0e', sante: '#be123c', pharma: '#0a6b43', private: '#3f4a5a' };
   const PY_EMBED = (window.ZUPA_PAIYA && Array.isArray(window.ZUPA_PAIYA.list)) ? window.ZUPA_PAIYA.list : [];
-  const py = { cat: store.get('pyCat', 'resto'), q: '', shown: 20, cache: store.get('pyCache', null), loading: false, lastTry: 0, open: false };
+  const py = { cat: PaiyaCore.ORDER.includes(store.get('pyCat', 'resto')) ? store.get('pyCat', 'resto') : 'resto', q: '', shown: 20, cache: store.get('pyCache', null), loading: false, lastTry: 0, open: false };
 
   // Liste fusionnée (intégrée + actualisée), recalculée seulement quand le cache change
   let pyBase = null, pyBaseKey = '';
@@ -2510,7 +2666,7 @@
   const comm = { list: store.get('community', null), mine: store.get('myPlaces', []), ver: 0, syncing: false, lastFetch: 0, reported: store.get('reported', []) };
   if (!Array.isArray(comm.mine)) comm.mine = [];
   function commPlace(r, mine) {
-    const o = { id: 'z' + r.id, rid: r.id, cat: r.cat, name: r.name, sub: r.sub || PYC.CATS[r.cat].one, lat: r.lat, lon: r.lon, community: true, created: r.created_at || r.created };
+    const o = { id: 'z' + r.id, rid: r.id, cat: r.cat, name: r.name, sub: r.sub || catInfo(r.cat).one, lat: r.lat, lon: r.lon, community: true, created: r.created_at || r.created };
     if (r.phone) o.phone = r.phone;
     if (r.hours) o.hours = r.hours;
     if (r.note) o.note = r.note;
@@ -2586,7 +2742,7 @@
     toast('Merci, le signalement est enregistré.', 'success');
     renderPdComm(p);
   }
-  window.addEventListener('online', () => { syncMine(); fetchCommunity(true); flushVisits(); frRefresh(false); });
+  window.addEventListener('online', () => { syncMine(); fetchCommunity(true); flushVisits(); frRefresh(false); syncLines(); fetchLines(true); });
   async function refreshPaiya(force) {
     if (!state.pos || py.loading) return;
     const c = py.cache;
@@ -2622,11 +2778,16 @@
     if (cat === 'resto') return h < 10 ? 'Un petit-déj’ pas loin ?' : h < 15 ? 'On mange où à midi ?' : h < 18 ? 'Une petite pause ?' : 'Ce soir, on sort où ?';
     if (cat === 'hotel') return h >= 18 || h < 6 ? 'Où dormir ce soir ?' : 'Où poser vos valises ?';
     if (cat === 'wc') return 'Une envie pressante ?';
+    if (cat === 'maquis') return h >= 17 || h < 4 ? 'On s\u2019enjaille où ce soir ?' : 'Un maquis pour plus tard ?';
+    if (cat === 'station') return 'Le réservoir est vide ?';
+    if (cat === 'supermarche') return 'Le frigo est vide ?';
+    if (cat === 'marche') return 'On va au marché ?';
+    if (cat === 'culte') return 'Un lieu pour prier ?';
     return h < 12 ? 'Des courses à faire ?' : 'Un tour en boutique ?';
   }
   // accord : un restaurant « ouvert », des toilettes « ouvertes »
   const pyStatus = (p, long) => { const t = statusLabel(p, long); return p.cat === 'wc' ? t.replace('Ouverte', 'Ouvertes').replace('Fermée', 'Fermées') : t.replace('Ouverte', 'Ouvert').replace('Fermée', 'Fermé'); };
-  const PY_PLURAL = { hotel: ['hôtel', 'hôtels'], resto: ['restaurant', 'restaurants'], wc: ['toilettes', 'toilettes'], shop: ['commerce', 'commerces'] };
+  const PY_PLURAL = { hotel: ['hôtel', 'hôtels'], resto: ['restaurant', 'restaurants'], wc: ['toilettes', 'toilettes'], shop: ['commerce', 'commerces'], maquis: ['maquis ou bar', 'maquis et bars'], station: ['station', 'stations'], supermarche: ['supermarché', 'supermarchés'], marche: ['marché', 'marchés'], culte: ['lieu de culte', 'lieux de culte'] };
   function renderPaiya() {
     const base = placesBase();
     const counts = Object.fromEntries(PYC.ORDER.map(c => [c, 0]));
@@ -2647,6 +2808,7 @@
     $('py-pulse').textContent = !state.pos ? 'Activez la localisation pour voir ce qu’il y a autour.'
       : near1 ? `${near1} ${near1 > 1 ? many : one} à moins d’1 km` : counts[py.cat] ? `Le plus proche est un peu plus loin` : `Rien dans le coin pour l’instant`;
     $('py-cats').innerHTML = PYC.ORDER.map(c => `<button class="py-cat${py.cat === c ? ' on' : ''}" role="tab" aria-selected="${py.cat === c}" data-cat="${c}" style="--c:${PY_COLOR[c]}">${ic(PY_ICON[c])}<span>${esc(PYC.CATS[c].label)}</span></button>`).join('');
+    const onCat = $('py-cats').querySelector('.on'); if (onCat && !renderPaiya.scrolled) { renderPaiya.scrolled = true; onCat.scrollIntoView({ inline: 'center', block: 'nearest' }); }
     $('py-open').classList.toggle('on', py.open);
     $('py-open').setAttribute('aria-pressed', String(py.open));
     $('py-sub').textContent = state.pos ? (state.placeName ? state.placeName : '') : 'triés par nom';
@@ -2671,7 +2833,7 @@
         const status = p.hours ? `<small class="py-st ${p.st}">${esc(pyStatus(p))}</small>` : '';
         const fol = isFollowed('paiya', p.id);
         return `<div class="py-row${fol ? ' following' : ''}" data-py="${esc(p.id)}" role="button" tabindex="0" aria-pressed="${fol}">
-          <span class="py-ic">${ic(PY_ICON[p.cat])}</span>
+          <span class="py-ic">${ic(placeIcon(p))}</span>
           <span class="py-main"><b>${fol ? `<span class="mq-host"><span class="mq-in">${esc(p.name)}</span></span>` : `<span>${esc(p.name)}</span>`}${p.community ? `<em class="py-tag${p.pending ? ' wait' : ''}">${p.pending ? 'en attente' : 'ZUPA'}</em>` : ''}</b><small>${esc([p.sub, p.street || p.commune].filter(Boolean).join(' · '))}</small></span>
           <span class="py-d">${p.d != null ? `<b>${fmtDist(p.d)}</b>` : ''}${fol ? '<small class="py-st follow">suivi</small>' : status || (p.d != null ? `<small>${fmtMin(Core.walkMin(p.d * Core.CFG.DETOUR))} à pied</small>` : '')}</span>
           <button class="py-more-btn" type="button" data-py-go="${esc(p.id)}" aria-label="Fiche et carte de ${esc(p.name)}">${ic('chevron')}</button>
@@ -2717,12 +2879,20 @@
 
   /* ---------- Ajouter un lieu : position trouvée automatiquement, confirmée par « Géolocaliser » ---------- */
   const AP_KINDS = {
-    resto: ['Restaurant', 'Maquis', 'Fast-food', 'Café', 'Glacier'],
+    resto: ['Restaurant', 'Fast-food', 'Garbadrome', 'Café', 'Glacier'],
+    maquis: ['Maquis', 'Bar', 'Boîte de nuit', 'Lounge'],
     hotel: ['Hôtel', 'Résidence meublée', 'Auberge', 'Motel'],
     wc: ['Toilettes publiques'],
-    shop: ['Supérette', 'Supermarché', 'Boutique', 'Téléphonie', 'Coiffure', 'Pressing', 'Quincaillerie', 'Commerce']
+    station: ['Station-service', 'Station + boutique', 'Lavage auto'],
+    shop: ['Boutique', 'Supérette', 'Téléphonie', 'Coiffure', 'Pressing', 'Quincaillerie', 'Commerce'],
+    supermarche: ['Supermarché', 'Hypermarché'],
+    marche: ['Marché', 'Marché de nuit'],
+    culte: ['Église', 'Mosquée', 'Temple'],
+    pharma: ['Pharmacie'],
+    sante: ['Clinique', 'Centre de santé', 'Hôpital', 'Laboratoire', 'Cabinet médical']
   };
-  const AP_PH = { resto: 'ex. Maquis Chez Tantie', hotel: 'ex. Hôtel Le Baobab', wc: 'ex. Toilettes de la gare', shop: 'ex. Boutique Awa' };
+  const AP_PH = { resto: 'ex. Chez Tantie Rose', maquis: 'ex. Maquis Le Baobab', hotel: 'ex. Hôtel Le Baobab', wc: 'ex. Toilettes de la gare', station: 'ex. Total Riviera 2', shop: 'ex. Boutique Awa', supermarche: 'ex. Supermarché du quartier', marche: 'ex. Marché de Cocovico', culte: 'ex. Paroisse Saint-Jacques', pharma: 'ex. Pharmacie des Lagunes', sante: 'ex. Clinique Les Oliviers' };
+  const AP_GROUPS = { paiya: PaiyaCore.ORDER, health: ['pharma', 'sante'] };
   const ap = { cat: 'wc', st: 'auto', pos: null, acc: null, kind: null, fee: null, hours: '', back: 'screen-paiya', timer: 0 };
   let apMap = null, apUser = null, apMoving = false;
   // nom plausible : au moins 2 lettres, pas de lien ni d'adresse e-mail, pas de répétitions absurdes
@@ -2730,9 +2900,10 @@
   const phoneDigits = v => v.replace(/\D/g, '').replace(/^225(?=\d{10}$)/, '');
   function openAddPlace(cat, from, opts = {}) {
     ap.vis = opts.private ? 'private' : 'public'; ap.pkind = opts.kind || 'home';
+    ap.group = opts.group || (cat === 'pharma' || cat === 'sante' ? 'health' : 'paiya');
     const lastHour = comm.mine.filter(m => Date.now() - new Date(m.created).getTime() < 3600e3).length;
     if (ap.vis === 'public' && lastHour >= 10) { toast('Vous avez déjà ajouté 10 lieux en une heure. Réessayez un peu plus tard.', 'error', 5000); return; }
-    ap.cat = PYC.CATS[cat] ? cat : (PYC.CATS[py.cat] ? py.cat : 'wc'); ap.back = from || current;
+    ap.cat = AP_GROUPS[ap.group].includes(cat) ? cat : AP_GROUPS[ap.group][0]; ap.back = from || current;
     ap.kind = AP_KINDS[ap.cat][0]; ap.fee = null; ap.hours = '';
     ap.pos = state.gpsLast || state.pos; ap.acc = state.gpsLast ? state.gpsAcc : state.accuracy;
     ap.st = ap.pos ? 'auto' : 'none';
@@ -2757,7 +2928,7 @@
       renderApState();
       return;
     }
-    $('ap-cats').innerHTML = PYC.ORDER.map(c => `<button type="button" class="py-cat${ap.cat === c ? ' on' : ''}" role="radio" aria-checked="${ap.cat === c}" data-cat="${c}" style="--c:${PY_COLOR[c]}">${ic(PY_ICON[c])}<span>${esc(PYC.CATS[c].label)}</span></button>`).join('');
+    $('ap-cats').innerHTML = AP_GROUPS[ap.group].map(c => `<button type="button" class="py-cat${ap.cat === c ? ' on' : ''}" role="radio" aria-checked="${ap.cat === c}" data-cat="${c}" style="--c:${PY_COLOR[c]}">${ic(PY_ICON[c])}<span>${esc(catInfo(c).label)}</span></button>`).join('');
     const kinds = AP_KINDS[ap.cat];
     $('ap-kind').innerHTML = kinds.map(k => `<button type="button" role="radio" aria-checked="${ap.kind === k}" class="${ap.kind === k ? 'on' : ''}" data-v="${esc(k)}">${esc(k)}</button>`).join('');
     $('ap-kind').previousElementSibling.hidden = $('ap-kind').hidden = kinds.length < 2;
@@ -2958,7 +3129,9 @@
   });
   function renderPrivList() {
     const ul = $('priv-list');
-    ul.innerHTML = priv.length ? priv.map(r => `<li style="--c:${PY_COLOR.private}">${ic(PRIV_KINDS[r.kind].icon)}<span>${esc(r.name)}<br><small class="muted">${PRIV_KINDS[r.kind].label}${r.note ? ' · ' + esc(r.note) : ''}</small></span><button class="btn ghost sm" data-priv-go="${esc(r.id)}">Y aller</button><button class="btn ghost sm" data-priv-del="${esc(r.id)}" aria-label="Supprimer ${esc(r.name)}">${ic('trash')}</button></li>`).join('')
+    ul.innerHTML = priv.length ? priv.map(r => { const n = Core.nearbyStops(D, r.lat, r.lon, 6, 1)[0];
+      const att = n ? ` · arrêt ${esc(n.stop.label)} à ${fmtDist(n.d)}${n.d > Core.CFG.LAST_WALK_KM ? ' (saloni, taxi)' : ' à pied'}` : '';
+      return `<li style="--c:${PY_COLOR.private}">${ic(PRIV_KINDS[r.kind].icon)}<span>${esc(r.name)}<br><small class="muted">${PRIV_KINDS[r.kind].label}${att}${r.note ? ' · ' + esc(r.note) : ''}</small></span><button class="btn ghost sm" data-priv-go="${esc(r.id)}">Y aller</button><button class="btn ghost sm" data-priv-del="${esc(r.id)}" aria-label="Supprimer ${esc(r.name)}">${ic('trash')}</button></li>`; }).join('')
       : '<li class="muted">Aucun lieu confidentiel. Ajoutez votre domicile ou votre travail pour y aller en un geste.</li>';
   }
   $('priv-list').addEventListener('click', e => {
@@ -3218,7 +3391,9 @@
   function catFor(p) {
     if (!p) return 'rdv';
     const h = new Date().getHours();
+    if (p.cat === 'maquis') return 'maquis';
     if (p.cat === 'resto') return /maquis|bar|lounge|grill|club/i.test(p.name + ' ' + (p.sub || '')) || h >= 19 ? 'maquis' : 'resto';
+    if (p.cat === 'supermarche' || p.cat === 'marche') return 'shop';
     return p.cat === 'shop' ? 'shop' : 'rdv';
   }
   function openPos(o = {}) {
@@ -3381,7 +3556,7 @@
       const d = Core.haversine(lat, lon, p.lat, p.lon);
       if (d < bd) { bd = d; best = p; }
     }
-    if (!best || !PYC.CATS[best.cat]) { visit.cand = null; return; }
+    if (!best || !PYC.CATS[best.cat] || PYC.SENSITIVE.has(best.cat)) { visit.cand = null; return; }
     if (!visit.cand || visit.cand.id !== best.id) { visit.cand = best; visit.since = Date.now(); return; }
     if (Date.now() - visit.since < 120e3) return;
     const day = today();
@@ -3417,7 +3592,7 @@
   }
   const popPlace = r => { const b = placesBase().find(x => x.id === r.place_id); return b || { id: r.place_id, cat: r.cat, name: r.nom, sub: PYC.CATS[r.cat].one, lat: r.lat, lon: r.lon }; };
   function renderPopular() {
-    const rows = ((pop.list && pop.list.rows) || []).filter(r => PYC.CATS[r.cat]).slice(0, 10);
+    const rows = ((pop.list && pop.list.rows) || []).filter(r => PYC.CATS[r.cat] && !PYC.SENSITIVE.has(r.cat)).slice(0, 10);
     $('py-pop').hidden = !rows.length;
     $('py-rail').innerHTML = rows.map((r, i) => {
       const p = popPlace(r), d = state.pos ? Core.haversine(state.pos[0], state.pos[1], p.lat, p.lon) : null;
@@ -3473,6 +3648,133 @@
   document.addEventListener('focusin', e => { if (e.target.matches('input:not([type=checkbox]), textarea')) setTimeout(() => { kbUpdate(); keepFocusVisible(); }, 300); });
   document.addEventListener('focusout', () => setTimeout(kbUpdate, 200));
 
+  /* =====================================================================
+     LIGNES GBAKA / WÔRÔ-WÔRÔ / SALONI ajoutées par les utilisateurs
+     Gare de départ → arrêts → terminus, chaque point placé sur la carte (ou à sa position).
+     ===================================================================== */
+  const lg = { list: store.get('lignes', null), mine: store.get('myLines', []), syncing: false, lastFetch: 0 };
+  if (!Array.isArray(lg.mine)) lg.mine = [];
+  const al = { type: 'gbaka', pts: [], back: 'screen-home' };
+  let alMap = null, alLayer = null, alUser = null;
+  function linesChanged() { rebuildNetwork(); renderLinesSection(); if (current === 'screen-profile') renderMyLines(); }
+  function renderLinesSection() {
+    const n = ((lg.list && lg.list.rows) || []).length, mine = lg.mine.filter(m => !((lg.list && lg.list.rows) || []).some(r => r.id === m.id)).length;
+    const tot = n + mine;
+    $('lines-sub').textContent = tot ? `${tot} ligne${tot > 1 ? 's' : ''} ajoutée${tot > 1 ? 's' : ''} par la communauté ${tot > 1 ? 'sont prises' : 'est prise'} en compte dans vos itinéraires.`
+      : 'Ajoutez les lignes que vous connaissez : gare de départ, arrêts et terminus. Elles servent aussitôt dans les itinéraires de tous.';
+  }
+  async function fetchLines(force) {
+    if (!sbOn() || (!force && Date.now() - lg.lastFetch < 10 * 60e3)) return;
+    lg.lastFetch = Date.now();
+    const r = await sb('/rest/v1/lignes?select=id,type,gare,nom,tarif,arrets,created_at&order=created_at.desc&limit=2000');
+    if (r.ok && Array.isArray(r.data)) {
+      lg.list = { t: Date.now(), rows: r.data }; store.set('lignes', lg.list);
+      const ids = new Set(r.data.map(x => x.id)); lg.mine.forEach(m => { if (ids.has(m.id)) m.synced = true; }); store.set('myLines', lg.mine);
+      linesChanged();
+    }
+  }
+  async function syncLines() {
+    if (!sbOn() || lg.syncing) return;
+    lg.syncing = true; let sent = 0;
+    for (const m of lg.mine.filter(x => !x.synced)) {
+      const r = await sb('/rest/v1/lignes', { method: 'POST', body: { id: m.id, type: m.type, gare: m.gare, nom: m.nom || null, tarif: m.tarif ?? null, arrets: m.arrets, device: deviceId }, headers: { Prefer: 'return=minimal,resolution=ignore-duplicates' } });
+      if (r.ok) { m.synced = true; m.err = null; sent++; } else if (r.net || r.status >= 500) break; else m.err = sbErr(r);
+    }
+    lg.syncing = false; store.set('myLines', lg.mine);
+    if (sent) fetchLines(true); else if (current === 'screen-profile') renderMyLines();
+  }
+  function renderMyLines() {
+    $('my-lines-card').hidden = !lg.mine.length;
+    $('my-lines').innerHTML = lg.mine.map(m => { const t = LINE_TYPES[m.type]; const st = m.synced ? '<em class="py-tag">partagée</em>' : m.err ? '<em class="py-tag bad">refusée</em>' : '<em class="py-tag wait">en attente</em>';
+      return `<li style="--c:${t.color}">${ic(t.icon)}<span>${esc(t.label)} · ${esc(m.gare)} ${st}<br><small class="muted">${esc(m.arrets[0].name)} → ${esc(m.arrets[m.arrets.length - 1].name)} · ${m.arrets.length} arrêts${m.err ? ' · ' + esc(m.err) : ''}</small></span><button class="btn ghost sm" data-del-line="${esc(m.id)}" aria-label="Supprimer">${ic('trash')}</button></li>`; }).join('');
+  }
+  $('my-lines').addEventListener('click', async e => {
+    const b = e.target.closest('[data-del-line]'); if (!b) return;
+    const m = lg.mine.find(x => x.id === b.dataset.delLine); if (!m) return;
+    if (!confirm(m.synced ? 'Supprimer cette ligne pour tous les utilisateurs ?' : 'Supprimer cette ligne ?')) return;
+    if (m.synced && sbOn()) {
+      const r = await sb('/rest/v1/rpc/ligne_supprimer', { method: 'POST', body: { p_id: m.id, p_device: deviceId } });
+      if (!r.ok) { toast(r.net ? 'Suppression impossible sans internet.' : 'Suppression impossible : ' + sbErr(r), 'error'); return; }
+      if (lg.list) { lg.list.rows = lg.list.rows.filter(x => x.id !== m.id); store.set('lignes', lg.list); }
+    }
+    lg.mine = lg.mine.filter(x => x !== m); store.set('myLines', lg.mine); linesChanged(); renderMyLines(); toast('Ligne supprimée.', 'success');
+  });
+
+  function openAddLine(from) {
+    al.back = from || current; al.pts = []; al.type = al.type || 'gbaka';
+    ['al-gare', 'al-nom', 'al-tarif', 'al-pt'].forEach(i => { $(i).value = ''; });
+    renderAddLine();
+    show('screen-addline');
+  }
+  function renderAddLine() {
+    const t = LINE_TYPES[al.type];
+    $('screen-addline').style.setProperty('--c', t.color);
+    $('al-types').innerHTML = Object.entries(LINE_TYPES).map(([k, v]) => `<button type="button" class="al-type${al.type === k ? ' on' : ''}" role="radio" aria-checked="${al.type === k}" data-lt="${k}" style="--c:${v.color}">${ic(v.icon)}<span>${v.label}</span></button>`).join('');
+    const n = al.pts.length;
+    $('al-help').textContent = n === 0 ? 'Placez la carte sous le repère, sur la gare de départ, puis touchez « Ajouter ».'
+      : n === 1 ? 'Déplacez la carte jusqu\u2019au premier arrêt, donnez-lui un nom, puis « Ajouter ». Continuez jusqu\u2019au terminus.'
+      : 'Ajoutez les arrêts suivants. Le dernier point est le terminus.';
+    $('al-pt').placeholder = n === 0 ? ($('al-gare').value.trim() || 'Nom de la gare de départ') : `Nom de l\u2019arrêt ${n}`;
+    $('al-list').innerHTML = al.pts.map((p, i) => `<li><span class="al-n">${i === 0 ? 'Départ' : i === n - 1 && n > 1 ? 'Terminus' : 'Arrêt ' + i}</span><b>${esc(p.name)}</b><button type="button" class="al-del" data-al-del="${i}" aria-label="Retirer ${esc(p.name)}">${ic('close')}</button></li>`).join('');
+    const ok = $('al-gare').value.trim().length >= 2 && n >= 2;
+    $('al-save').disabled = !ok;
+    $('al-why').textContent = $('al-gare').value.trim().length < 2 ? 'Indiquez le nom de la gare de départ.' : n < 2 ? 'Ajoutez au moins la gare de départ et le terminus.' : `${t.label} · ${n} points · ${fmtDist(al.pts.reduce((a, p, i) => i ? a + Core.haversine(al.pts[i - 1].lat, al.pts[i - 1].lon, p.lat, p.lon) : 0, 0))}`;
+    drawAlRoute();
+  }
+  function drawAlRoute() {
+    if (!alMap) return;
+    alLayer.clearLayers();
+    const c = LINE_TYPES[al.type].color;
+    if (al.pts.length > 1) L.polyline(al.pts.map(p => [p.lat, p.lon]), { color: c, weight: 5, opacity: .85 }).addTo(alLayer);
+    al.pts.forEach((p, i) => L.marker([p.lat, p.lon], { icon: L.divIcon({ className: 'al-mk', html: `<span style="--c:${c}">${i + 1}</span>`, iconSize: [24, 24], iconAnchor: [12, 12] }), interactive: false }).addTo(alLayer));
+  }
+  function alNear() {
+    if (!alMap) return;
+    const c = alMap.getCenter(), n = Core.nearbyStops(D, c.lat, c.lng, 0.08, 1)[0];
+    $('al-near').innerHTML = n ? `<button type="button" class="al-near-btn" data-al-name="${esc(n.stop.label)}">${ic('bus')}Arrêt connu ici : <b>${esc(n.stop.label)}</b> · utiliser ce nom</button>` : '';
+  }
+  function ensureAlMap() {
+    if (!hasL) { mapOff('al-map'); return; }
+    if (!alMap) { alMap = baseMap($('al-map')); alLayer = L.layerGroup().addTo(alMap); alMap.on('moveend', alNear); }
+    alMap.invalidateSize();
+    alUser = userMarker(alMap, alUser);
+    const last = al.pts[al.pts.length - 1];
+    alMap.setView(last ? [last.lat, last.lon] : state.pos || [5.33, -4.01], 16, { animate: false });
+    drawAlRoute(); alNear();
+  }
+  $('al-open').onclick = () => openAddLine('screen-home');
+  $('al-back').innerHTML = ic('back');
+  $('al-back').onclick = () => goBack();
+  $('al-types').addEventListener('click', e => { const b = e.target.closest('[data-lt]'); if (b) { al.type = b.dataset.lt; renderAddLine(); } });
+  ['al-gare', 'al-nom', 'al-tarif'].forEach(i => $(i).addEventListener('input', debounce(renderAddLine, 150)));
+  $('al-near').addEventListener('click', e => { const b = e.target.closest('[data-al-name]'); if (b) { $('al-pt').value = b.dataset.alName; $('al-pt').focus(); } });
+  $('al-gps').onclick = () => { if (!state.pos) { toast('Position inconnue pour le moment.', 'error'); return; } if (alMap) alMap.setView(state.gpsLast || state.pos, Math.max(alMap.getZoom(), 17)); };
+  $('al-add-pt').onclick = () => {
+    if (!alMap) return;
+    const c = alMap.getCenter();
+    const name = ($('al-pt').value.trim() || (al.pts.length === 0 ? $('al-gare').value.trim() : '')).replace(/\s+/g, ' ');
+    if (name.length < 2) { toast('Donnez un nom à ce point.', 'error'); $('al-pt').focus(); return; }
+    const last = al.pts[al.pts.length - 1];
+    if (last && Core.haversine(last.lat, last.lon, c.lat, c.lng) < 0.03) { toast('Ce point est au même endroit que le précédent : déplacez la carte.', 'error'); return; }
+    if (al.pts.length >= 60) { toast('60 points au maximum.', 'error'); return; }
+    al.pts.push({ name: name.slice(0, 60), lat: +c.lat.toFixed(6), lon: +c.lng.toFixed(6) });
+    $('al-pt').value = ''; vibrate(20); renderAddLine();
+  };
+  $('al-list').addEventListener('click', e => { const b = e.target.closest('[data-al-del]'); if (b) { al.pts.splice(+b.dataset.alDel, 1); renderAddLine(); } });
+  leaveGuards['screen-addline'] = () => !(al.pts.length || $('al-gare').value.trim()) || confirm('Abandonner cette ligne ? Les points ajoutés seront perdus.');
+  $('al-save').onclick = async () => {
+    const gare = $('al-gare').value.trim().replace(/\s+/g, ' ');
+    if (gare.length < 2 || al.pts.length < 2) { renderAddLine(); return; }
+    if (lg.mine.filter(m => Date.now() - new Date(m.created).getTime() < 864e5).length >= 5) { toast('5 lignes par jour au maximum. Réessayez demain.', 'error'); return; }
+    const tarif = parseInt($('al-tarif').value, 10);
+    const rec = { id: uuid(), type: al.type, gare, nom: $('al-nom').value.trim() || null, tarif: Number.isFinite(tarif) && tarif >= 0 && tarif <= 10000 ? tarif : null, arrets: al.pts.slice(), created: new Date().toISOString(), synced: false };
+    lg.mine.unshift(rec); store.set('myLines', lg.mine); linesChanged();
+    al.pts = []; $('al-gare').value = '';
+    await syncLines();
+    toast(rec.synced ? `Ligne ${LINE_TYPES[rec.type].label} enregistrée et partagée. Elle sert déjà dans les itinéraires.` : sbOn() ? 'Ligne enregistrée. Elle sera partagée dès que vous aurez internet.' : 'Ligne enregistrée sur ce téléphone.', 'success', 6000);
+    show(al.back && al.back !== 'screen-addline' ? al.back : 'screen-home', { force: true });
+  };
+
   /* ---------- Anti double appui ---------- */
   let lastTap = { el: null, t: 0 };
   document.addEventListener('click', e => {
@@ -3513,6 +3815,7 @@
     if (!$('share-sheet').hidden) { closeShare(); return true; }
     if (!$('act-sheet').hidden) { closeActions(); return true; }
     if (!$('pos-sheet').hidden) { closePos(); return true; }
+    if (!$('gd-sheet').hidden) { closeGarde(); return true; }
     if (!$('grp-sheet').hidden) { closeGroupEditor(); return true; }
     if (live.open && LIVE_HOST[current] && current !== 'screen-track') { live.open = false; $('live').classList.remove('open'); $('live-pill').setAttribute('aria-expanded', 'false'); return true; }
     const to = navStack.length > 1 ? navStack[navStack.length - 2] : current !== 'screen-home' ? 'screen-home' : null;
@@ -3541,7 +3844,8 @@
   syncClear();
   renderHome();
   startGeo();
-  setTimeout(() => { syncMine(); fetchCommunity(false); flushVisits(); frRefresh(false); }, 4000);
+  setTimeout(() => { syncMine(); fetchCommunity(false); flushVisits(); frRefresh(false); syncLines(); fetchLines(false); }, 4000);
+  renderLinesSection();
   setInterval(() => { if (document.visibilityState === 'visible') frRefresh(false); }, 120e3);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') frRefresh(false); });
   renderQuickPlaces(); syncBadge();

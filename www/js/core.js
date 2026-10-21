@@ -17,10 +17,13 @@ const Core = (() => {
     TRANSFER_WALK_KM: 0.3,  // marche max. entre deux arrêts lors d'une correspondance
     DEST_WALK_KM: 0.4,      // on accepte de descendre à un arrêt voisin de la destination
     PLACE_WALK_KM: 0.8,     // lieu quelconque : arrêts à moins de 800 m
+    PLACE_FAR_KM: 6,        // sinon : arrêts jusqu'à 6 km, fin du trajet en saloni, taxi ou gbaka
+    LAST_WALK_KM: 1.0,      // au-delà, la fin du trajet se fait plutôt en saloni ou taxi
+    LAST_KMH: 18, LAST_WAIT_MIN: 4,
     ORIGIN_STOP_WALK_KM: 0.3
   };
   const GENERIC = new Set(['arret']);
-  const VEH = { bus: 'Bus', gbaka: 'Gbaka', woro: 'Woro-woro' };
+  const VEH = { bus: 'Bus', gbaka: 'Gbaka', woro: 'Wôrô-wôrô', saloni: 'Saloni' };
 
   const norm = s => String(s || '')
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -98,7 +101,7 @@ const Core = (() => {
     i > 0 && SMALL.test(w) ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1));
 
   function parseName(name) {
-    const m = /^\s*(?:bus|gbaka|woro[- ]?woro)\s*([^:]*?)\s*:\s*(.*)$/i.exec(name);
+    const m = /^\s*(?:bus|gbaka|saloni|w[oô]r[oô][- ]?w[oô]r[oô])\s*([^:]*?)\s*:\s*(.*)$/i.exec(name);
     if (!m) return { num: name.trim(), title: '' };
     return { num: m[1].trim() || name.trim(), title: titleCase(m[2].trim()) };
   }
@@ -180,7 +183,7 @@ const Core = (() => {
       seen.add(sig);
       const parsed = parseName(l.name);
       const num = l.ref ? String(l.ref) : parsed.num, title = parsed.title;
-      const kind = l.kind || (/^\s*gbaka/i.test(l.name) ? 'gbaka' : /^\s*woro/i.test(l.name) ? 'woro' : 'bus');
+      const kind = l.kind || (/^\s*gbaka/i.test(l.name) ? 'gbaka' : /^\s*w[oô]r[oô]/i.test(l.name) ? 'woro' : /^\s*saloni/i.test(l.name) ? 'saloni' : 'bus');
       const line = { id: lines.length, name: l.name, num, title, kind, veh: VEH[kind] || 'Bus', cost: Number(l.cost) || null, stops: [], cum: [0] };
       valid.forEach((s, i) => {
         const name = s.name.trim(), lat = +s.lat, lon = +s.lon;
@@ -277,6 +280,8 @@ const Core = (() => {
 
   /* ---------- Calcul d'itinéraires (direct + 1 correspondance) ---------- */
   const walkMin = km => km / CFG.WALK_KMH * 60;
+  // fin du trajet : à pied jusqu'à 1 km, sinon saloni, taxi ou gbaka (attente comprise)
+  const endMin = km => km <= CFG.LAST_WALK_KM ? walkMin(km) : CFG.LAST_WAIT_MIN + km / CFG.LAST_KMH * 60;
   const rideMin = (line, i, j) => (line.cum[j] - line.cum[i]) / CFG.BUS_KMH * 60 + (j - i) * CFG.DWELL_MIN;
 
   /* opts.kinds : modes autorisés, ex. ['bus','gbaka'] (tous par défaut) */
@@ -308,10 +313,14 @@ const Core = (() => {
     // Arrêts d'arrivée possibles (destination + voisins proches) -> marche finale en km
     const destMap = new Map();
     if (place) {
+      const near = [];
       for (const s of D.all) {
         const d = haversine(dest.lat, dest.lon, s.lat, s.lon);
         if (d <= CFG.PLACE_WALK_KM) destMap.set(s.id, d * CFG.DETOUR);
+        else if (d <= CFG.PLACE_FAR_KM) near.push([s.id, d]);
       }
+      // aucun arrêt à pied : on rattache le lieu à ses arrêts les plus proches (fin en saloni, taxi ou gbaka)
+      if (!destMap.size) near.sort((a, b) => a[1] - b[1]).slice(0, 8).forEach(([id, d]) => destMap.set(id, d * CFG.DETOUR));
       if (!destMap.size) return { status: 'noDestStops', routes: [] };
     } else {
       destMap.set(destId, 0);
@@ -330,7 +339,7 @@ const Core = (() => {
           const we = destMap.get(st[j].id);
           if (we === undefined) continue;
           keep('D' + line.id, {
-            totalMin: w1 + rideMin(line, i, j) + walkMin(we), walkStartKm: o.walk, walkEndKm: we,
+            totalMin: w1 + rideMin(line, i, j) + endMin(we), walkStartKm: o.walk, walkEndKm: we,
             transfers: 0, legs: [{ line, from: i, to: j, walkBeforeKm: 0 }]
           });
         }
@@ -343,7 +352,7 @@ const Core = (() => {
       for (const { line, i: j } of occOf(did)) {
         for (let k = 0; k < j; k++) {
           const sid = line.stops[k].id;
-          const min = rideMin(line, k, j) + walkMin(we);
+          const min = rideMin(line, k, j) + endMin(we);
           let m = reach.get(sid);
           if (!m) reach.set(sid, m = new Map());
           const cur = m.get(line.id);
@@ -439,9 +448,10 @@ const Core = (() => {
     r.cost = r.legs.reduce((a, l) => a + (l.line.cost || 0), 0) || null;
     r.totalMin = Math.max(1, Math.round(r.totalMin));
     r.sig = r.legs.map(l => l.line.num).join('>');
+    r.endRide = r.walkEndKm > CFG.LAST_WALK_KM;   // fin du trajet en saloni / taxi / gbaka
     return r;
   }
 
-  return { CFG, norm, key, matchScore, partialScore, haversine, build, insertionPoint, parseName, searchStops, resolveStop, nearbyStops, findRoutes, walkMin, rideMin };
+  return { CFG, norm, key, matchScore, partialScore, haversine, build, insertionPoint, parseName, searchStops, resolveStop, nearbyStops, findRoutes, walkMin, rideMin, endMin };
 })();
 if (typeof module !== 'undefined') module.exports = Core;

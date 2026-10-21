@@ -65,3 +65,18 @@ Pour publier une annonce pour un commerçant qui paie : **Table Editor › publi
 Le public peut seulement lire les annonces actives et en cours. Personne ne peut en ajouter ni en modifier depuis l'application. Chaque annonce porte la mention « Sponsorisé ».
 
 Pour afficher l'encart « Votre commerce ici ? », renseignez `adsContact` dans `www/js/config.js`, par exemple un lien WhatsApp `https://wa.me/225XXXXXXXXXX`.
+
+## Mise à jour 2 (`v2.sql`)
+
+Ce script ajoute trois choses :
+- **Nouvelles catégories de lieux** : maquis et bars, stations, supermarchés, marchés, lieux de culte, pharmacies et cliniques. Les lieux de santé et de culte ne sont jamais comptés dans les visites (données sensibles).
+- **Lignes ajoutées par les utilisateurs** (gbaka, wôrô-wôrô, saloni) : gare de départ, arrêts et terminus. Elles sont lisibles par tous, avec 5 ajouts par jour et par appareil. Une ligne est masquée après 3 signalements et ne peut être supprimée que par son auteur.
+- **Pharmacies de garde ajoutées par l'administrateur** depuis l'application (Pharmacies › + Ajouter › Une pharmacie de garde).
+
+Créez votre code administrateur une seule fois. Choisissez au moins 8 caractères et gardez-le secret :
+
+```sql
+insert into public.admin_codes (code) values ('VOTRE-CODE-SECRET');
+```
+
+Pour changer de code, supprimez l'ancien dans **Table Editor › admin_codes**, puis insérez-en un nouveau.

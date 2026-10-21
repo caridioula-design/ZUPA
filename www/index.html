@@ -70,10 +70,10 @@
       <button class="swap-btn" id="swap-btn" aria-label="Inverser départ et destination"></button>
       <div class="suggest" id="suggest-home" role="listbox" hidden></div>
     </div>
-    <button class="btn primary block" id="search-btn">Trouver mon bus</button>
+    <button class="btn primary block" id="search-btn">Trouver mon trajet</button>
     <div class="quick-places" id="quick-places" aria-label="Mes lieux confidentiels"></div>
 
-    <button class="ph-teaser" id="ph-teaser" aria-label="Voir les pharmacies">
+    <button class="ph-teaser" id="ph-teaser" aria-label="Voir les pharmacies" hidden>
       <span class="ph-teaser-ic"><span data-icon="cross"></span></span>
       <span class="ph-teaser-txt"><small id="ph-teaser-label">Pharmacie de garde la plus proche</small><b id="ph-teaser-name">Recherche…</b><small id="ph-teaser-meta"></small></span>
       <span class="ph-teaser-go"><span data-icon="chevron"></span></span>
@@ -82,6 +82,12 @@
     <section class="section">
       <div class="section-head"><h2>Mes favoris</h2><button class="link" id="manage-fav">Gérer</button></div>
       <div id="fav-board"></div>
+    </section>
+
+    <section class="section lines-section" id="lines-section">
+      <div class="section-head"><h2>Gbaka, wôrô-wôrô, saloni</h2><button class="link" id="al-open" type="button">+ Ajouter une ligne</button></div>
+      <div class="lines-modes"><span class="lm" style="--c:#0f766e"><span data-icon="gbaka"></span>Gbaka</span><span class="lm" style="--c:#b45309"><span data-icon="taxi"></span>Wôrô-wôrô</span><span class="lm" style="--c:#7c3aed"><span data-icon="saloni"></span>Saloni</span></div>
+      <p class="muted" id="lines-sub"></p>
     </section>
 
     <section class="section" id="recents-section" hidden>
@@ -228,6 +234,7 @@
       <button class="py-cat" data-f="garde" role="tab"><span data-icon="cross"></span><span>De garde</span><small id="ph-n-garde"></small></button>
       <button class="py-cat" data-f="open" role="tab"><span data-icon="clock"></span><span>Ouvertes</span><small id="ph-n-open"></small></button>
       <button class="py-cat" data-f="all" role="tab"><span data-icon="pin"></span><span>Toutes</span><small id="ph-n-all"></small></button>
+      <button class="py-cat" data-f="clinic" role="tab"><span data-icon="clinic"></span><span>Cliniques</span><small id="ph-n-clinic"></small></button>
     </div>
     <div class="ph-search">
       <span data-icon="search"></span>
@@ -238,6 +245,7 @@
     <button class="btn ghost block" id="ph-more" hidden>Afficher plus</button>
     <div class="ad-slot">Espace publicitaire</div>
     <p class="foot-note" id="ph-note"></p>
+    <div class="py-fab-wrap"><button class="py-fab med-fab" id="ph-add" type="button"><span data-icon="plus"></span>Ajouter</button></div>
   </section>
 
   <!-- ================= DÉTAIL PHARMACIE / LIEU (carte plein écran) ================= -->
@@ -346,6 +354,37 @@
     </form>
   </section>
 
+  <!-- ================= NOUVELLE LIGNE (gbaka, wôrô-wôrô, saloni) ================= -->
+  <section class="screen" id="screen-addline" aria-label="Ajouter une ligne">
+    <div class="topbar">
+      <button class="icon-btn" id="al-back" aria-label="Retour"></button>
+      <div class="topbar-text"><div class="title">Nouvelle ligne</div><div class="subtitle">Visible par tous et utilisée dans les itinéraires</div></div>
+    </div>
+    <div class="al-types" id="al-types" role="radiogroup" aria-label="Moyen de transport"></div>
+    <div class="card form">
+      <label for="al-gare">Gare de départ</label>
+      <input class="input" id="al-gare" maxlength="60" autocomplete="off" placeholder="ex. Gare d'Adjamé Liberté">
+      <label for="al-nom">Trajet <small>(facultatif)</small></label>
+      <input class="input" id="al-nom" maxlength="80" autocomplete="off" placeholder="ex. Adjamé – Yopougon Selmer">
+      <label for="al-tarif">Tarif <small>(FCFA, facultatif)</small></label>
+      <input class="input" id="al-tarif" type="number" inputmode="numeric" min="0" max="10000" placeholder="ex. 300">
+    </div>
+    <div class="card al-route">
+      <h3>Itinéraire</h3>
+      <p class="muted" id="al-help"></p>
+      <div class="map-wrap al-map-wrap">
+        <div class="map" id="al-map"></div>
+        <svg class="center-pin" viewBox="0 0 24 34" width="30" height="43" aria-hidden="true"><path d="M12 0C5.4 0 0 5.3 0 11.9 0 20.6 12 34 12 34s12-13.4 12-22.1C24 5.3 18.6 0 12 0z" fill="var(--c, #0f766e)" stroke="rgba(0,0,0,.35)"/><circle cx="12" cy="12" r="4.3" fill="#fff"/></svg>
+      </div>
+      <div class="al-near" id="al-near"></div>
+      <div class="al-add"><input class="input" id="al-pt" maxlength="60" autocomplete="off" placeholder="Nom de ce point"><button class="btn primary" id="al-add-pt" type="button">Ajouter</button></div>
+      <button class="btn ghost block" id="al-gps" type="button"><span data-icon="locate"></span>Aller à ma position</button>
+      <ol class="al-list" id="al-list"></ol>
+    </div>
+    <button class="btn primary block" id="al-save" type="button">Enregistrer la ligne</button>
+    <p class="ap-why" id="al-why"></p>
+  </section>
+
   <!-- ================= PROFIL ================= -->
   <section class="screen" id="screen-profile" aria-label="Profil">
     <div class="topbar"><div class="topbar-text"><div class="title">Profil</div></div></div>
@@ -407,6 +446,10 @@
       <ul class="fav-list my-places" id="priv-list"></ul>
       <div class="btn-row"><button class="btn primary sm" id="priv-add">Ajouter un lieu confidentiel</button></div>
     </div>
+    <div class="card" id="my-lines-card" hidden>
+      <h3>Lignes ajoutées</h3>
+      <ul class="fav-list my-places" id="my-lines"></ul>
+    </div>
     <div class="card">
       <h3>Lieux ajoutés</h3>
       <p class="muted" id="my-places-sub">Toilettes, restaurants, hôtels et commerces que vous avez ajoutés dans Paiya.</p>
@@ -442,7 +485,7 @@
 </main>
 
 <nav class="navbar" aria-label="Navigation principale">
-  <button class="nav-btn active" data-nav="screen-home"><span data-icon="bus"></span>Bus</button>
+  <button class="nav-btn active" data-nav="screen-home"><span data-icon="bus"></span>Go !</button>
   <button class="nav-btn" data-nav="screen-pharma"><span data-icon="cross"></span>Pharmacies</button>
   <button class="nav-btn" data-nav="screen-paiya"><span data-icon="explore"></span>Paiya</button>
   <button class="nav-btn" data-nav="screen-track" id="nav-track"><span data-icon="route"></span>Trajet<span class="badge" id="nav-badge" hidden></span></button>
@@ -500,6 +543,32 @@
     <button class="btn primary block" type="submit" id="grp-save">Enregistrer</button>
     <button class="btn ghost block danger-txt" type="button" id="grp-del" hidden>Supprimer la liste</button>
     <button class="btn ghost block" type="button" data-grp-close>Annuler</button>
+  </form>
+</div>
+<div class="share-sheet" id="gd-sheet" hidden>
+  <div class="share-backdrop" data-gd-close></div>
+  <form class="share-panel" id="gd-form" role="dialog" aria-modal="true" aria-labelledby="gd-title" novalidate>
+    <div class="share-grab"></div>
+    <h3 id="gd-title">Pharmacie de garde</h3>
+    <div id="gd-login">
+      <p class="muted">Réservé à l'administrateur de ZUPA. Saisissez votre code (créé dans Supabase, voir le guide).</p>
+      <input class="input" id="gd-code" type="password" autocomplete="off" placeholder="Code administrateur">
+      <button class="btn primary block" id="gd-login-btn" type="button" style="margin-top:10px">Valider</button>
+    </div>
+    <div id="gd-main" hidden>
+      <div class="rel">
+        <input class="input" id="gd-name" autocomplete="off" maxlength="80" placeholder="Nom de la pharmacie (tapez pour la retrouver)" aria-label="Nom de la pharmacie">
+        <div class="suggest" id="gd-suggest" hidden></div>
+      </div>
+      <div class="gd-row"><input class="input" id="gd-commune" maxlength="60" placeholder="Commune"><input class="input" id="gd-tel" type="tel" inputmode="tel" maxlength="20" placeholder="Téléphone"></div>
+      <input class="input" id="gd-adresse" maxlength="160" placeholder="Adresse, repère (facultatif)">
+      <div class="gd-row"><label class="gd-date">Du<input class="input" id="gd-du" type="date"></label><label class="gd-date">Au<input class="input" id="gd-au" type="date"></label></div>
+      <p class="muted gd-pos" id="gd-pos"></p>
+      <button class="btn primary block" type="submit" id="gd-save">Ajouter à la liste de garde</button>
+      <div class="pos-to-h" id="gd-list-h" hidden>Ajoutées par vous</div>
+      <ul class="fav-list" id="gd-list"></ul>
+    </div>
+    <button class="btn ghost block" type="button" data-gd-close>Fermer</button>
   </form>
 </div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
