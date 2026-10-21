@@ -791,6 +791,10 @@
     box.style.setProperty('--near', k.toFixed(3));
     box.style.setProperty('--lc', tg.color || (tg.line ? lineColor(tg.line) : 'var(--brand)'));
     box.classList.toggle('med', tg.kind === 'pharma');
+    // la bulle prend la couleur de son onglet : Bus et Trajet orange, Pharmacies vert, Paiya couleur de la catégorie
+    box.classList.toggle('t-bus', current === 'screen-home' || current === 'screen-track');
+    box.classList.toggle('t-py', current === 'screen-paiya');
+    if (current === 'screen-paiya') box.style.setProperty('--pyc', PY_COLOR[(tg.p && PYC.CATS[tg.p.cat]) ? tg.p.cat : py.cat]);
     const key = current + tg.kicker + tg.p.name;
     if (key !== live.key) {
       live.key = key; live.shown = null;
@@ -1598,6 +1602,11 @@
     $('trk-prev').disabled = t.idx < 0;
     $('trk-step').textContent = t.idx < 0 ? 'Je suis à bord' : 'Arrêt suivant';
 
+    // avancement entre l'arrêt en cours et le suivant (0 à 1), d'après la position GPS
+    let seg = 0;
+    const a0 = t.pts[Math.max(0, t.idx)], b0 = t.pts[t.idx + 1];
+    if (state.pos && b0 && t.idx >= 0) { const tot = dist(a0, b0), rest = dist(state.pos, b0); seg = tot > 0 ? Math.max(0, Math.min(1, 1 - rest / tot)) : 0; }
+    $('trk-list').style.setProperty('--seg', seg.toFixed(3));
     $('trk-list').innerHTML = t.pts.map((p, j) => {
       const cls = [j < t.idx ? 'passed' : '', j === t.idx ? 'current' : '', p.kind !== 'stop' ? 'key' : ''].join(' ');
       const sub = p.kind !== 'stop' ? hint(p) : (j === t.idx ? 'Vous êtes ici' : '');
@@ -1605,7 +1614,7 @@
     }).join('');
     // la liste des arrêts est dans la bulle en direct : elle défile toute seule jusqu'à l'arrêt en cours
     { const box = $('trk-list'), li = box.children[Math.max(0, t.idx)];
-      if (li && (scroll || fit)) requestAnimationFrame(() => box.scrollTo({ top: Math.max(0, li.offsetTop - box.clientHeight / 3), behavior: scroll ? 'smooth' : 'auto' })); }
+      if (li && (scroll || fit || !box.dataset.done)) { box.dataset.done = '1'; requestAnimationFrame(() => box.scrollTo({ left: Math.max(0, li.offsetLeft - box.clientWidth / 3), behavior: scroll ? 'smooth' : 'auto' })); } }
 
     if (trkMap) {
       if (fit) drawRoute(trkMap, trkLayer, t.r, t.origin.stopId ? null : t.origin, true, t.destObj);
@@ -3523,7 +3532,7 @@
   document.querySelectorAll('.screen.immersive').forEach(el => el.addEventListener('scroll', () => { if (el.scrollTop) el.scrollTop = 0; }));
   loadOfflineMap();
   makeSheet('screen-results', 'res-sheet', [0.3, 0.55, 0.9], 1);
-  makeSheet('screen-track', 'trk-sheet', [0.36, 0.6, 0.88], 0);
+  makeSheet('screen-track', 'trk-sheet', [0.3, 0.55, 0.88], 0);
   makeSheet('screen-pharma-detail', 'pd-sheet', [0.3, 0.55, 0.9], 1);
   applyTheme();
   if ($('app-version')) $('app-version').textContent = CONFIG.version || '1.0.0';

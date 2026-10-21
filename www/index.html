@@ -43,7 +43,11 @@
             <span id="live-walk"></span>
           </div>
           <div class="live-lines" id="live-lines"></div>
-          <ol class="timeline live-stops" id="trk-list" aria-label="Arrêts du trajet"></ol>
+          <div class="live-steps-wrap"><ol class="timeline live-stops" id="trk-list" aria-label="Arrêts du trajet"></ol></div>
+          <div class="live-trk-ctl">
+            <button type="button" class="live-prev" id="trk-prev" aria-label="Arrêt précédent"><span data-icon="back"></span></button>
+            <button type="button" class="live-btn live-step" id="trk-step">Arrêt suivant</button>
+          </div>
           <div class="live-acts"><button type="button" class="live-btn" id="live-act"></button><button type="button" class="live-btn sec" id="live-clear" hidden><span data-icon="close"></span>Ne plus suivre</button></div>
         </div>
       </div>
@@ -129,10 +133,6 @@
           <div class="trk-ad-rail" id="trk-ad-rail"></div>
           <div class="trk-ad-dots" id="trk-ad-dots"></div>
         </section>
-        <div class="trk-controls">
-          <button class="btn ghost" id="trk-prev">Précédent</button>
-          <button class="btn primary" id="trk-step">Arrêt suivant</button>
-        </div>
         <button class="btn danger block" id="trk-stop">Terminer le trajet</button>
       </div>
     </div>
