@@ -5,8 +5,8 @@
   'use strict';
 
   /* ---------- Données ---------- */
-  // Données du réseau : data/bus.js (window.ZUPA_BUS), uniquement les bus SOTRA
-  const RAW = (Array.isArray(window.ZUPA_BUS) ? window.ZUPA_BUS : []).filter(l => !l.kind || l.kind === 'bus');
+  // Données du réseau : data/bus.js (window.ZUPA_BUS) : bus SOTRA, gbaka et wôrô-wôrô cartographiés dans OpenStreetMap
+  const RAW = (Array.isArray(window.ZUPA_BUS) ? window.ZUPA_BUS : []).filter(l => !l.kind || ['bus', 'gbaka', 'woro', 'saloni'].includes(l.kind));
   // Arrêts ajoutés par l'utilisateur (stockés sur l'appareil)
   let customStops = (() => { try { const v = JSON.parse(localStorage.getItem('zupa:customStops') || '[]'); return Array.isArray(v) ? v : []; } catch (_) { return []; } })();
   /* Lignes ajoutées par les utilisateurs (gbaka, wôrô-wôrô, saloni) : base partagée + celles de ce téléphone */

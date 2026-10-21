@@ -43,11 +43,19 @@ jobs:
         run: node scripts/fetch-pharmacies.mjs
         continue-on-error: true
 
+      - name: Lignes de bus, gbaka et wôrô-wôrô (OpenStreetMap)
+        run: node scripts/fetch-bus.mjs
+        continue-on-error: true
+
+      - name: Réseau d'Abidjan au format GTFS (DigitalTransport4Africa)
+        run: node scripts/fetch-gtfs.mjs
+        continue-on-error: true
+
       - name: Enregistrer les données actualisées dans le dépôt
         if: github.ref == 'refs/heads/main'
         continue-on-error: true
         run: |
-          git add www/data/pharmacies.js www/data/villes.js www/data/paiya.js
+          git add www/data/pharmacies.js www/data/villes.js www/data/paiya.js www/data/bus.js; [ -f www/data/gtfs.js ] && git add www/data/gtfs.js || true
           if ! git diff --cached --quiet; then
             git config user.name "zupa-bot"
             git config user.email "zupa-bot@users.noreply.github.com"

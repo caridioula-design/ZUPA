@@ -8,7 +8,7 @@ const OsmConvert = (() => {
   // Grand Abidjan (Anyama, Bingerville, Songon, Port-Bouët compris) : sud, ouest, nord, est
   const BBOX = [5.15, -4.30, 5.62, -3.70];
   const QUERY = `[out:json][timeout:240];
-rel["type"="route"]["route"~"^(bus|trolleybus)$"](${BBOX.join(',')});
+rel["type"="route"]["route"~"^(bus|trolleybus|minibus|share_taxi)$"](${BBOX.join(',')});
 out body;
 node(r);
 out body qt;`;
@@ -85,14 +85,13 @@ out body qt;`;
       }
       if (stops.length < 2) { skipped.push({ id: r.id, name: t.name, reason: 'moins de 2 arrêts nommés' }); continue; }
       const kind = kindOf(t);
-      if (kind !== 'bus') { skipped.push({ id: r.id, name: t.name, reason: 'gbaka / woro-woro (non repris dans ZUPA)' }); continue; }
       const title = titleOf(t) || `${stops[0].name} → ${stops[stops.length - 1].name}`;
       let ref = null, name;
       if (kind === 'bus') {
         ref = padRef(String(t.ref || (/(\d{1,4})/.exec(t.name || '') || [])[1] || '?').trim());
         name = `Bus ${ref}: ${title}`;
       } else {
-        name = `${kind === 'gbaka' ? 'Gbaka' : 'Woro-woro'}: ${title}`;
+        name = `${kind === 'gbaka' ? 'Gbaka' : 'Wôrô-wôrô'}: ${title}`;
       }
       const cost = num(t.charge) || (kind === 'bus' && /^\d+$/.test(ref) ? (+ref >= 200 ? 500 : 200) : null);
       lines.push({ name, ref, kind, cost, osm: r.id, url: `https://www.openstreetmap.org/relation/${r.id}`, stops });
@@ -135,7 +134,7 @@ out body qt;`;
      casser les arrêts ajoutés par les utilisateurs), les autres anciennes lignes sont conservées. */
   function merge(existing, fresh, opts = {}) {
     const keepKinds = opts.kinds || ['bus', 'gbaka', 'woro'];
-    const f = fresh.filter(l => keepKinds.includes(l.kind));
+    const f = fresh.filter(l => keepKinds.includes(l.kind || 'bus'));
     const byId = new Map(existing.map(l => [idOf(l), l]));
     const freshIds = new Set(f.map(l => l.osm));
     const added = [], updated = [];
@@ -170,9 +169,9 @@ out body qt;`;
     return JSON.parse(t.slice(a, b + 1));
   }
   function writeBusFile(lines) {
-    const slim = lines.filter(l => !l.kind || l.kind === 'bus').map(l => ({ name: l.name, ref: l.ref, cost: l.cost ?? null, osm: l.osm || null,
+    const slim = lines.map(l => Object.assign({ name: l.name, ref: l.ref }, l.kind && l.kind !== 'bus' ? { kind: l.kind } : {}, { cost: l.cost ?? null, osm: l.osm || null,
       stops: l.stops.map(s => ({ name: s.name, lat: s.lat, lon: s.lon })) }));
-    return "/* ZUPA — lignes de bus SOTRA d'Abidjan (© contributeurs OpenStreetMap, ODbL) */\nwindow.ZUPA_BUS = " + JSON.stringify(slim) + ';\n';
+    return "/* ZUPA — lignes de bus SOTRA, gbaka et wôrô-wôrô d'Abidjan (© contributeurs OpenStreetMap, ODbL) */\nwindow.ZUPA_BUS = " + JSON.stringify(slim) + ';\n';
   }
 
   return { BBOX, QUERY, download, convert, merge, readBusFile, writeBusFile, numberUnnumbered, extractFromIndex, injectIntoIndex, idOf };
