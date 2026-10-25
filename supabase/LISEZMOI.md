@@ -103,3 +103,14 @@ Il crée les annonces de logements publiées par les propriétaires et les agent
 **Confidentialité :** l'auteur n'est identifié que par l'empreinte de son secret. Cette empreinte et la mesure GPS brute ne sont pas lisibles. Seuls le repère publié et sa précision le sont.
 
 Les photos (6 au plus, réduites sur le téléphone) sont enregistrées dans la table `annonce_photos`.
+
+### Clé numérique (incluse dans `imo.sql`)
+
+Si vous aviez déjà exécuté `imo.sql`, relancez-le : il ajoute les clés numériques sans toucher aux annonces.
+
+- **Remise** : l'agent ou le propriétaire, au logement, obtient un code de 6 caractères (valable 20 min, à usage unique). Le locataire, au logement lui aussi, le saisit, vérifie le loyer, l'avance et la caution, puis accepte. L'annonce disparaît et le logement ne peut plus être republié tant que la clé est active. Une seule clé par logement.
+- **Restitution** : le locataire, au logement, obtient un code ; l'agent le saisit après avoir récupéré les clés. Le logement est libéré et l'agent peut le remettre en location.
+- **Perte du téléphone** : le locataire retrouve ses clés sur un nouveau téléphone avec son code de secours (noté sur papier lors de la remise). Code perdu aussi : l'agent réémet la clé au logement, au même numéro de téléphone. L'ancien téléphone est désactivé.
+- **Locataire injoignable** : l'agent demande la reprise ; elle n'est possible qu'après la fin du bail et 30 jours sans contestation du locataire.
+- **Preuves** : chaque étape est inscrite dans un journal ineffaçable (date, auteur, position arrondie). Les présences au logement sont vérifiées par GPS (± 100 m, à 150 m au plus de la position vérifiée de l'annonce).
+- **Garde-fous** : 8 codes erronés par heure et par téléphone au plus ; les tables des clés ne sont lisibles que par les fonctions du serveur, et chacun ne voit que ses propres clés.

@@ -414,7 +414,8 @@
     </header>
     <div class="imo-actions" id="imo-actions">
       <button class="imo-act main" id="imo-find" type="button"><span data-icon="search"></span><span><b>Je cherche</b><small>Type, quartier, budget</small></span></button>
-      <button class="imo-act" id="imo-pub" type="button"><span data-icon="key"></span><span><b>Publier</b><small>Propriétaire ou agent</small></span></button>
+      <button class="imo-act" id="imo-pub" type="button"><span data-icon="plus"></span><span><b>Publier</b><small>Propriétaire ou agent</small></span></button>
+      <button class="imo-act keys" id="imo-keys" type="button"><span data-icon="key"></span><span><b>Clés numériques</b><small id="imo-keys-sub">Recevoir, rendre ou retrouver vos clés</small></span><span class="imo-keys-n" id="imo-keys-n" hidden></span></button>
     </div>
     <div class="imo-crit" id="imo-crit" hidden></div>
     <div class="py-head"><h2 id="imo-list-h">Autour de vous</h2><span id="imo-sub"></span></div>
@@ -476,6 +477,8 @@
       <div class="ap-chips" id="ip-quartier" role="radiogroup" aria-label="Quartier"><span class="ip-wait">Localisez d'abord le logement.</span></div>
       <label for="ip-adresse">Repère ou rue <small>(facultatif, complète le GPS)</small></label>
       <input class="input" id="ip-adresse" maxlength="120" autocomplete="off" placeholder="ex. Rue Paul Langevin, derrière la pharmacie">
+      <label for="ip-porte">Porte ou appartement <small>(si plusieurs logements à cette adresse)</small></label>
+      <input class="input" id="ip-porte" maxlength="40" autocomplete="off" placeholder="ex. Porte B12, 2e étage à gauche">
       <label>Type</label>
       <div class="ap-chips" id="ip-type" role="radiogroup" aria-label="Type"></div>
       <div class="ip-grid">
@@ -522,6 +525,15 @@
       <button class="btn primary block ap-save" id="ip-save" type="submit">Publier l'annonce</button>
       <p class="ap-why" id="ip-why"></p>
     </form>
+  </section>
+
+  <!-- clés numériques : remise, restitution, perte, réémission -->
+  <section class="screen imo" id="screen-cle" aria-label="Clés numériques">
+    <div class="topbar">
+      <button class="icon-btn" id="cle-back" type="button" aria-label="Retour"><span data-icon="back"></span></button>
+      <div class="topbar-text"><div class="title" id="cle-title">Clés numériques</div><div class="subtitle" id="cle-subtitle">Remise et restitution sécurisées au logement</div></div>
+    </div>
+    <div id="cle-body"></div>
   </section>
 
   <!-- visionneuse de photos -->

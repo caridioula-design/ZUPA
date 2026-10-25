@@ -194,7 +194,7 @@
       s.classList.toggle('active', a);
       s.setAttribute('aria-hidden', String(!a));
     });
-    const tab = { 'screen-results': 'screen-home', 'screen-addstop': 'screen-home', 'screen-fixpos': 'screen-home', 'screen-addplace': 'screen-paiya', 'screen-addline': 'screen-home', 'screen-imo-search': 'screen-imo', 'screen-imo-pub': 'screen-imo', 'screen-pharma-detail': (typeof ph !== 'undefined' && ph.kind === 'paiya') ? 'screen-paiya' : 'screen-pharma' }[id] || id;
+    const tab = { 'screen-results': 'screen-home', 'screen-addstop': 'screen-home', 'screen-fixpos': 'screen-home', 'screen-addplace': 'screen-paiya', 'screen-addline': 'screen-home', 'screen-imo-search': 'screen-imo', 'screen-imo-pub': 'screen-imo', 'screen-cle': 'screen-imo', 'screen-pharma-detail': (typeof ph !== 'undefined' && ph.kind === 'paiya') ? 'screen-paiya' : 'screen-pharma' }[id] || id;
     document.querySelectorAll('[data-nav]').forEach(b => b.classList.toggle('active', b.dataset.nav === tab));
     $(id).scrollTop = 0;
     if (prev !== id) document.querySelectorAll('#toasts .toast.error').forEach(t => t.remove()); // une erreur ne suit pas l'utilisateur sur un autre écran
@@ -336,12 +336,13 @@
     const scr = document.getElementById(current), dark = isDark();
     let color = '', map = false, statusLight;
     if (current === 'screen-home') { const sky = document.getElementById('home-sky'); color = sky ? getComputedStyle(sky).getPropertyValue('--s1').trim() : ''; statusLight = true; }
-    else if (scr && scr.classList.contains('has-aura')) { color = getComputedStyle(scr).getPropertyValue('--a1').trim(); statusLight = true; }
+    else if (scr && scr.classList.contains('has-aura')) { color = getComputedStyle(scr).getPropertyValue('--a1').trim(); statusLight = current === 'screen-imo' ? dark : true; } // Imo : fond jaune, icônes noires
     else if (scr && scr.classList.contains('immersive')) { map = true; statusLight = true; }
     else { color = getComputedStyle(document.body).getPropertyValue('--bg').trim(); statusLight = dark; }
     // color-mix() n'est pas toujours calculé en couleur : on passe par un élément témoin
     if (/color-mix/.test(color)) { sc.style.background = color; color = getComputedStyle(sc).backgroundColor; sc.style.background = ''; }
     sc.classList.toggle('map', map);
+    sc.classList.toggle('on', !map && !!scr && scr.scrollTop > 6);
     sc.style.setProperty('--sb-c', map ? 'transparent' : (color || 'transparent'));
     const meta = document.querySelector('meta[name=theme-color]'); if (meta && color) meta.content = color;
     const key = `${statusLight}|${dark}`;
@@ -351,6 +352,11 @@
     if (B && B.setStyle) B.setStyle({ statusLight, navLight: dark }).catch(() => {});
   }
   window.addEventListener('zupabars', () => { barsLast = ''; syncBars(); });
+  // barre transparente : le fond de l'onglet se voit dessous ; un voile n'apparaît que si le contenu défile sous l'heure
+  document.addEventListener('scroll', e => {
+    if (!e.target.classList || !e.target.classList.contains('screen') || e.target.id !== current) return;
+    const sc = document.getElementById('sb-scrim'); if (sc && !sc.classList.contains('map')) sc.classList.toggle('on', e.target.scrollTop > 6);
+  }, { capture: true, passive: true });
   mq.addEventListener && mq.addEventListener('change', () => state.theme === 'auto' && applyTheme());
 
   /* ---------- Cartes (Leaflet) ---------- */
@@ -3741,7 +3747,7 @@
   $('pv-visits').onchange = e => { visit.on = e.target.checked; store.set('pvVisits', visit.on); if (!visit.on) { visit.queue = []; store.set('visitQueue', []); } toast(visit.on ? 'Vos visites seront comptées de façon anonyme.' : 'Vos visites ne sont plus comptées.'); };
   $('pv-wipe').onclick = async () => {
     if (!sbOn()) return;
-    if (!confirm('Effacer vos données en ligne ? Votre profil d\u2019amis, vos amis, les lieux échangés, les lieux publics et les annonces Imo que vous avez ajoutés seront supprimés. Vos données sur ce téléphone restent.')) return;
+    if (!confirm('Effacer vos données en ligne ? Votre profil d\u2019amis, vos amis, les lieux échangés, les lieux publics et les annonces Imo que vous avez ajoutés seront supprimés (une annonce liée à une clé numérique est seulement retirée : l\u2019historique de la clé est conservé pour les deux parties). Vos données sur ce téléphone restent.')) return;
     const r = await sb('/rest/v1/rpc/mes_donnees_supprimer', { method: 'POST', body: { p_secret: mySecret, p_device: deviceId } });
     if (r.ok) { await sb('/rest/v1/rpc/mes_annonces_supprimer', { method: 'POST', body: { p_secret: mySecret } }); imo.mine = []; store.set('imoMine', []); }
     if (!r.ok) { toast(r.net ? 'Pas de connexion internet.' : 'Effacement impossible : ' + sbErr(r), 'error'); return; }
@@ -4014,7 +4020,7 @@
   const IMO_TYPES = [['chambre', 'Chambre simple'], ['studio', 'Studio'], ['2p', 'Chambre salon (2 pièces)'], ['3p', '3 pièces'], ['4p', '4 pièces'], ['5p', '5 pièces et +'], ['villa', 'Villa'], ['duplex', 'Duplex']];
   const IMO_T = Object.fromEntries(IMO_TYPES);
   const IMO_SHORT = { chambre: 'Chambre', studio: 'Studio', '2p': '2 pièces', '3p': '3 pièces', '4p': '4 pièces', '5p': '5 pièces +', villa: 'Villa', duplex: 'Duplex' };
-  const IMO_COLS = 'id,role,type,chambres,sdb,cuisine,douche_int,meuble,surface,etage,loyer,avance,caution,frais_visite,bail_mois,description,quartier,adresse,lat,lon,gps_acc,contact_nom,tel,whatsapp,thumb,nb_photos,created_at';
+  const IMO_COLS = 'id,role,type,chambres,sdb,cuisine,douche_int,meuble,surface,etage,loyer,avance,caution,frais_visite,bail_mois,description,quartier,adresse,lat,lon,gps_acc,contact_nom,tel,whatsapp,thumb,nb_photos,created_at,porte,remises';
   const IMO_GPS_MAX = 50, IMO_PIN_MAX = 60, IMO_GPS_TTL = 2 * 3600e3;
   const imo = { list: store.get('imoList', null), thumbs: new Map(), lastFetch: 0, loading: false, err: null, shown: 30,
     q: store.get('imoQ', null), mine: store.get('imoMine', []), photos: new Map(), reported: store.get('imoReported', []) };
@@ -4131,7 +4137,7 @@
     $('imo-mine-sub').textContent = `${imo.mine.length} annonce${imo.mine.length > 1 ? 's' : ''}`;
     $('imo-mine').innerHTML = imo.mine.map(m => {
       const exp = new Date(m.expires_at).getTime() < now, hidden = m.signalements >= 3;
-      const st = m.statut === 'louee' ? '<em class="py-tag">louée</em>' : hidden ? '<em class="py-tag bad">masquée (signalée)</em>' : exp ? '<em class="py-tag wait">expirée</em>' : '<em class="py-tag ok">en ligne</em>';
+      const st = m.statut === 'occupee' ? '<em class="py-tag ok">clé remise</em>' : m.statut === 'louee' ? '<em class="py-tag">louée</em>' : hidden ? '<em class="py-tag bad">masquée (signalée)</em>' : exp ? '<em class="py-tag wait">expirée</em>' : '<em class="py-tag ok">en ligne</em>';
       const left = Math.max(0, Math.ceil((new Date(m.expires_at).getTime() - now) / 864e5));
       return `<div class="py-row imo-row mine" data-mine="${esc(m.id)}" role="button" tabindex="0">
         <span class="imo-th">${imo.thumbs.get(m.id) ? `<img src="${imo.thumbs.get(m.id)}" alt="">` : ic('key')}</span>
@@ -4154,10 +4160,12 @@
       if (!r.ok) { toast(r.net ? 'Pas de connexion internet.' : 'Action impossible : ' + sbErr(r), 'error'); return; }
       toast(ok, 'success'); fetchMine(); fetchImo(true);
     };
+    if (m.statut === 'occupee') { openCles(); return; }
     openActions({ title: `${IMO_SHORT[m.type]} · ${m.quartier}`, sub: `${money(m.loyer)} F/mois`, actions: [
+      { icon: 'key', label: 'Remettre les clés au locataire', hint: 'Au logement : le locataire saisit un code dans ZUPA. L’annonce est alors retirée.', fn: () => cleDonner(m) },
       ...(imoById(m.id) ? [{ icon: 'home', label: 'Voir l’annonce', fn: () => followPlace('imo', m.id) }] : []),
       { icon: 'refresh', label: 'Toujours disponible', hint: 'Reste en ligne 45 jours de plus', fn: () => act('renouveler', 'Annonce prolongée de 45 jours.') },
-      { icon: 'check', label: 'C’est loué', hint: 'L’annonce n’apparaît plus', fn: () => act('louee', 'Annonce marquée louée. Félicitations !') },
+      { icon: 'check', label: 'Loué sans clé numérique', hint: 'L’annonce n’apparaît plus (la remise de clés protège mieux les deux parties)', fn: () => act('louee', 'Annonce marquée louée.') },
       { icon: 'trash', label: 'Supprimer l’annonce', danger: true, fn: () => { if (confirm('Supprimer définitivement cette annonce et ses photos ?')) act('retirer', 'Annonce supprimée.'); } }] });
   });
   $('imo-more').onclick = () => { imo.shown += 30; renderImo(); };
@@ -4217,7 +4225,8 @@
       <span class="ic-badge">${ic('key')}À LOUER</span>
       <h3 class="ic-title">${esc(imoTitle(a))}</h3>
       <p class="ic-addr">${ic('pin')}<span>${esc(a.quartier)}${a.adresse ? ' – ' + esc(a.adresse) : ''}</span></p>
-      <p class="ic-gps">${ic('locate')}Position GPS vérifiée sur place (± ${Math.round(a.gps_acc || 0)} m)</p>
+      <p class="ic-gps">${ic('locate')}Position GPS vérifiée sur place (± ${Math.round(a.gps_acc || 0)} m)</p>${a.porte ? `<p class="ic-gps">${ic('home')}${esc(a.porte)}</p>` : ''}
+      ${a.remises > 0 ? `<p class="ic-trust">${ic('key')}${a.remises} remise${a.remises > 1 ? 's' : ''} de clés réussie${a.remises > 1 ? 's' : ''} avec ZUPA</p>` : ''}
       <p class="ic-price">${money(a.loyer)} FCFA <small>/ mois</small></p>
       <div class="ic-stats">${stat('bed', a.chambres, a.chambres > 1 ? 'Chambres' : 'Chambre')}${stat('bath', a.sdb, a.sdb > 1 ? 'Salles de bain' : 'Salle de bain')}${stat('area', a.surface ? a.surface + ' m²' : null, 'Surface')}${stat('floor', a.etage == null ? null : a.etage === 0 ? 'RDC' : a.etage, 'Étage')}</div>
       <div class="ic-boxes">
@@ -4413,7 +4422,7 @@
     }
     ipMap.invalidateSize();
     if (ipCircle) ipCircle.remove();
-    ipCircle = L.circle([ip.gps.lat, ip.gps.lon], { radius: IMO_PIN_MAX, color: '#0b7a53', weight: 2, fillOpacity: 0.08, dashArray: '6 6', interactive: false }).addTo(ipMap);
+    ipCircle = L.circle([ip.gps.lat, ip.gps.lon], { radius: IMO_PIN_MAX, color: '#e0a800', weight: 2, fillOpacity: 0.1, dashArray: '6 6', interactive: false }).addTo(ipMap);
     ipMap.setView(ip.pin, 18, { animate: false });
   }
   function setIpZones() {
@@ -4447,7 +4456,7 @@
   $('ip-locate').onclick = ipLocate;
   $('ip-back').onclick = () => goBack();
   leaveGuards['screen-imo-pub'] = () => {
-    const dirty = ip.st === 'ok' || ip.photos.length || ['ip-loyer', 'ip-tel', 'ip-desc', 'ip-adresse'].some(i => $(i).value.trim());
+    const dirty = ip.st === 'ok' || ip.photos.length || ['ip-loyer', 'ip-tel', 'ip-desc', 'ip-adresse', 'ip-porte'].some(i => $(i).value.trim());
     return ip.sending ? false : !dirty || confirm('Abandonner cette annonce ? Les informations saisies seront perdues.');
   };
   $('ip-quartier').addEventListener('click', e => { const b = e.target.closest('[data-z]'); if (!b) return; ip.zone = b.dataset.z; renderImoPub(); });
@@ -4501,7 +4510,7 @@
     const body = {
       role: ip.role, type: ip.type, chambres: n($('ip-ch').value), sdb: n($('ip-sdb').value), cuisine: ip.eq.cuisine, douche_int: ip.eq.douche, meuble: ip.eq.meuble,
       surface: n($('ip-surf').value), etage: n($('ip-etage').value), loyer: n($('ip-loyer').value), avance: n($('ip-avance').value), caution: n($('ip-caution').value),
-      frais_visite: n($('ip-visite').value), bail_mois: n($('ip-bail').value), description: $('ip-desc').value.trim(), quartier: ip.zone, adresse: $('ip-adresse').value.trim(),
+      frais_visite: n($('ip-visite').value), bail_mois: n($('ip-bail').value), description: $('ip-desc').value.trim(), quartier: ip.zone, adresse: $('ip-adresse').value.trim(), porte: $('ip-porte').value.trim(),
       lat: +ip.pin[0].toFixed(6), lon: +ip.pin[1].toFixed(6), gps_lat: +ip.gps.lat.toFixed(6), gps_lon: +ip.gps.lon.toFixed(6), gps_acc: Math.max(1, Math.round(ip.gps.acc)),
       gps_at: new Date(ip.gps.t).toISOString(), contact_nom: $('ip-nom').value.trim(), tel: phoneDigits($('ip-tel').value), whatsapp: $('ip-wa').checked,
       thumb: ip.photos[0] && ip.photos[0].thumb || null
@@ -4535,6 +4544,277 @@
     ip.eq = { cuisine: true, douche: true, meuble: false };
     $('ip-ch').value = 1; $('ip-sdb').value = 1;
   }
+
+  /* =====================================================================
+     CLÉS NUMÉRIQUES — remise au logement, restitution, perte du téléphone, réémission, reprise
+     Le serveur vérifie tout (codes à usage unique, présence au logement, une clé par logement) ;
+     l'application guide les deux parties.
+     ===================================================================== */
+  const cle = { list: store.get('cles', []), view: 'liste', give: null, poll: null, ap: null, busy: false };
+  if (!Array.isArray(cle.list)) cle.list = [];
+  const CLE_ABC = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  const cleNorm = c => String(c || '').toUpperCase().replace(/[^0-9A-Z]/g, '');
+  const cleFmt = c => { const n = cleNorm(c); return n.length === 6 ? n.slice(0, 3) + ' ' + n.slice(3) : n; };
+  function newSecours() {
+    const r = new Uint32Array(12); (window.crypto || {}).getRandomValues ? crypto.getRandomValues(r) : r.forEach((_, i) => { r[i] = Math.random() * 1e9; });
+    const c = [...r].map(x => CLE_ABC[x % CLE_ABC.length]).join('');
+    return `${c.slice(0, 4)}-${c.slice(4, 8)}-${c.slice(8)}`;
+  }
+  // un seul code de secours par téléphone, pour toutes ses clés (à noter sur papier)
+  const mySecours = () => { let c = store.get('cleSecours', null); if (!c) { c = newSecours(); store.set('cleSecours', c); } return c; };
+  const dateFr = d => d ? new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+  const CLE_ST = { en_attente: ['wait', 'remise en cours'], active: ['ok', 'clé active'], restituee: ['', 'restituée'], reprise: ['bad', 'reprise par l’agent'] };
+  const cleErr = r => r.net ? 'Pas de connexion internet.' : r.status === 404 ? 'Les clés numériques ne sont pas encore activées sur le serveur.' : sbErr(r);
+  const cleRpc = async (fn, body) => { const r = await rpc(fn, body); if (r.ok && r.data && r.data.erreur) return { ok: false, data: { message: r.data.erreur } }; return r; };
+
+  // position fraîche et précise, exigée par le serveur pour toute remise ou restitution
+  function cleFix() {
+    return new Promise(res => {
+      if (state.pos && !state.posStale && !state.manual && Date.now() - (state.gpsT || 0) < 120e3 && (state.accuracy || 999) <= 60) { res({ lat: state.pos[0], lon: state.pos[1], acc: state.accuracy }); return; }
+      if (!navigator.geolocation) { res(null); return; }
+      navigator.geolocation.getCurrentPosition(p => res({ lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy || 999 }),
+        () => res(state.pos && !state.manual ? { lat: state.pos[0], lon: state.pos[1], acc: state.accuracy || 999 } : null), { enableHighAccuracy: true, timeout: 12000, maximumAge: 10000 });
+    });
+  }
+  const gpsBody = f => ({ p_lat: +f.lat.toFixed(6), p_lon: +f.lon.toFixed(6), p_acc: Math.max(1, Math.round(f.acc)) });
+
+  async function fetchCles() {
+    if (!sbOn()) return;
+    const r = await rpc('mes_cles', {});
+    if (r.ok && Array.isArray(r.data)) { cle.list = r.data; store.set('cles', cle.list); renderKeysBtn(); if (current === 'screen-cle' && cle.view === 'liste') renderCle(); }
+    return r;
+  }
+  function renderKeysBtn() {
+    const act = cle.list.filter(k => k.statut === 'active');
+    const n = $('imo-keys-n'); if (!n) return;
+    n.hidden = !act.length; n.textContent = act.length;
+    $('imo-keys-sub').textContent = act.length ? `${act.length} clé${act.length > 1 ? 's' : ''} active${act.length > 1 ? 's' : ''}` : 'Recevoir, rendre ou retrouver vos clés';
+  }
+  function openCles(view) {
+    cle.view = view || 'liste'; cle.ap = null;
+    show('screen-cle'); renderCle(); fetchCles();
+  }
+  function cleStop() { clearInterval(cle.poll); cle.poll = null; clearInterval(cle.tick); cle.tick = null; }
+  leaveGuards['screen-cle'] = () => { cleStop(); return true; };
+
+  function cleCard(k) {
+    const [cls, lbl] = CLE_ST[k.statut] || ['', k.statut];
+    const ag = k.role === 'agent';
+    const lines = [`${money(k.loyer)} F/mois · avance ${k.avance || 0} mois · caution ${k.caution || 0} mois`];
+    if (k.debut) lines.push(`Depuis le ${dateFr(k.debut)}${k.statut === 'active' ? ` · bail jusqu’au ${dateFr(k.fin_prevue)}` : k.fin_at ? ` · jusqu’au ${dateFr(k.fin_at)}` : ''}`);
+    lines.push(ag ? (k.client_nom ? `Locataire : ${k.client_nom} · ${k.client_tel}` : 'En attente du locataire') : `${k.agent_nom || 'Agent'} · ${k.agent_tel}`);
+    const warn = k.statut === 'active' && k.reprise_demandee_at && !(k.contestee_at && k.contestee_at > k.reprise_demandee_at)
+      ? `<p class="cle-warn">${ic('info')}${ag ? 'Reprise demandée le ' + dateFr(k.reprise_demandee_at) + ' : possible après la fin du bail et 30 jours sans contestation.' : 'L’agent a demandé la reprise du logement le ' + dateFr(k.reprise_demandee_at) + '. Si vous y habitez toujours, contestez.'}</p>` : '';
+    const code = k.code_but ? `<p class="cle-pending">${ic('key')}Code de ${k.code_but === 'restitution' ? 'restitution' : k.code_but === 'reemission' ? 'réémission' : 'remise'} en cours, valable jusqu’à ${new Date(k.code_exp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>` : '';
+    const j = (k.journal || []).slice(0, 6).map(e => `<li><time>${new Date(e.at).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</time><span>${esc(e.ev)}</span></li>`).join('');
+    return `<article class="cle-card ${k.statut}" data-cle="${esc(k.id)}">
+      <div class="cle-top"><span class="cle-ic">${ic('key')}</span><span class="cle-h"><small>${ag ? 'Vous avez remis la clé' : 'Votre clé'}</small><b>${esc(IMO_SHORT[k.type] || k.type)} · ${esc(k.quartier)}</b>${k.porte ? `<small>${esc(k.porte)}</small>` : ''}</span><em class="py-tag ${cls}">${esc(lbl)}</em></div>
+      ${lines.map(l => `<p class="cle-l">${esc(l)}</p>`).join('')}${warn}${code}
+      ${['active', 'en_attente'].includes(k.statut) ? `<button type="button" class="btn primary block sm" data-cle-act="${esc(k.id)}">${ic('more')}Actions</button>` : ''}
+      ${j ? `<details class="cle-j"><summary>Historique (${(k.journal || []).length})</summary><ul>${j}</ul></details>` : ''}
+    </article>`;
+  }
+  function renderCle() {
+    const b = $('cle-body'); if (!b) return;
+    $('cle-title').textContent = { liste: 'Clés numériques', donner: 'Donnez ce code', saisir: 'Saisir un code', secours: 'Nouveau téléphone' }[cle.view] || 'Clés numériques';
+    if (cle.view === 'liste') {
+      const mine = cle.list.filter(k => k.statut !== 'annulee');
+      b.innerHTML = `<details class="cle-how card"${mine.length ? '' : ' open'}><summary><b>${ic('key')} Comment ça marche ?</b></summary>
+          <ol><li><b>Au logement</b>, l’agent ou le propriétaire touche « Remettre les clés » sur son annonce : un code s’affiche.</li>
+          <li>Le locataire, <b>sur place lui aussi</b>, saisit ce code, vérifie le loyer, l’avance et la caution, puis accepte.</li>
+          <li>La clé numérique est remise : l’annonce disparaît et le logement ne peut plus être proposé à quelqu’un d’autre.</li></ol>
+          <p class="muted">Ne versez l’avance et la caution qu’au moment de cette remise, au logement.</p></details>
+        <div class="cle-btns"><button type="button" class="imo-act main" id="cle-recv">${ic('key')}<span><b>J’ai reçu un code</b><small>Remise ou restitution de clés</small></span></button>
+          <button type="button" class="imo-act" id="cle-lost">${ic('phone')}<span><b>Nouveau téléphone</b><small>Retrouver mes clés</small></span></button></div>
+        <div class="py-head"><h2>Mes clés</h2><span>${mine.length || ''}</span></div>
+        ${mine.length ? mine.map(cleCard).join('') : `<div class="py-empty imo-empty">${ic('key')}<b>Aucune clé pour l’instant</b><span>Les clés que vous recevez ou remettez apparaîtront ici, avec leur historique.</span></div>`}
+        ${store.get('cleSecours', null) && mine.some(k => k.role === 'locataire' && k.statut === 'active') ? `<button type="button" class="link cle-sec-show" id="cle-sec-show">${ic('lock')}Afficher mon code de secours</button>` : ''}`;
+      return;
+    }
+    if (cle.view === 'donner') {
+      const g = cle.give, left = Math.max(0, Math.round((new Date(g.exp).getTime() - Date.now()) / 1000));
+      const who = g.but === 'restitution' ? 'l’agent ou le propriétaire' : 'le locataire';
+      b.innerHTML = `<div class="card cle-give">
+          <p class="cle-give-k">${g.but === 'restitution' ? 'Restitution des clés' : g.but === 'reemission' ? 'Réémission de la clé' : 'Remise des clés'} · ${esc(g.label || '')}</p>
+          <div class="cle-code" aria-label="Code ${esc(g.code.split('').join(' '))}">${esc(cleFmt(g.code))}</div>
+          <p class="cle-exp" id="cle-exp">${left ? `Valable encore ${Math.floor(left / 60)} min ${String(left % 60).padStart(2, '0')}` : 'Code expiré'}</p>
+          <p>Montrez ce code à <b>${who}</b>, présent avec vous au logement. Il le saisit dans <b>ZUPA › Imo › Clés numériques › J’ai reçu un code</b>.</p>
+          <p class="cle-wait" id="cle-wait"><span class="spinner"></span>En attente de la saisie…</p>
+          <button type="button" class="btn ghost block" id="cle-cancel">Annuler ce code</button></div>`;
+      return;
+    }
+    if (cle.view === 'saisir') {
+      const a = cle.ap;
+      if (!a) {
+        b.innerHTML = `<form class="card form cle-form" id="cle-code-form" novalidate>
+            <label for="cle-code-in">Code à 6 caractères</label>
+            <input class="input cle-code-in" id="cle-code-in" maxlength="7" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="K7P 4QX">
+            <button class="btn primary block" type="submit" id="cle-code-go">Continuer</button>
+            <p class="muted">Le code est affiché sur le téléphone de l’autre personne, au logement. Il est valable 20 minutes et ne sert qu’une fois.</p></form>`;
+        setTimeout(() => $('cle-code-in') && $('cle-code-in').focus(), 250);
+        return;
+      }
+      const terms = `<div class="cle-terms"><div><small>Loyer</small><b>${money(a.loyer)} F</b></div><div><small>Avance</small><b>${a.avance || 0} mois</b></div><div><small>Caution</small><b>${a.caution || 0} mois</b></div><div><small>Bail</small><b>${a.bail_mois || 12} mois</b></div></div>`;
+      const house = `<p class="cle-house">${ic('home')}<span><b>${esc(IMO_SHORT[a.type] || a.type)} · ${esc(a.quartier)}</b><small>${esc([a.porte, a.adresse].filter(Boolean).join(' · '))}</small></span></p>`;
+      if (a.but === 'restitution') {
+        b.innerHTML = `<div class="card cle-form">${house}<p>Le locataire <b>${esc(a.client_nom || '')}</b> vous rend les clés de ce logement.</p>
+            <p class="cle-warn">${ic('info')}Vérifiez l’état du logement et récupérez les clés physiques avant de confirmer : le logement sera libéré et le locataire n’aura plus de clé.</p>
+            <label class="ap-check"><input type="checkbox" id="cle-ok"> J’ai récupéré les clés et vérifié le logement.</label>
+            <button class="btn primary block" type="button" id="cle-accept" disabled>Confirmer la restitution</button></div>`;
+        return;
+      }
+      const sec = mySecours(), re = a.but === 'reemission';
+      b.innerHTML = `<div class="card cle-form">${house}
+          <p class="cle-from">${ic('user')}${a.role === 'agent' ? 'Agent' : 'Propriétaire'} : <b>${esc(a.agent_nom || '—')}</b> · ${esc(a.agent_tel || '')}${a.remises ? ` · ${a.remises} remise${a.remises > 1 ? 's' : ''} réussie${a.remises > 1 ? 's' : ''}` : ''}</p>
+          ${re ? `<p>Votre clé va être réémise sur ce téléphone : l’ancien téléphone n’y aura plus accès. Indiquez le numéro donné lors de la remise.</p>` : `<h3>Conditions de location</h3>${terms}<p class="muted">En acceptant, vous confirmez ces conditions. Elles sont enregistrées pour vous deux et ne peuvent plus être modifiées.</p>
+          <label for="cle-nom">Votre nom</label><input class="input" id="cle-nom" maxlength="60" autocomplete="name" value="${esc([state.profile.firstname, state.profile.lastname].filter(Boolean).join(' '))}">`}
+          <label for="cle-tel">Votre téléphone</label><input class="input" id="cle-tel" type="tel" inputmode="tel" maxlength="20" autocomplete="tel" placeholder="07 00 00 00 00">
+          <div class="cle-sec"><small>Votre code de secours (si vous perdez ou changez de téléphone)</small><b>${esc(sec)}</b><span>Notez-le sur papier et gardez-le chez vous. Ne le donnez à personne, pas même à l’agent.</span></div>
+          <label class="ap-check"><input type="checkbox" id="cle-ok"> J’ai noté mon code de secours${re ? '' : ' et j’accepte ces conditions'}.</label>
+          <button class="btn primary block" type="button" id="cle-accept" disabled>${re ? 'Recevoir ma clé sur ce téléphone' : 'Recevoir la clé'}</button></div>`;
+      return;
+    }
+    if (cle.view === 'secours') {
+      const nw = cle.newSec || (cle.newSec = newSecours());
+      b.innerHTML = `<form class="card form cle-form" id="cle-sec-form" novalidate>
+          <p>Vous avez changé ou perdu votre téléphone ? Saisissez le <b>code de secours</b> noté lors de la remise des clés : vos clés passent sur ce téléphone et l’ancien est désactivé.</p>
+          <label for="cle-sec-in">Code de secours</label>
+          <input class="input cle-code-in" id="cle-sec-in" maxlength="16" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX">
+          <div class="cle-sec"><small>Votre nouveau code de secours</small><b>${esc(nw)}</b><span>L’ancien code ne fonctionnera plus. Notez celui-ci.</span></div>
+          <label class="ap-check"><input type="checkbox" id="cle-ok"> J’ai noté mon nouveau code de secours.</label>
+          <button class="btn primary block" type="submit" id="cle-accept" disabled>Retrouver mes clés</button>
+          <p class="muted">Code de secours perdu aussi ? Retournez au logement avec l’agent : il pourra <b>réémettre la clé</b> sur votre nouveau téléphone, au même numéro.</p></form>`;
+    }
+  }
+
+  // ---- agent : remettre les clés (annonce) ou réémettre ; locataire : rendre les clés
+  async function cleGive(fn, body, label, but) {
+    if (cle.busy) return; cle.busy = true;
+    toast('Localisation au logement…', 'info', 2500);
+    const f = await cleFix();
+    if (!f) { cle.busy = false; toast('Activez la localisation : la remise des clés se fait au logement.', 'error', 6000); return; }
+    const r = await cleRpc(fn, { ...body, ...gpsBody(f) });
+    cle.busy = false;
+    if (!r.ok || !r.data || !r.data.code) { toast(cleErr(r), 'error', 7000); return; }
+    cle.give = { id: r.data.id, code: r.data.code, exp: r.data.exp, label, but, t0: Date.now() };
+    cle.view = 'donner';
+    if (current !== 'screen-cle') show('screen-cle');
+    renderCle();
+    cleStop();
+    cle.tick = setInterval(() => {
+      const e = $('cle-exp'); if (!e || cle.view !== 'donner') return;
+      const left = Math.max(0, Math.round((new Date(cle.give.exp).getTime() - Date.now()) / 1000));
+      e.textContent = left ? `Valable encore ${Math.floor(left / 60)} min ${String(left % 60).padStart(2, '0')}` : 'Code expiré : annulez et recommencez.';
+      e.classList.toggle('bad', !left);
+    }, 1000);
+    // on surveille la saisie par l'autre personne
+    cle.poll = setInterval(async () => {
+      if (cle.view !== 'donner' || document.visibilityState !== 'visible') return;
+      const r2 = await rpc('mes_cles', {});
+      if (!r2.ok || !Array.isArray(r2.data)) return;
+      cle.list = r2.data; store.set('cles', cle.list);
+      const k = r2.data.find(x => x.id === cle.give.id);
+      const done = but === 'restitution' ? !k || k.statut !== 'active' : !k || !k.code_but;
+      if (!done) return;
+      cleStop(); vibrate([120, 60, 120]);
+      if (k && but === 'remise' && k.statut !== 'active') { toast('Le code a été annulé.', 'info'); cle.view = 'liste'; renderCle(); return; }
+      toast(but === 'restitution' ? 'Restitution confirmée par l’agent. Merci !' : but === 'reemission' ? 'Clé réémise sur le nouveau téléphone du locataire.' : `Clés remises à ${k.client_nom}. L’annonce est retirée des propositions.`, 'success', 7000);
+      cle.view = 'liste'; renderCle(); renderKeysBtn(); fetchMine(); fetchImo(true);
+    }, 4000);
+  }
+  const cleDonner = m => cleGive('cle_preparer', { p_annonce: m.id }, `${IMO_SHORT[m.type]} · ${m.quartier}`, 'remise');
+
+  function cleMenu(k) {
+    const tel = String(k.role === 'agent' ? k.client_tel || '' : k.agent_tel || '');
+    const label = `${IMO_SHORT[k.type] || k.type} · ${k.quartier}`;
+    const call = tel ? [{ icon: 'phone', label: k.role === 'agent' ? `Appeler ${k.client_nom || 'le locataire'}` : `Appeler ${k.agent_nom || 'l’agent'}`, fn: () => openExternal('tel:' + tel) }] : [];
+    const after = async (r, ok) => { if (!r.ok) { toast(cleErr(r), 'error', 7000); return; } toast(ok, 'success', 6000); await fetchCles(); renderCle(); };
+    let actions = [];
+    if (k.code_but) actions.push({ icon: 'close', label: 'Annuler le code en cours', fn: async () => after(await cleRpc('cle_annuler', { p_cle: k.id }), 'Code annulé.') });
+    if (k.statut === 'active' && k.role === 'locataire') {
+      actions.push({ icon: 'key', label: 'Rendre les clés', hint: 'Au logement : l’agent saisit le code qui s’affiche. Votre clé prend fin.', fn: () => cleGive('cle_restitution_preparer', { p_cle: k.id }, label, 'restitution') });
+      if (k.reprise_demandee_at && !(k.contestee_at && k.contestee_at > k.reprise_demandee_at))
+        actions.push({ icon: 'flag', label: 'Contester la reprise', hint: 'J’habite toujours ce logement : la reprise est bloquée', fn: async () => after(await cleRpc('cle_contester', { p_cle: k.id }), 'Reprise contestée : l’agent ne peut plus reprendre le logement sans vous.') });
+      actions.push({ icon: 'lock', label: 'Mon code de secours', hint: 'Pour retrouver vos clés sur un nouveau téléphone', fn: showSecours });
+    }
+    if (k.statut === 'active' && k.role === 'agent') {
+      actions.push({ icon: 'key', label: 'Saisir le code de restitution', hint: 'Le locataire vous rend les clés au logement', fn: () => { cle.view = 'saisir'; cle.ap = null; renderCle(); } });
+      actions.push({ icon: 'refresh', label: 'Prolonger le bail', hint: `Fin actuelle : ${dateFr(k.fin_prevue)}`, fn: () => cleProlonger(k) });
+      actions.push({ icon: 'phone', label: 'Réémettre la clé', hint: 'Le locataire a perdu son téléphone et son code de secours : au logement, au même numéro', fn: () => { if (confirm(`Réémettre la clé de ${k.client_nom} ?\n\nÀ faire au logement, avec le locataire. Il saisira le code sur son nouveau téléphone avec le même numéro (${k.client_tel}). Son ancien téléphone n’aura plus accès à la clé.`)) cleGive('cle_reemettre', { p_cle: k.id }, label, 'reemission'); } });
+      const asked = k.reprise_demandee_at && !(k.contestee_at && k.contestee_at > k.reprise_demandee_at);
+      actions.push({ icon: 'flag', danger: true, label: asked ? 'Reprendre le logement' : 'Locataire injoignable : demander la reprise', hint: asked ? 'Possible après la fin du bail et 30 jours sans contestation' : 'Le locataire est prévenu et peut contester. Reprise possible après la fin du bail et 30 jours.',
+        fn: async () => { if (!asked && !confirm('Demander la reprise du logement ?\n\nÀ n’utiliser que si le locataire a quitté le logement sans rendre les clés. Il est prévenu dans ZUPA et peut contester. La reprise ne sera possible qu’après la fin du bail et 30 jours sans contestation.')) return;
+          const r = await cleRpc('cle_reprise', { p_cle: k.id }); if (!r.ok) { toast(cleErr(r), 'error', 7000); return; }
+          after(r, r.data && r.data.etat === 'reprise' ? 'Logement repris : vous pouvez le remettre en location.' : `Reprise demandée : possible à partir du ${dateFr(r.data && r.data.effet)} si le locataire ne conteste pas.`); } });
+    }
+    openActions({ title: label, sub: k.role === 'agent' ? 'Vous avez remis cette clé' : 'Votre clé', actions: [...actions, ...call] });
+  }
+  function cleProlonger(k) {
+    openActions({ title: 'Prolonger le bail', sub: `Fin actuelle : ${dateFr(k.fin_prevue)}`, actions: [6, 12, 24].map(m => ({ icon: 'refresh', label: `${m} mois de plus`,
+      fn: async () => { const r = await cleRpc('cle_prolonger', { p_cle: k.id, p_mois: m }); if (!r.ok) { toast(cleErr(r), 'error'); return; } toast(`Bail prolongé jusqu’au ${dateFr(r.data)}.`, 'success'); await fetchCles(); renderCle(); } })) });
+  }
+  function showSecours() {
+    const c = store.get('cleSecours', null);
+    if (!c) { toast('Aucun code de secours sur ce téléphone.', 'error'); return; }
+    if (!confirm('Afficher votre code de secours ?\n\nAssurez-vous que personne ne regarde votre écran. Ne le donnez à personne, pas même à l’agent.')) return;
+    toast(`Code de secours : ${c}`, 'info', 15000);
+  }
+
+  $('screen-cle').addEventListener('click', async e => {
+    const t = e.target;
+    if (t.closest('#cle-recv')) { cle.view = 'saisir'; cle.ap = null; renderCle(); return; }
+    if (t.closest('#cle-lost')) { cle.view = 'secours'; cle.newSec = null; renderCle(); return; }
+    if (t.closest('#cle-sec-show')) { showSecours(); return; }
+    const a = t.closest('[data-cle-act]'); if (a) { const k = cle.list.find(x => x.id === a.dataset.cleAct); if (k) cleMenu(k); return; }
+    if (t.closest('#cle-cancel')) { const r = await cleRpc('cle_annuler', { p_cle: cle.give.id }); cleStop(); toast(r.ok ? 'Code annulé.' : cleErr(r), r.ok ? 'info' : 'error'); cle.view = 'liste'; renderCle(); fetchCles(); return; }
+    if (t.closest('#cle-accept') && !t.closest('#cle-sec-form')) cleAccept();
+  });
+  $('screen-cle').addEventListener('change', e => { if (e.target.id === 'cle-ok') $('cle-accept').disabled = !e.target.checked; });
+  $('screen-cle').addEventListener('input', e => {
+    if (e.target.id === 'cle-code-in') { const v = cleNorm(e.target.value).slice(0, 6); const f = v.length > 3 ? v.slice(0, 3) + ' ' + v.slice(3) : v; if (e.target.value !== f) e.target.value = f; }
+  });
+  $('screen-cle').addEventListener('submit', async e => {
+    e.preventDefault();
+    if (e.target.id === 'cle-code-form') {
+      const code = cleNorm($('cle-code-in').value);
+      if (code.length !== 6) { toast('Le code contient 6 caractères.', 'error'); return; }
+      $('cle-code-go').classList.add('loading');
+      const r = await cleRpc('cle_apercu', { p_code: code });
+      $('cle-code-go') && $('cle-code-go').classList.remove('loading');
+      if (!r.ok) { toast(cleErr(r), 'error', 6000); return; }
+      cle.ap = { ...r.data, code }; renderCle();
+    } else if (e.target.id === 'cle-sec-form') {
+      if (!$('cle-ok').checked) return;
+      const old = $('cle-sec-in').value;
+      if (cleNorm(old).length < 12) { toast('Le code de secours contient 12 caractères.', 'error'); return; }
+      const r = await rpc('cle_secours', { p_recup: old, p_new_recup: cle.newSec });
+      if (!r.ok) { toast(cleErr(r), 'error', 6000); return; }
+      if (!r.data) { toast('Code de secours inconnu. Vérifiez-le : il ne contient jamais les caractères O, I, L, 0 ou 1.', 'error', 7000); return; }
+      store.set('cleSecours', cle.newSec);
+      toast(`${r.data} clé${r.data > 1 ? 's' : ''} retrouvée${r.data > 1 ? 's' : ''} sur ce téléphone. L’ancien téléphone est désactivé.`, 'success', 7000);
+      cle.view = 'liste'; await fetchCles(); renderCle();
+    }
+  });
+  async function cleAccept() {
+    const a = cle.ap; if (!a || cle.busy) return;
+    const tel = a.but === 'restitution' ? null : phoneDigits($('cle-tel').value);
+    if (a.but !== 'restitution' && !/^\d{10}$/.test(tel || '')) { toast('Numéro de téléphone : 10 chiffres.', 'error'); return; }
+    if (a.but === 'remise' && $('cle-nom').value.trim().length < 2) { toast('Indiquez votre nom.', 'error'); return; }
+    cle.busy = true; $('cle-accept').classList.add('loading');
+    const f = await cleFix();
+    if (!f) { cle.busy = false; $('cle-accept').classList.remove('loading'); toast('Activez la localisation : la remise se fait au logement.', 'error', 6000); return; }
+    const r = await cleRpc('cle_valider', { p_code: a.code, ...gpsBody(f), p_nom: a.but === 'remise' ? $('cle-nom').value.trim() : null, p_tel: tel, p_recup: a.but === 'restitution' ? null : mySecours() });
+    cle.busy = false; $('cle-accept') && $('cle-accept').classList.remove('loading');
+    if (!r.ok) { toast(cleErr(r), 'error', 7000); return; }
+    vibrate([150, 80, 150]);
+    toast(a.but === 'restitution' ? 'Restitution confirmée : le logement est libéré. Vous pouvez le remettre en location depuis « Mes annonces ».' : a.but === 'reemission' ? 'Votre clé est maintenant sur ce téléphone.' : 'Clé reçue ! Elle est enregistrée dans « Mes clés », avec les conditions acceptées.', 'success', 8000);
+    cle.ap = null; cle.view = 'liste'; await fetchCles(); renderCle(); fetchMine();
+  }
+  $('cle-back').onclick = () => { if (cle.view !== 'liste') { cleStop(); cle.view = 'liste'; cle.ap = null; renderCle(); fetchCles(); } else goBack(); };
+  $('imo-keys').onclick = () => openCles();
+  renderKeysBtn();
+  setTimeout(() => fetchCles(), 7000);
+
   resetImoPub();
   setTimeout(() => fetchImo(false), 6000);
 
