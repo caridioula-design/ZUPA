@@ -1410,7 +1410,7 @@
   function greeting() {
     const h = new Date().getHours();
     const hello = h < 5 || h >= 18 ? 'Bonsoir' : 'Bonjour';
-    $('greet').textContent = `${hello}${state.profile.firstname ? ' ' + state.profile.firstname : ''}, où allez-vous ?`;
+    $('greet').innerHTML = `<span>${hello}${state.profile.firstname ? ', ' + esc(state.profile.firstname) : ''}</span><span>où allez-vous aujourd’hui ?</span>`;
     skyPaint();
   }
 

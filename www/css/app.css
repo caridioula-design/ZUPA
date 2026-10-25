@@ -1345,3 +1345,7 @@ body.dark #screen-paiya{--a1:color-mix(in srgb,var(--c,#f07a35) 38%,#000);--a2:c
 body.dark #screen-imo{--a1:#01241b;--a2:#0a5a40}
 body.dark #screen-profile{--a1:#5a1d05;--a2:#9a3f14}
 #screen-profile>.topbar .title{color:#fff;font-size:1.7rem}
+/* salutation sur deux lignes, plus discrète */
+.hero .greet{font-size:clamp(1.12rem,5.2vw,1.4rem);line-height:1.25;margin:16px 0 4px;display:flex;flex-direction:column}
+.hero .greet span:first-child{font-weight:600}
+.hero .greet span:last-child{font-weight:300;opacity:.95}
