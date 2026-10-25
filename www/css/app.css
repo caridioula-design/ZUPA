@@ -1028,3 +1028,7 @@ button,a,[role="button"],input,label{touch-action:manipulation}
 .rc-steps .lg-freq .ic{width:13px;height:13px;fill:currentColor}
 .rc-steps .lg-off{color:#c2410c;font-weight:600}
 .rc-foot .tag.off{background:#fde7d9;color:#c2410c}
+/* suggestions : défilement au doigt, choix au relâcher */
+.suggest{touch-action:pan-y;-webkit-overflow-scrolling:touch}
+.suggest .sg-item{-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+.suggest .sg-item.pressed{background:var(--surface-2,rgba(0,0,0,.06))}

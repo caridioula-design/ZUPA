@@ -1197,11 +1197,26 @@
         if (!box.hidden && active >= 0) pick(active); else { close(); onEnter && onEnter(); }
       }
     });
+    // Toucher ≠ choisir : on choisit au relâcher, seulement si le doigt n'a pas glissé (défilement de la liste).
+    // Un toucher qui arrête un défilement en cours ne choisit rien non plus.
+    let tap = null, scrolledAt = 0;
+    const unpress = () => { if (tap && tap.el) tap.el.classList.remove('pressed'); tap = null; };
+    box.addEventListener('scroll', () => { scrolledAt = Date.now(); unpress(); }, { passive: true });
     box.addEventListener('pointerdown', e => {
+      e.preventDefault(); // garde le focus (et le clavier) sur le champ
       const el = e.target.closest('.sg-item');
-      if (!el) return;
-      e.preventDefault();
-      pick(+el.dataset.i);
+      unpress();
+      if (!el || Date.now() - scrolledAt < 300) return;
+      tap = { el, i: +el.dataset.i, x: e.clientX, y: e.clientY, id: e.pointerId };
+      el.classList.add('pressed');
+    });
+    box.addEventListener('pointermove', e => { if (tap && e.pointerId === tap.id && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 8) unpress(); }, { passive: true });
+    box.addEventListener('pointercancel', unpress);
+    box.addEventListener('pointerleave', unpress);
+    box.addEventListener('pointerup', e => {
+      if (!tap || e.pointerId !== tap.id) return;
+      const t = tap; unpress();
+      if (e.target.closest('.sg-item') === t.el && Date.now() - scrolledAt > 300) pick(t.i);
     });
     const api = { close, refresh: update };
     suggests.push(api);
@@ -3648,7 +3663,10 @@
     document.querySelectorAll('.suggest').forEach(b => {
       if (b.hidden) return;
       const top = b.getBoundingClientRect().top;
-      b.style.maxHeight = Math.max(150, vh - top - 10) + 'px';
+      // la liste s'arrête au-dessus de la barre d'onglets (sinon les dernières suggestions sont cachées dessous)
+      const nav = document.querySelector('.navbar'), nr = nav && nav.offsetParent ? nav.getBoundingClientRect() : null;
+      const bottom = nr && nr.height && nr.top < vh ? Math.min(vh, nr.top) : vh;
+      b.style.maxHeight = Math.max(150, bottom - top - 10) + 'px';
     });
   }
   function keepFocusVisible() {

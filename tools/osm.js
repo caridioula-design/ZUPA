@@ -50,7 +50,9 @@ out tags;`;
 
   async function download(onStatus) {
     let lastErr;
-    for (const url of ENDPOINTS) {
+    // deux tours sur tous les serveurs (les 504 d'Overpass sont souvent passagers)
+    for (const [round, url] of [...ENDPOINTS.map(u => [0, u]), ...ENDPOINTS.map(u => [1, u])]) {
+      if (round && url === ENDPOINTS[0]) await new Promise(r => setTimeout(r, 45000));
       try {
         onStatus && onStatus(`Interrogation de ${new URL(url).host}…`);
         const ctl = new AbortController();
