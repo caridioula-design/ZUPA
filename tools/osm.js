@@ -7,15 +7,18 @@ const OsmConvert = (() => {
   'use strict';
   // Grand Abidjan (Anyama, Bingerville, Songon, Port-Bouët compris) : sud, ouest, nord, est
   const BBOX = [5.15, -4.30, 5.62, -3.70];
-  // trajets (un par sens) + leurs arrêts + la fiche « route_master » qui regroupe l'aller et le retour
-  // (tarif, fréquence, horaires y sont souvent renseignés, comme dans le GTFS Jungle Bus / DigitalTransport4Africa)
+  const ROUTES = `rel["type"="route"]["route"~"^(bus|trolleybus|minibus|share_taxi|ferry)$"](${BBOX.join(',')})`;
+  // 1) trajets (un par sens) + leurs arrêts — la requête qui fonctionne depuis le début
   const QUERY = `[out:json][timeout:240];
-rel["type"="route"]["route"~"^(bus|trolleybus|minibus|share_taxi|ferry)$"](${BBOX.join(',')})->.r;
-.r out body;
-node(r.r);
-out body qt;
-rel(br.r)["type"="route_master"];
-out tags;`;
+${ROUTES};
+out body;
+node(r);
+out body qt;`;
+  // 2) fiches « route_master » qui regroupent aller et retour : tarif, fréquence, horaires (facultatif)
+  const QUERY_MASTER = `[out:json][timeout:180];
+${ROUTES};
+rel(br)["type"="route_master"];
+out body;`;
   const ENDPOINTS = [
     'https://overpass-api.de/api/interpreter',
     'https://overpass.kumi.systems/api/interpreter',
@@ -48,7 +51,7 @@ out tags;`;
   }
   const padRef = r => /^\d$/.test(r) ? '0' + r : r;
 
-  async function download(onStatus) {
+  async function download(onStatus, query = QUERY) {
     let lastErr;
     // deux tours sur tous les serveurs (les 504 d'Overpass sont souvent passagers)
     for (const [round, url] of [...ENDPOINTS.map(u => [0, u]), ...ENDPOINTS.map(u => [1, u])]) {
@@ -57,7 +60,7 @@ out tags;`;
         onStatus && onStatus(`Interrogation de ${new URL(url).host}…`);
         const ctl = new AbortController();
         const timer = setTimeout(() => ctl.abort(), 260000);
-        const r = await fetch(url, { method: 'POST', body: 'data=' + encodeURIComponent(QUERY),
+        const r = await fetch(url, { method: 'POST', body: 'data=' + encodeURIComponent(query),
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, signal: ctl.signal });
         clearTimeout(timer);
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -196,6 +199,6 @@ out tags;`;
     return "/* ZUPA — bus SOTRA, gbaka, wôrô-wôrô et bateaux-bus d'Abidjan (© contributeurs OpenStreetMap, ODbL) */\nwindow.ZUPA_BUS = " + JSON.stringify(slim) + ';\n';
   }
 
-  return { BBOX, QUERY, download, convert, merge, readBusFile, writeBusFile, numberUnnumbered, extractFromIndex, injectIntoIndex, idOf };
+  return { BBOX, QUERY, QUERY_MASTER, download, convert, merge, readBusFile, writeBusFile, numberUnnumbered, extractFromIndex, injectIntoIndex, idOf };
 })();
 if (typeof module !== 'undefined') module.exports = OsmConvert;
