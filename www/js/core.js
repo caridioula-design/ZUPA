@@ -9,6 +9,7 @@ const Core = (() => {
     BUS_KMH: 16,            // vitesse moyenne d'un bus en ville (arrêts compris)
     DWELL_MIN: 0.5,         // temps perdu à chaque arrêt
     TRANSFER_MIN: 8,        // pénalité d'attente pour une correspondance
+    WAIT_MAX_MIN: 15,       // attente au départ : la moitié de la fréquence, plafonnée
     DETOUR: 1.3,            // la marche réelle est ~30 % plus longue qu'à vol d'oiseau
     MAX_RADIUS_KM: 2,       // rayon de recherche des arrêts de départ
     MAX_ORIGIN_STOPS: 25,
@@ -24,7 +25,7 @@ const Core = (() => {
   };
   const GENERIC = new Set(['arret']);
   const COLL = typeof Intl !== 'undefined' ? new Intl.Collator('fr', { sensitivity: 'base' }) : { compare: (a, b) => a < b ? -1 : a > b ? 1 : 0 }; // tri alphabétique rapide (un seul comparateur)
-  const VEH = { bus: 'Bus', gbaka: 'Gbaka', woro: 'Wôrô-wôrô', saloni: 'Saloni' };
+  const VEH = { bus: 'Bus', gbaka: 'Gbaka', woro: 'Wôrô-wôrô', saloni: 'Saloni', bateau: 'Bateau-bus' };
 
   const norm = s => String(s || '')
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -102,7 +103,7 @@ const Core = (() => {
     i > 0 && SMALL.test(w) ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1));
 
   function parseName(name) {
-    const m = /^\s*(?:bus|gbaka|saloni|w[oô]r[oô][- ]?w[oô]r[oô])\s*([^:]*?)\s*:\s*(.*)$/i.exec(name);
+    const m = /^\s*(?:bus|gbaka|saloni|bateau|w[oô]r[oô][- ]?w[oô]r[oô])\s*([^:]*?)\s*:\s*(.*)$/i.exec(name);
     if (!m) return { num: name.trim(), title: '' };
     return { num: m[1].trim() || name.trim(), title: titleCase(m[2].trim()) };
   }
@@ -184,8 +185,9 @@ const Core = (() => {
       seen.add(sig);
       const parsed = parseName(l.name);
       const num = l.ref ? String(l.ref) : parsed.num, title = parsed.title;
-      const kind = l.kind || (/^\s*gbaka/i.test(l.name) ? 'gbaka' : /^\s*w[oô]r[oô]/i.test(l.name) ? 'woro' : /^\s*saloni/i.test(l.name) ? 'saloni' : 'bus');
-      const line = { id: lines.length, name: l.name, num, title, kind, veh: VEH[kind] || 'Bus', cost: Number(l.cost) || null, stops: [], cum: [0] };
+      const kind = l.kind || (/^\s*gbaka/i.test(l.name) ? 'gbaka' : /^\s*w[oô]r[oô]/i.test(l.name) ? 'woro' : /^\s*saloni/i.test(l.name) ? 'saloni' : /^\s*bateau/i.test(l.name) ? 'bateau' : 'bus');
+      const line = { id: lines.length, name: l.name, num, title, kind, veh: VEH[kind] || 'Bus', cost: Number(l.cost) || null, stops: [], cum: [0],
+        every: Number(l.every) || null, hours: l.hours || null, operator: l.operator || null };
       valid.forEach((s, i) => {
         const name = s.name.trim(), lat = +s.lat, lon = +s.lon;
         const c = clusterFor({ name, key: norm(name), lat, lon, custom: !!s.custom });
@@ -281,6 +283,8 @@ const Core = (() => {
 
   /* ---------- Calcul d'itinéraires (direct + 1 correspondance) ---------- */
   const walkMin = km => km / CFG.WALK_KMH * 60;
+  // attente moyenne à l'arrêt : la moitié de l'intervalle entre deux passages (s'il est connu)
+  const waitMin = line => line.every ? Math.min(line.every / 2, CFG.WAIT_MAX_MIN) : 0;
   // fin du trajet : à pied jusqu'à 1 km, sinon saloni, taxi ou gbaka (attente comprise)
   const endMin = km => km <= CFG.LAST_WALK_KM ? walkMin(km) : CFG.LAST_WAIT_MIN + km / CFG.LAST_KMH * 60;
   const rideMin = (line, i, j) => (line.cum[j] - line.cum[i]) / CFG.BUS_KMH * 60 + (j - i) * CFG.DWELL_MIN;
@@ -340,7 +344,7 @@ const Core = (() => {
           const we = destMap.get(st[j].id);
           if (we === undefined) continue;
           keep('D' + line.id, {
-            totalMin: w1 + rideMin(line, i, j) + endMin(we), walkStartKm: o.walk, walkEndKm: we,
+            totalMin: w1 + waitMin(line) + rideMin(line, i, j) + endMin(we), walkStartKm: o.walk, walkEndKm: we,
             transfers: 0, legs: [{ line, from: i, to: j, walkBeforeKm: 0 }]
           });
         }
@@ -353,7 +357,7 @@ const Core = (() => {
       for (const { line, i: j } of occOf(did)) {
         for (let k = 0; k < j; k++) {
           const sid = line.stops[k].id;
-          const min = rideMin(line, k, j) + endMin(we);
+          const min = waitMin(line) + rideMin(line, k, j) + endMin(we);
           let m = reach.get(sid);
           if (!m) reach.set(sid, m = new Map());
           const cur = m.get(line.id);
@@ -368,7 +372,7 @@ const Core = (() => {
         for (let m = i + 1; m < st.length; m++) {
           const sid = st[m].id;
           if (destMap.has(sid)) break;                // déjà arrivé : c'est un direct
-          const r1 = rideMin(l1, i, m);
+          const r1 = waitMin(l1) + rideMin(l1, i, m);
           const tcands = [{ id: sid, d: 0 }].concat((D.nbr.get(sid) || []).filter(n => n.d <= CFG.TRANSFER_WALK_KM));
           for (const tc of tcands) {
             const lm = reach.get(tc.id);
@@ -394,7 +398,7 @@ const Core = (() => {
         const w1 = walkMin(o.walk);
         for (const { line: l1, i } of occOf(o.id)) {
           for (let m = i + 1; m < l1.stops.length; m++) {
-            const sid = l1.stops[m].id, min = w1 + rideMin(l1, i, m);
+            const sid = l1.stops[m].id, min = w1 + waitMin(l1) + rideMin(l1, i, m);
             const cur = first.get(sid);
             if (!cur || min < cur.min) first.set(sid, { l1, i, m, min, walk: o.walk });
           }
@@ -413,7 +417,7 @@ const Core = (() => {
               for (const e of lm.values()) {
                 if (e.line.num === l2.num || e.line.num === f.l1.num) continue;
                 keep('TT' + f.l1.id + '-' + l2.id + '-' + e.line.id, {
-                  totalMin: f.min + CFG.TRANSFER_MIN + rideMin(l2, a, b) + walkMin(tw) + CFG.TRANSFER_MIN + e.min,
+                  totalMin: f.min + CFG.TRANSFER_MIN + waitMin(l2) + rideMin(l2, a, b) + walkMin(tw) + CFG.TRANSFER_MIN + e.min,
                   walkStartKm: f.walk, walkEndKm: e.we, transfers: 2,
                   legs: [{ line: f.l1, from: f.i, to: f.m, walkBeforeKm: 0 },
                          { line: l2, from: a, to: b, walkBeforeKm: 0 },
@@ -453,6 +457,6 @@ const Core = (() => {
     return r;
   }
 
-  return { CFG, norm, key, matchScore, partialScore, haversine, build, insertionPoint, parseName, searchStops, resolveStop, nearbyStops, findRoutes, walkMin, rideMin, endMin };
+  return { CFG, norm, key, matchScore, partialScore, haversine, build, insertionPoint, parseName, searchStops, resolveStop, nearbyStops, findRoutes, walkMin, rideMin, endMin, waitMin };
 })();
 if (typeof module !== 'undefined') module.exports = Core;

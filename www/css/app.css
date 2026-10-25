@@ -1023,3 +1023,8 @@ button,a,[role="button"],input,label{touch-action:manipulation}
 .res-mode{flex:none;display:inline-flex;align-items:center;gap:6px;padding:8px 13px;border-radius:999px;background:var(--surface-2);border:1.5px solid var(--border);font-weight:600;font-size:.84rem;color:var(--text-2);min-height:40px}
 .res-mode .ic{width:18px;height:18px}
 .res-mode.on{background:var(--brand);border-color:var(--brand);color:#fff}
+/* fréquence / horaires des lignes */
+.rc-steps .lg-freq{color:var(--muted);display:inline-flex;align-items:center;gap:4px}
+.rc-steps .lg-freq .ic{width:13px;height:13px;fill:currentColor}
+.rc-steps .lg-off{color:#c2410c;font-weight:600}
+.rc-foot .tag.off{background:#fde7d9;color:#c2410c}

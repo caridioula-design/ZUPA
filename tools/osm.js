@@ -7,11 +7,15 @@ const OsmConvert = (() => {
   'use strict';
   // Grand Abidjan (Anyama, Bingerville, Songon, Port-Bouët compris) : sud, ouest, nord, est
   const BBOX = [5.15, -4.30, 5.62, -3.70];
+  // trajets (un par sens) + leurs arrêts + la fiche « route_master » qui regroupe l'aller et le retour
+  // (tarif, fréquence, horaires y sont souvent renseignés, comme dans le GTFS Jungle Bus / DigitalTransport4Africa)
   const QUERY = `[out:json][timeout:240];
-rel["type"="route"]["route"~"^(bus|trolleybus|minibus|share_taxi)$"](${BBOX.join(',')});
-out body;
-node(r);
-out body qt;`;
+rel["type"="route"]["route"~"^(bus|trolleybus|minibus|share_taxi|ferry)$"](${BBOX.join(',')})->.r;
+.r out body;
+node(r.r);
+out body qt;
+rel(br.r)["type"="route_master"];
+out tags;`;
   const ENDPOINTS = [
     'https://overpass-api.de/api/interpreter',
     'https://overpass.kumi.systems/api/interpreter',
@@ -20,9 +24,12 @@ out body qt;`;
 
   const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
   const num = v => { const m = /(\d+(?:[.,]\d+)?)/.exec(String(v || '')); return m ? Math.round(parseFloat(m[1].replace(',', '.'))) : null; };
+  // fréquence OSM « interval » : « 30 », « 00:30 », « 1:00 » -> minutes
+  const minutes = v => { const s = String(v || '').trim(); if (!s) return null; const m = /^(\d{1,2}):(\d{2})/.exec(s); const n = m ? +m[1] * 60 + +m[2] : num(s); return n && n > 0 && n <= 240 ? n : null; };
 
   function kindOf(t) {
     const n = (t.name || '').toLowerCase();
+    if (t.route === 'ferry' || /bateau|ferry/.test(n)) return 'bateau';
     if (/^\s*gbaka/.test(n)) return 'gbaka';
     if (/woro/.test(n)) return 'woro';
     if (t.route === 'minibus') return 'gbaka';
@@ -61,12 +68,15 @@ out body qt;`;
   }
 
   function convert(json) {
-    const nodes = new Map();
+    const nodes = new Map(), master = new Map();
     json.elements.forEach(e => { if (e.type === 'node') nodes.set(e.id, e); });
+    // fiches route_master : leurs informations valent pour chaque trajet qu'elles regroupent
+    json.elements.forEach(e => { if (e.type === 'relation' && e.tags && e.tags.type === 'route_master') (e.members || []).forEach(m => { if (m.type === 'relation') master.set(m.ref, e.tags); }); });
     const lines = [], skipped = [];
     for (const r of json.elements) {
-      if (r.type !== 'relation') continue;
-      const t = r.tags || {};
+      if (r.type !== 'relation' || (r.tags && r.tags.type === 'route_master')) continue;
+      const mt = master.get(r.id) || {};
+      const t = Object.assign({}, ...['charge', 'interval', 'opening_hours', 'operator', 'network'].filter(k => mt[k]).map(k => ({ [k]: mt[k] })), r.tags || {});
       if (isDead(t)) { skipped.push({ id: r.id, name: t.name, reason: 'ligne en construction ou abandonnée' }); continue; }
       const mem = (r.members || []).filter(m => m.type === 'node');
       const pick = re => mem.filter(m => re.test(m.role || ''));
@@ -90,11 +100,18 @@ out body qt;`;
       if (kind === 'bus') {
         ref = padRef(String(t.ref || (/(\d{1,4})/.exec(t.name || '') || [])[1] || '?').trim());
         name = `Bus ${ref}: ${title}`;
+      } else if (kind === 'bateau') {
+        ref = t.ref ? String(t.ref).trim() : null;
+        name = `Bateau${ref ? ' ' + ref : ''}: ${title}`;
       } else {
         name = `${kind === 'gbaka' ? 'Gbaka' : 'Wôrô-wôrô'}: ${title}`;
       }
       const cost = num(t.charge) || (kind === 'bus' && /^\d+$/.test(ref) ? (+ref >= 200 ? 500 : 200) : null);
-      lines.push({ name, ref, kind, cost, osm: r.id, url: `https://www.openstreetmap.org/relation/${r.id}`, stops });
+      const line = { name, ref, kind, cost, osm: r.id, url: `https://www.openstreetmap.org/relation/${r.id}`, stops };
+      const every = minutes(t.interval); if (every) line.every = every;
+      if (t.opening_hours) line.hours = String(t.opening_hours).trim().slice(0, 80);
+      if (t.operator) line.operator = String(t.operator).trim().slice(0, 40);
+      lines.push(line);
     }
     numberUnnumbered(lines);
     return { lines, skipped };
@@ -108,13 +125,15 @@ out body qt;`;
       return parts.length >= 2 ? [parts[0], parts[parts.length - 1]].sort().join('|')
         : [norm(l.stops[0].name), norm(l.stops[l.stops.length - 1].name)].sort().join('|');
     };
-    for (const kind of ['gbaka', 'woro']) {
+    for (const kind of ['gbaka', 'woro', 'bateau']) {
       const list = lines.filter(l => l.kind === kind).sort((a, b) => ends(a).localeCompare(ends(b)) || a.name.localeCompare(b.name, 'fr'));
       const refs = new Map();
       list.forEach(l => {
         const k = ends(l);
-        if (!refs.has(k)) refs.set(k, (kind === 'gbaka' ? 'G' : 'W') + (refs.size + 1));
+        if (kind === 'bateau' && l.ref) return;
+        if (!refs.has(k)) refs.set(k, ({ gbaka: 'G', woro: 'W', bateau: 'B' })[kind] + (refs.size + 1));
         l.ref = refs.get(k);
+        if (kind === 'bateau') l.name = l.name.replace(/^Bateau[^:]*:/, `Bateau ${l.ref}:`);
       });
     }
     // bus sans numéro : SN1, SN2… (aller et retour ensemble)
@@ -140,7 +159,7 @@ out body qt;`;
     const added = [], updated = [];
     const out = f.map(l => {
       const old = byId.get(l.osm);
-      if (old) { updated.push(l); return Object.assign({}, l, { name: old.name, cost: old.cost != null ? old.cost : l.cost }); }
+      if (old) { updated.push(l); return Object.assign({}, l, { name: old.name, cost: l.cost != null ? l.cost : old.cost }); }
       added.push(l); return l;
     });
     const kept = existing.filter(l => !freshIds.has(idOf(l)));
@@ -169,9 +188,10 @@ out body qt;`;
     return JSON.parse(t.slice(a, b + 1));
   }
   function writeBusFile(lines) {
-    const slim = lines.map(l => Object.assign({ name: l.name, ref: l.ref }, l.kind && l.kind !== 'bus' ? { kind: l.kind } : {}, { cost: l.cost ?? null, osm: l.osm || null,
-      stops: l.stops.map(s => ({ name: s.name, lat: s.lat, lon: s.lon })) }));
-    return "/* ZUPA — lignes de bus SOTRA, gbaka et wôrô-wôrô d'Abidjan (© contributeurs OpenStreetMap, ODbL) */\nwindow.ZUPA_BUS = " + JSON.stringify(slim) + ';\n';
+    const slim = lines.map(l => Object.assign({ name: l.name, ref: l.ref }, l.kind && l.kind !== 'bus' ? { kind: l.kind } : {}, { cost: l.cost ?? null, osm: l.osm || null },
+      l.every ? { every: l.every } : {}, l.hours ? { hours: l.hours } : {}, l.operator ? { operator: l.operator } : {},
+      { stops: l.stops.map(s => ({ name: s.name, lat: s.lat, lon: s.lon })) }));
+    return "/* ZUPA — bus SOTRA, gbaka, wôrô-wôrô et bateaux-bus d'Abidjan (© contributeurs OpenStreetMap, ODbL) */\nwindow.ZUPA_BUS = " + JSON.stringify(slim) + ';\n';
   }
 
   return { BBOX, QUERY, download, convert, merge, readBusFile, writeBusFile, numberUnnumbered, extractFromIndex, injectIntoIndex, idOf };

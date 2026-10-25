@@ -6,11 +6,11 @@
 
   /* ---------- Données ---------- */
   // Données du réseau : data/bus.js (window.ZUPA_BUS) : bus SOTRA, gbaka et wôrô-wôrô cartographiés dans OpenStreetMap
-  const RAW = (Array.isArray(window.ZUPA_BUS) ? window.ZUPA_BUS : []).filter(l => !l.kind || ['bus', 'gbaka', 'woro', 'saloni'].includes(l.kind));
+  const RAW = (Array.isArray(window.ZUPA_BUS) ? window.ZUPA_BUS : []).filter(l => !l.kind || ['bus', 'gbaka', 'woro', 'saloni', 'bateau'].includes(l.kind));
   // Arrêts ajoutés par l'utilisateur (stockés sur l'appareil)
   let customStops = (() => { try { const v = JSON.parse(localStorage.getItem('zupa:customStops') || '[]'); return Array.isArray(v) ? v : []; } catch (_) { return []; } })();
   /* Lignes ajoutées par les utilisateurs (gbaka, wôrô-wôrô, saloni) : base partagée + celles de ce téléphone */
-  const LINE_TYPES = { gbaka: { label: 'Gbaka', icon: 'gbaka', color: '#0f766e' }, woro: { label: 'Wôrô-wôrô', icon: 'taxi', color: '#b45309' }, saloni: { label: 'Saloni', icon: 'saloni', color: '#7c3aed' } };
+  const LINE_TYPES = { gbaka: { label: 'Gbaka', icon: 'gbaka', color: '#0f766e' }, woro: { label: 'Wôrô-wôrô', icon: 'taxi', color: '#b45309' }, saloni: { label: 'Saloni', icon: 'saloni', color: '#7c3aed' }, bateau: { label: 'Bateau-bus', icon: 'boat', color: '#0369a1' } };
   function extraLines() {
     let rows = [], mine = [];
     try { rows = (JSON.parse(localStorage.getItem('zupa:lignes') || 'null') || {}).rows || []; mine = JSON.parse(localStorage.getItem('zupa:myLines') || '[]') || []; } catch (_) {}
@@ -81,6 +81,7 @@
     clinic: 'M10 4h4v2h2V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2h2V4zm10 4H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-4 8h-3v3h-2v-3H8v-2h3v-3h2v3h3v2z',
     gbaka: 'M17 5H3c-1.1 0-2 .89-2 2v9h2c0 1.65 1.34 3 3 3s3-1.35 3-3h5.5c0 1.65 1.34 3 3 3s3-1.35 3-3H23v-5l-6-6zM3 11V7h4v4H3zm3 6.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM13 11H9V7h4v4zm4.5 6.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM15 11V7h1l4 4h-5z',
     taxi: 'M18.92 6.01C18.72 5.42 18.16 5 17.5 5H15V3H9v2H6.5c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z',
+    boat: 'M20 21c-1.39 0-2.78-.47-4-1.32-2.44 1.71-5.56 1.71-8 0C6.78 20.53 5.39 21 4 21H2v2h2c1.38 0 2.74-.35 4-.99 2.52 1.29 5.48 1.29 8 0 1.26.65 2.62.99 4 .99h2v-2h-2zM3.95 19H4c1.6 0 3.02-.88 4-2 .98 1.12 2.4 2 4 2s3.02-.88 4-2c.98 1.12 2.4 2 4 2h.05l1.89-6.68c.08-.26.06-.54-.06-.78s-.34-.42-.6-.5L20 10.62V6c0-1.1-.9-2-2-2h-3V1H9v3H6c-1.1 0-2 .9-2 2v4.62l-1.29.42c-.26.08-.48.26-.6.5s-.15.52-.06.78L3.95 19zM6 6h12v3.97L12 8 6 9.97V6z',
     saloni: 'M19 7c0-1.1-.9-2-2-2h-3v2h3v2.65L13.52 14H10V9H6c-2.21 0-4 1.79-4 4v3h2c0 1.66 1.34 3 3 3s3-1.34 3-3h4.48L19 10.35V7zM7 17c-.55 0-1-.45-1-1h2c0 .55-.45 1-1 1zM5 6h5v2H5zm14 7c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3zm0 4c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z',
     clock: 'M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z'
   };
@@ -1423,7 +1424,8 @@
         if (res.status === 'noStops') { toast('Aucun arrêt de bus à moins de 2 km de votre point de départ.', 'error', 5000); return; }
         if (res.status === 'noDestStops') { toast(`Aucun arrêt à moins de 6 km de ${dest.label}. Prenez un taxi ou un saloni.`, 'error', 5000); return; }
         state.lastSearch = { origin, dest, res };
-        state.routes = res.routes; state.selected = 0;
+        const off = r => r.legs.some(l => lineOpen(l.line) === false) ? 1 : 0;
+        state.routes = res.routes.slice().sort((x, y) => off(x) - off(y)); state.selected = 0; // lignes hors service en dernier
         if (dest.id) addRecent(dest.id); else if (dest.place && current === 'screen-home' && !priv.some(r => r.name === dest.label)) addRecentPlace(dest);
         state.resBack = dest.place ? current : 'screen-home';
         renderResults();
@@ -1437,7 +1439,7 @@
 
   /* ---------- Résultats ---------- */
   // filtre par moyen de transport : tous, bus SOTRA, gbaka, wôrô-wôrô, saloni
-  const MODES = [['all', 'Tous', 'route'], ['bus', 'Bus', 'bus'], ['gbaka', 'Gbaka', 'gbaka'], ['woro', 'Wôrô-wôrô', 'taxi'], ['saloni', 'Saloni', 'saloni']];
+  const MODES = [['all', 'Tous', 'route'], ['bus', 'Bus', 'bus'], ['gbaka', 'Gbaka', 'gbaka'], ['woro', 'Wôrô-wôrô', 'taxi'], ['saloni', 'Saloni', 'saloni'], ['bateau', 'Bateau', 'boat']];
   function renderModes() {
     const has = new Set(D.lines.map(l => l.kind));
     $('res-modes').innerHTML = MODES.filter(([k]) => k === 'all' || has.has(k)).map(([k, l, i]) => `<button type="button" class="res-mode${(state.mode || 'all') === k ? ' on' : ''}" data-mode="${k}" role="tab" aria-selected="${(state.mode || 'all') === k}">${ic(i)}<span>${l}</span></button>`).join('');
@@ -1477,6 +1479,17 @@
     if (!r.cost) return ` · tarif ${unknown.join(' / ')} non renseigné`;
     return ' · ' + fmtCost(r.cost) + (unknown.length ? ` + ${unknown.join(' / ')}` : '');
   }
+  // Fréquence et horaires de service (fiches OpenStreetMap) — avertit si la ligne ne circule pas maintenant
+  function lineOpen(line) { if (!line.hours) return null; try { const o = PC.openingStatus(line.hours, new Date()); return o && typeof o.open === 'boolean' ? o.open : null; } catch (e) { return null; } }
+  function lineInfo(line) {
+    const bits = [];
+    if (line.every) bits.push(`passe toutes les ${line.every >= 60 && line.every % 60 === 0 ? (line.every / 60) + ' h' : line.every + ' min'}`);
+    const hm = line.hours && /(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/.exec(line.hours);
+    if (hm) bits.push(`de ${+hm[1]}h${hm[2] === '00' ? '' : hm[2]} à ${+hm[3]}h${hm[4] === '00' ? '' : hm[4]}`);
+    const open = lineOpen(line);
+    if (open === false) return `<br><small class="lg-off">⚠ Ne circule pas à cette heure${hm ? ` (${bits.slice(-1)[0]})` : ''}</small>`;
+    return bits.length ? `<br><small class="lg-freq">${ic('clock')} ${bits.join(' · ')}</small>` : '';
+  }
   function routeCard(r, i) {
     const chain = [];
     if (r.walkStartKm > 0.02) chain.push(`<span class="walk">${ic('walk')}<small>${fmtDist(r.walkStartKm)}</small></span>`);
@@ -1484,12 +1497,12 @@
     if (r.walkEndKm > 0.02) chain.push(`<span class="chev">›</span><span class="walk${r.endRide ? ' ride' : ''}">${ic(r.endRide ? 'saloni' : 'walk')}<small>${fmtDist(r.walkEndKm)}</small></span>`);
     const steps = r.legs.map((l, k) => {
       const n = l.to - l.from;
-      return `<li><span class="lg-dot" style="--c:${lineColor(l.line.num)}"></span><div><b>${k === 0 ? 'Montez' : 'Correspondance'} à ${esc(l.board.name)}</b>${l.walkBeforeKm > 0.02 ? ` <small>(${fmtDist(l.walkBeforeKm)} à pied)</small>` : ''}<br><small>${l.line.veh} ${esc(l.line.num)} direction ${esc(direction(l.line))} · ${n} arrêt${n > 1 ? 's' : ''}</small></div></li>`;
+      return `<li><span class="lg-dot" style="--c:${lineColor(l.line.num)}"></span><div><b>${k === 0 ? 'Montez' : 'Correspondance'} à ${esc(l.board.name)}</b>${l.walkBeforeKm > 0.02 ? ` <small>(${fmtDist(l.walkBeforeKm)} à pied)</small>` : ''}<br><small>${l.line.veh} ${esc(l.line.num)} direction ${esc(direction(l.line))} · ${n} arrêt${n > 1 ? 's' : ''}</small>${lineInfo(l.line)}</div></li>`;
     }).join('') + `<li><span class="lg-dot end"></span><div><b>Descendez à ${esc(r.legs[r.legs.length - 1].alight.name)}</b>${r.walkEndKm > 0.02 ? (r.endRide ? ` <small>puis ${fmtDist(r.walkEndKm)} en saloni, taxi ou gbaka (~${fmtMin(Core.endMin(r.walkEndKm))}) — ou ~${fmtMin(Core.walkMin(r.walkEndKm))} à pied</small>` : ` <small>puis ${fmtDist(r.walkEndKm)} à pied</small>`) : ''}</div></li>`;
     return `<article class="route-card${i === state.selected ? ' selected' : ''}" data-i="${i}" tabindex="0" aria-label="Itinéraire ${i + 1}, ${fmtMin(r.totalMin)}">
       <div class="rc-top"><div class="chain">${chain.join('')}</div><div class="rc-time"><b>${fmtMin(r.totalMin)}</b><small>estimé</small></div></div>
       <ul class="rc-steps">${steps}</ul>
-      <div class="rc-foot"><span>${r.nStops} arrêt${r.nStops > 1 ? 's' : ''}${costText(r)}${i === 0 ? '<span class="tag">Le plus rapide</span>' : ''}</span><button class="btn primary sm" data-track="${i}">Suivre</button></div>
+      <div class="rc-foot"><span>${r.nStops} arrêt${r.nStops > 1 ? 's' : ''}${costText(r)}${i === 0 ? '<span class="tag">Le plus rapide</span>' : ''}${r.legs.some(l => lineOpen(l.line) === false) ? '<span class="tag off">Hors service</span>' : ''}</span><button class="btn primary sm" data-track="${i}">Suivre</button></div>
     </article>`;
   }
 
@@ -3726,7 +3739,7 @@
   function renderAddLine() {
     const t = LINE_TYPES[al.type];
     $('screen-addline').style.setProperty('--c', t.color);
-    $('al-types').innerHTML = Object.entries(LINE_TYPES).map(([k, v]) => `<button type="button" class="al-type${al.type === k ? ' on' : ''}" role="radio" aria-checked="${al.type === k}" data-lt="${k}" style="--c:${v.color}">${ic(v.icon)}<span>${v.label}</span></button>`).join('');
+    $('al-types').innerHTML = Object.entries(LINE_TYPES).filter(([k]) => k !== 'bateau').map(([k, v]) => `<button type="button" class="al-type${al.type === k ? ' on' : ''}" role="radio" aria-checked="${al.type === k}" data-lt="${k}" style="--c:${v.color}">${ic(v.icon)}<span>${v.label}</span></button>`).join('');
     const n = al.pts.length;
     $('al-help').textContent = n === 0 ? 'Placez la carte sous le repère, sur la gare de départ, puis touchez « Ajouter ».'
       : n === 1 ? 'Déplacez la carte jusqu\u2019au premier arrêt, donnez-lui un nom, puis « Ajouter ». Continuez jusqu\u2019au terminus.'
