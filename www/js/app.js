@@ -83,6 +83,14 @@
     taxi: 'M18.92 6.01C18.72 5.42 18.16 5 17.5 5H15V3H9v2H6.5c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z',
     boat: 'M20 21c-1.39 0-2.78-.47-4-1.32-2.44 1.71-5.56 1.71-8 0C6.78 20.53 5.39 21 4 21H2v2h2c1.38 0 2.74-.35 4-.99 2.52 1.29 5.48 1.29 8 0 1.26.65 2.62.99 4 .99h2v-2h-2zM3.95 19H4c1.6 0 3.02-.88 4-2 .98 1.12 2.4 2 4 2s3.02-.88 4-2c.98 1.12 2.4 2 4 2h.05l1.89-6.68c.08-.26.06-.54-.06-.78s-.34-.42-.6-.5L20 10.62V6c0-1.1-.9-2-2-2h-3V1H9v3H6c-1.1 0-2 .9-2 2v4.62l-1.29.42c-.26.08-.48.26-.6.5s-.15.52-.06.78L3.95 19zM6 6h12v3.97L12 8 6 9.97V6z',
     saloni: 'M19 7c0-1.1-.9-2-2-2h-3v2h3v2.65L13.52 14H10V9H6c-2.21 0-4 1.79-4 4v3h2c0 1.66 1.34 3 3 3s3-1.34 3-3h4.48L19 10.35V7zM7 17c-.55 0-1-.45-1-1h2c0 .55-.45 1-1 1zM5 6h5v2H5zm14 7c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3zm0 4c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z',
+    key: 'M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z',
+    camera: 'M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4zM9 2 7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z',
+    image: 'M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z',
+    bed: 'M7 13c1.66 0 3-1.34 3-3S8.66 7 7 7s-3 1.34-3 3 1.34 3 3 3zm12-6h-8v7H3V5H1v15h2v-3h18v3h2v-9c0-2.21-1.79-4-4-4z',
+    bath: 'M7 7c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm13 6V4.83C20 3.27 18.73 2 17.17 2c-.75 0-1.47.3-2 .83l-1.25 1.25c-.16-.05-.33-.08-.51-.08-.4 0-.77.12-1.08.32l2.76 2.76c.2-.31.32-.68.32-1.08 0-.18-.03-.34-.07-.51l1.25-1.25c.15-.15.36-.24.58-.24.46 0 .83.37.83.83V13h-6.85c-.3-.21-.57-.45-.82-.72l-1.4-1.55c-.19-.21-.43-.38-.69-.5-.31-.15-.65-.23-1-.23C6 10.01 5 11.01 5 12.25V13H2v6c0 1.1.9 2 2 2 0 .55.45 1 1 1h14c.55 0 1-.45 1-1 1.1 0 2-.9 2-2v-6h-2z',
+    area: 'M17.66 17.66l-1.06 1.06-.71-.71 1.06-1.06-1.94-1.94-1.06 1.06-.71-.71 1.06-1.06-1.94-1.94-1.06 1.06-.71-.71 1.06-1.06L9.7 9.7l-1.06 1.06-.71-.71 1.06-1.06-1.94-1.94-1.06 1.06-.71-.71 1.06-1.06L4 4v14c0 1.1.9 2 2 2h14l-2.34-2.34zM7 17v-5.76L12.76 17H7z',
+    floor: 'M17 11V3H7v4H3v14h8v-4h2v4h8V11h-4zM7 19H5v-2h2v2zm0-4H5v-2h2v2zm0-4H5V9h2v2zm4 4H9v-2h2v2zm0-4H9V9h2v2zm0-4H9V5h2v2zm4 8h-2v-2h2v2zm0-4h-2V9h2v2zm0-4h-2V5h2v2zm4 12h-2v-2h2v2zm0-4h-2v-2h2v2z',
+    doc: 'M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z',
     clock: 'M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z'
   };
   const ic = n => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONS[n]}"/></svg>`;
@@ -164,7 +172,7 @@
   /* Navigation : pile d'écrans (le bouton retour revient vraiment à l'écran précédent),
      garde-fous avant de quitter un formulaire, et verrou de 300 ms contre les « clics fantômes »
      (le doigt qui a ouvert un écran ne doit pas toucher un bouton du nouvel écran). */
-  const ROOTS = ['screen-home', 'screen-pharma', 'screen-paiya', 'screen-track', 'screen-profile'];
+  const ROOTS = ['screen-home', 'screen-pharma', 'screen-paiya', 'screen-imo', 'screen-track', 'screen-profile'];
   const navStack = ['screen-home'];
   const leaveGuards = {};
   let navLockT = 0;
@@ -186,7 +194,7 @@
       s.classList.toggle('active', a);
       s.setAttribute('aria-hidden', String(!a));
     });
-    const tab = { 'screen-results': 'screen-home', 'screen-addstop': 'screen-home', 'screen-fixpos': 'screen-home', 'screen-addplace': 'screen-paiya', 'screen-addline': 'screen-home', 'screen-pharma-detail': (typeof ph !== 'undefined' && ph.kind === 'paiya') ? 'screen-paiya' : 'screen-pharma' }[id] || id;
+    const tab = { 'screen-results': 'screen-home', 'screen-addstop': 'screen-home', 'screen-fixpos': 'screen-home', 'screen-addplace': 'screen-paiya', 'screen-addline': 'screen-home', 'screen-imo-search': 'screen-imo', 'screen-imo-pub': 'screen-imo', 'screen-pharma-detail': (typeof ph !== 'undefined' && ph.kind === 'paiya') ? 'screen-paiya' : 'screen-pharma' }[id] || id;
     document.querySelectorAll('[data-nav]').forEach(b => b.classList.toggle('active', b.dataset.nav === tab));
     $(id).scrollTop = 0;
     if (prev !== id) document.querySelectorAll('#toasts .toast.error').forEach(t => t.remove()); // une erreur ne suit pas l'utilisateur sur un autre écran
@@ -205,6 +213,8 @@
       if (id === 'screen-addline') ensureAlMap();
       if (id === 'screen-pharma') renderPharma();
       if (id === 'screen-paiya') renderPaiya();
+      if (id === 'screen-imo') renderImo(true);
+      if (id === 'screen-imo-pub') ensureIpMap();
       renderLive();
       if (id === 'screen-pharma-detail') ensurePdMap();
       scheduleAutoZoom(id);
@@ -738,7 +748,7 @@
   const live = { open: false, shown: null, raf: 0, key: '', dest: store.get('liveDest', null) };
   const CARD = ['le nord', 'le nord-est', "l'est", 'le sud-est', 'le sud', 'le sud-ouest', "l'ouest", 'le nord-ouest'];
   const CARD16 = ['le nord', 'le nord-nord-est', 'le nord-est', "l'est-nord-est", "l'est", "l'est-sud-est", 'le sud-est', 'le sud-sud-est', 'le sud', 'le sud-sud-ouest', 'le sud-ouest', "l'ouest-sud-ouest", "l'ouest", "l'ouest-nord-ouest", 'le nord-ouest', 'le nord-nord-ouest'];
-  const LIVE_HOST = { 'screen-home': ['loc-chip', 'before'], 'screen-pharma': ['ph-filter', 'after'], 'screen-paiya': ['py-cats', 'after'], 'screen-track': ['trk-live-slot', 'in'] };
+  const LIVE_HOST = { 'screen-home': ['loc-chip', 'before'], 'screen-pharma': ['ph-filter', 'after'], 'screen-paiya': ['py-cats', 'after'], 'screen-imo': ['imo-hero', 'after'], 'screen-track': ['trk-live-slot', 'in'] };
   function placeLive(id) { // la même bulle passe d'un onglet à l'autre
     const h = LIVE_HOST[id], box = $('live');
     if (!h) return;
@@ -756,7 +766,7 @@
     live.dest = { kind, id, t: Date.now() }; store.set('liveDest', live.dest); live.followT = Date.now();
     live.open = true; $('live').classList.add('open'); $('live-pill').setAttribute('aria-expanded', 'true');
     vibrate(25);
-    if (kind === 'pharma') renderPharma(); else renderPaiya();
+    if (kind === 'pharma') renderPharma(); else if (kind === 'imo') renderImo(); else renderPaiya();
     renderLive();
     const box = $('live'); box.classList.remove('pop'); void box.offsetWidth; box.classList.add('pop');
   }
@@ -794,6 +804,7 @@
   function liveTarget() {
     if (current === 'screen-pharma') return placeTarget('pharma');
     if (current === 'screen-paiya') return placeTarget('paiya');
+    if (current === 'screen-imo') return imoTarget();
     const t = state.tracking;
     if (t && !t.arrived) {
       const n = t.pts.length, prog = `<span class="live-prog">${Math.max(0, t.idx + 1)}/${n} arrêts · ~${fmtMin(remainingMin(t))} restantes</span>`;
@@ -841,6 +852,8 @@
     // la bulle prend la couleur de son onglet : Bus et Trajet orange, Pharmacies vert, Paiya couleur de la catégorie
     box.classList.toggle('t-bus', current === 'screen-home' || current === 'screen-track');
     box.classList.toggle('t-py', current === 'screen-paiya');
+    box.classList.toggle('t-imo', current === 'screen-imo');
+    if (current === 'screen-imo') renderLiveImo(tg); else if (live.imoId) { live.imoId = null; $('live-imo').innerHTML = ''; }
     if (current === 'screen-paiya') box.style.setProperty('--pyc', PY_COLOR[(tg.p && PYC.CATS[tg.p.cat]) ? tg.p.cat : py.cat]);
     const key = current + tg.kicker + tg.p.name;
     if (key !== live.key) {
@@ -863,7 +876,7 @@
     updateLiveDir(tg);
     const lh = tg.tags || (tg.stop ? linesHtml(tg.stop) : tg.line ? lineBadge(tg.line, true) : '');
     if (live.linesHtml !== lh) { live.linesHtml = lh; $('live-lines').innerHTML = lh; } // pas de réécriture inutile à chaque mesure GPS
-    $('live-act').textContent = tg.kind ? (tg.p.phone ? 'Itinéraire et appel' : 'Itinéraire') : tg.act === 'track' ? 'Ouvrir le suivi du trajet' : 'Partir de cet arrêt';
+    $('live-act').textContent = tg.kind === 'imo' ? 'Voir l\u2019itinéraire' : tg.kind ? (tg.p.phone ? 'Itinéraire et appel' : 'Itinéraire') : tg.act === 'track' ? 'Ouvrir le suivi du trajet' : 'Partir de cet arrêt';
     $('live-clear').hidden = !tg.dest;
     $('live-act').hidden = current === 'screen-track'; // déjà sur le suivi : pas de bouton inutile
     box.classList.toggle('on-map', current === 'screen-track');
@@ -900,7 +913,7 @@
     let last = 0;
     $(id).addEventListener('scroll', e => {
       const y = e.target.scrollTop;
-      if (live.open && y > 160 && y - last > 4) { live.open = false; $('live').classList.remove('open'); $('live-pill').setAttribute('aria-expanded', 'false'); }
+      if (live.open && id !== 'screen-imo' && y > 160 && y - last > 4) { live.open = false; $('live').classList.remove('open'); $('live-pill').setAttribute('aria-expanded', 'false'); }
       last = y;
     }, { passive: true });
   });
@@ -908,12 +921,13 @@
   $('live-back').addEventListener('click', () => show(navStack.length > 1 ? navStack[navStack.length - 2] : (state.lastSearch ? 'screen-results' : 'screen-home')));
   $('live-clear').addEventListener('click', () => {
     live.dest = null; store.set('liveDest', null);
-    if (current === 'screen-pharma') renderPharma(); else if (current === 'screen-paiya') renderPaiya();
+    if (current === 'screen-pharma') renderPharma(); else if (current === 'screen-paiya') renderPaiya(); else if (current === 'screen-imo') renderImo();
     renderLive();
   });
   $('live-act').addEventListener('click', () => {
     const tg = live.tg;
     if (!tg) return;
+    if (tg.kind === 'imo') { imoRoute(tg.p); return; }
     if (tg.kind) { openDetail(tg.p, current, tg.kind); return; }
     if (tg.act === 'track') { show('screen-track'); return; }
     setOriginStop(tg.stop);
@@ -1045,7 +1059,7 @@
     if (gotFix && !state.posStale && !state.manual && c.accuracy > 3 * (state.accuracy || Infinity) && c.accuracy > 200) return;
     const f = fuse(c);
     gotFix = true;
-    state.gpsLast = [f.lat, f.lon]; state.gpsAcc = f.acc;
+    state.gpsLast = [f.lat, f.lon]; state.gpsAcc = f.acc; state.gpsT = Date.now(); state.gpsRaw = { lat: c.latitude, lon: c.longitude, acc: c.accuracy || 9999, t: Date.now() };
     if (typeof asGpsWaiter === 'function') asGpsWaiter(f.lat, f.lon, f.acc);
     if (current === 'screen-fixpos') renderFpInfo();
     if (state.manual) {
@@ -1199,10 +1213,11 @@
     });
     // Toucher ≠ choisir : on choisit au relâcher, seulement si le doigt n'a pas glissé (défilement de la liste).
     // Un toucher qui arrête un défilement en cours ne choisit rien non plus.
-    let tap = null, scrolledAt = 0;
+    let tap = null, scrolledAt = 0, touchedAt = 0; // seuls les défilements faits au doigt comptent (pas ceux du programme)
     const unpress = () => { if (tap && tap.el) tap.el.classList.remove('pressed'); tap = null; };
-    box.addEventListener('scroll', () => { scrolledAt = Date.now(); unpress(); }, { passive: true });
+    box.addEventListener('scroll', () => { if (Date.now() - touchedAt < 1500) { scrolledAt = Date.now(); unpress(); } }, { passive: true });
     box.addEventListener('pointerdown', e => {
+      touchedAt = Date.now();
       e.preventDefault(); // garde le focus (et le clavier) sur le champ
       const el = e.target.closest('.sg-item');
       unpress();
@@ -1210,10 +1225,11 @@
       tap = { el, i: +el.dataset.i, x: e.clientX, y: e.clientY, id: e.pointerId };
       el.classList.add('pressed');
     });
-    box.addEventListener('pointermove', e => { if (tap && e.pointerId === tap.id && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 8) unpress(); }, { passive: true });
+    box.addEventListener('pointermove', e => { touchedAt = Date.now(); if (tap && e.pointerId === tap.id && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 8) unpress(); }, { passive: true });
     box.addEventListener('pointercancel', unpress);
     box.addEventListener('pointerleave', unpress);
     box.addEventListener('pointerup', e => {
+      touchedAt = Date.now();
       if (!tap || e.pointerId !== tap.id) return;
       const t = tap; unpress();
       if (e.target.closest('.sg-item') === t.el && Date.now() - scrolledAt > 300) pick(t.i);
@@ -3617,8 +3633,9 @@
   $('pv-visits').onchange = e => { visit.on = e.target.checked; store.set('pvVisits', visit.on); if (!visit.on) { visit.queue = []; store.set('visitQueue', []); } toast(visit.on ? 'Vos visites seront comptées de façon anonyme.' : 'Vos visites ne sont plus comptées.'); };
   $('pv-wipe').onclick = async () => {
     if (!sbOn()) return;
-    if (!confirm('Effacer vos données en ligne ? Votre profil d\u2019amis, vos amis, les lieux échangés et les lieux publics que vous avez ajoutés seront supprimés. Vos données sur ce téléphone restent.')) return;
+    if (!confirm('Effacer vos données en ligne ? Votre profil d\u2019amis, vos amis, les lieux échangés, les lieux publics et les annonces Imo que vous avez ajoutés seront supprimés. Vos données sur ce téléphone restent.')) return;
     const r = await sb('/rest/v1/rpc/mes_donnees_supprimer', { method: 'POST', body: { p_secret: mySecret, p_device: deviceId } });
+    if (r.ok) { await sb('/rest/v1/rpc/mes_annonces_supprimer', { method: 'POST', body: { p_secret: mySecret } }); imo.mine = []; store.set('imoMine', []); }
     if (!r.ok) { toast(r.net ? 'Pas de connexion internet.' : 'Effacement impossible : ' + sbErr(r), 'error'); return; }
     fr.me = null; fr.list = []; fr.recus = [];
     ['me', 'friends', 'recus'].forEach(k => store.set(k, k === 'me' ? null : []));
@@ -3877,6 +3894,541 @@
     const App = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
     if (App && isNative()) App.addListener('backButton', () => { if (!goBack()) App.exitApp(); });
   } catch (_) {}
+
+  /* =====================================================================
+     IMO : logements mis en location par des particuliers et des agents
+     - la bulle présente l'annonce choisie (ou la plus proche / la meilleure pour la recherche) ;
+     - « Je cherche » : type, équipements, quartier, loyer maximum ; classement par distance
+       au lieu de travail (ou à l'utilisateur s'il cherche dans son quartier actuel) ;
+     - « Publier » : position GPS mesurée sur place OBLIGATOIRE (± 50 m), repère déplaçable
+       de 60 m au plus ; aucune annonce possible avec un quartier ou une adresse seule.
+     ===================================================================== */
+  const IMO_TYPES = [['chambre', 'Chambre simple'], ['studio', 'Studio'], ['2p', 'Chambre salon (2 pièces)'], ['3p', '3 pièces'], ['4p', '4 pièces'], ['5p', '5 pièces et +'], ['villa', 'Villa'], ['duplex', 'Duplex']];
+  const IMO_T = Object.fromEntries(IMO_TYPES);
+  const IMO_SHORT = { chambre: 'Chambre', studio: 'Studio', '2p': '2 pièces', '3p': '3 pièces', '4p': '4 pièces', '5p': '5 pièces +', villa: 'Villa', duplex: 'Duplex' };
+  const IMO_COLS = 'id,role,type,chambres,sdb,cuisine,douche_int,meuble,surface,etage,loyer,avance,caution,frais_visite,bail_mois,description,quartier,adresse,lat,lon,gps_acc,contact_nom,tel,whatsapp,thumb,nb_photos,created_at';
+  const IMO_GPS_MAX = 50, IMO_PIN_MAX = 60, IMO_GPS_TTL = 2 * 3600e3;
+  const imo = { list: store.get('imoList', null), thumbs: new Map(), lastFetch: 0, loading: false, err: null, shown: 30,
+    q: store.get('imoQ', null), mine: store.get('imoMine', []), photos: new Map(), reported: store.get('imoReported', []) };
+  if (!Array.isArray(imo.mine)) imo.mine = [];
+  const money = n => (Number(n) || 0).toLocaleString('fr-FR').replace(/ | /g, ' ');
+  const intOf = v => { const d = String(v || '').replace(/\D/g, ''); return d ? parseInt(d, 10) : null; };
+  const imoRows = () => (imo.list && Array.isArray(imo.list.rows) ? imo.list.rows : []);
+  const imoById = id => imoRows().find(a => a.id === id);
+  const imoTitle = a => IMO_T[a.type] + (a.meuble ? ' meublé' + (/^(chambre|villa)/.test(a.type) ? 'e' : '') : '');
+  const imoName = a => `${IMO_SHORT[a.type]} · ${a.quartier}`;
+  const privOf = kind => { const r = (typeof priv !== 'undefined' ? priv : []).find(x => x.kind === kind); return r && Number.isFinite(r.lat) ? r : null; };
+  const nearestZone = (lat, lon) => { let b = null, bd = Infinity; for (const z of ZONES) { const d = Core.haversine(lat, lon, z.lat, z.lon); if (d < bd) { bd = d; b = z; } } return b ? { ...b, d: bd } : null; };
+  function zonesAround(lat, lon, km, n) {
+    return ZONES.map(z => ({ ...z, d: Core.haversine(lat, lon, z.lat, z.lon) })).filter(z => z.d <= km).sort((a, b) => a.d - b.d)
+      .filter((z, i, arr) => arr.findIndex(x => Core.key(x.name) === Core.key(z.name)) === i).slice(0, n);
+  }
+
+  async function fetchImo(force) {
+    if (!sbOn() || imo.loading || (!force && Date.now() - imo.lastFetch < 5 * 60e3)) return;
+    imo.loading = true; imo.lastFetch = Date.now();
+    $('imo-refresh').classList.add('spin-ic');
+    const r = await sb(`/rest/v1/annonces?select=${IMO_COLS}&order=created_at.desc&limit=2000`, { timeout: 20000 });
+    imo.loading = false; $('imo-refresh').classList.remove('spin-ic');
+    if (r.ok && Array.isArray(r.data)) {
+      imo.err = null;
+      r.data.forEach(a => { if (a.thumb) imo.thumbs.set(a.id, a.thumb); });
+      const rows = r.data.map(({ thumb, ...a }) => a); // les vignettes restent en mémoire (place limitée sur le téléphone)
+      imo.list = { t: Date.now(), rows };
+      store.set('imoList', imo.list);
+    } else imo.err = r.net ? 'Pas de connexion : annonces enregistrées sur le téléphone.' : r.status === 404 ? 'Imo n’est pas encore activé sur le serveur.' : 'Annonces indisponibles pour le moment.';
+    if (current === 'screen-imo') renderImo();
+  }
+  async function fetchMine() {
+    if (!sbOn()) return;
+    const r = await rpc('mes_annonces', {});
+    if (r.ok && Array.isArray(r.data)) { imo.mine = r.data; store.set('imoMine', imo.mine); if (current === 'screen-imo') renderMine(); }
+  }
+
+  // Point de référence pour classer : travail (recherche dans un autre quartier), sinon l'utilisateur
+  function imoRef() {
+    const q = imo.q;
+    if (q && q.zone && q.zone.here && state.pos) return { lat: state.pos[0], lon: state.pos[1], label: 'de vous', key: 'pos' };
+    const w = privOf('work');
+    if (q && w) return { lat: w.lat, lon: w.lon, label: 'de votre travail', key: 'work' };
+    if (q && q.zone && !q.zone.here) return { lat: q.zone.lat, lon: q.zone.lon, label: `du centre de ${q.zone.name}`, key: 'zone' };
+    if (state.pos) return { lat: state.pos[0], lon: state.pos[1], label: 'de vous', key: 'pos' };
+    return null;
+  }
+  function imoMatches(a, q, slack = 1) {
+    if (!q) return true;
+    if (q.type && a.type !== q.type) return false;
+    if (q.budget && a.loyer > q.budget * slack) return false;
+    if (q.cuisine && !a.cuisine) return false;
+    if (q.douche && !a.douche_int) return false;
+    if (q.meuble && !a.meuble) return false;
+    if (q.zone) { const d = Core.haversine(a.lat, a.lon, q.zone.lat, q.zone.lon); if (d > (q.zone.here ? 3 : 2.5) && Core.key(a.quartier) !== Core.key(q.zone.name)) return false; }
+    return true;
+  }
+  function imoResults() {
+    const ref = imoRef(), q = imo.q;
+    const withD = a => ({ a, d: ref ? Core.haversine(ref.lat, ref.lon, a.lat, a.lon) : null });
+    const sort = (x, y) => (x.d ?? 1e9) - (y.d ?? 1e9) || x.a.loyer - y.a.loyer;
+    const all = imoRows().map(withD);
+    if (!q) return { ref, main: all.filter(x => x.d == null || x.d <= 25).sort(sort), extra: [] };
+    const main = all.filter(x => imoMatches(x.a, q)).sort(sort);
+    // un peu au-dessus du budget ou dans le reste de la zone : proposé à part, jamais mélangé
+    const ids = new Set(main.map(x => x.a.id));
+    const extra = all.filter(x => !ids.has(x.a.id) && (imoMatches(x.a, q, 1.15) || imoMatches(x.a, { ...q, type: null }))).sort(sort).slice(0, 10);
+    return { ref, main, extra };
+  }
+
+  /* ---------- Onglet ---------- */
+  function imoRow(x, ref) {
+    const a = x.a, fol = isFollowed('imo', a.id), th = imo.thumbs.get(a.id);
+    const eq = [a.chambres ? `${a.chambres} ch.` : '', a.cuisine ? 'cuisine' : '', a.douche_int ? 'douche int.' : ''].filter(Boolean).join(' · ');
+    return `<div class="py-row imo-row${fol ? ' following' : ''}" data-imo="${esc(a.id)}" role="button" tabindex="0" aria-pressed="${fol}">
+      <span class="imo-th">${th ? `<img src="${th}" alt="" loading="lazy">` : ic('home')}</span>
+      <span class="imo-main"><b>${esc(a.type === '2p' ? 'Chambre salon' + (a.meuble ? ' meublé' : '') : imoTitle(a))}</b><small>${esc(a.quartier)}${eq ? ' · ' + esc(eq) : ''}</small><span class="imo-price">${money(a.loyer)} F<small>/mois</small></span></span>
+      <span class="imo-d">${x.d != null ? `<b>${fmtDist(x.d)}</b><small>${esc(ref ? ref.label : '')}</small>` : ''}</span>
+      <span class="imo-go">${ic('chevron')}</span></div>`;
+  }
+  function renderImo(enter) {
+    if (enter) { fetchImo(false); if (Date.now() - (imo.mineT || 0) > 60e3) { imo.mineT = Date.now(); fetchMine(); } }
+    const { ref, main, extra } = imoResults(), q = imo.q;
+    const n = imoRows().length;
+    $('imo-title').textContent = q ? 'Votre recherche' : 'Trouvez votre maison';
+    $('imo-pulse').textContent = imo.err && !n ? imo.err
+      : !n ? (imo.loading ? 'Chargement des annonces…' : 'Aucune annonce pour le moment. Soyez le premier à publier !')
+      : q ? `${main.length} logement${main.length > 1 ? 's' : ''} pour vous${ref ? ', classés par distance ' + ref.label : ''}`
+      : (k => `${k} logement${k > 1 ? 's' : ''} à louer à moins de 5 km`)(main.filter(x => x.d != null && x.d <= 5).length);
+    const crit = $('imo-crit');
+    crit.hidden = !q;
+    if (q) {
+      const bits = [q.type ? IMO_T[q.type] : 'Tout type', q.zone ? (q.zone.here ? `${q.zone.name} (mon quartier)` : q.zone.name) : 'Tout Abidjan', q.budget ? `≤ ${money(q.budget)} F/mois` : '', q.cuisine ? 'cuisine' : '', q.douche ? 'douche interne' : '', q.meuble ? 'meublé' : ''].filter(Boolean);
+      crit.innerHTML = `<span>${ic('search')}<span>${bits.map(esc).join(' · ')}</span></span><button type="button" class="link" id="imo-crit-edit">Modifier</button><button type="button" class="link" id="imo-crit-x" aria-label="Effacer la recherche">${ic('close')}</button>`;
+    }
+    $('imo-list-h').textContent = q ? 'Pour votre recherche' : 'Autour de vous';
+    $('imo-sub').textContent = ref ? `distance ${ref.label}` : '';
+    const list = $('imo-list'), rows = main.slice(0, imo.shown);
+    let html = rows.map(x => imoRow(x, ref)).join('');
+    if (!rows.length) html = `<div class="py-empty imo-empty">${ic('home')}<b>${q ? 'Aucun logement ne correspond encore' : 'Pas encore d’annonce près de vous'}</b><span>${q ? 'Élargissez le quartier ou le budget, ou revenez plus tard : de nouvelles annonces arrivent chaque jour.' : 'Les annonces publiées autour de vous apparaîtront ici.'}</span></div>`;
+    if (q && extra.length) html += `<div class="imo-sep">Proches de votre recherche</div>` + extra.map(x => imoRow(x, ref)).join('');
+    list.innerHTML = html;
+    list.classList.toggle('is-empty', !rows.length && !extra.length);
+    $('imo-more').hidden = main.length <= imo.shown;
+    renderMine();
+    renderLive();
+  }
+  function renderMine() {
+    const wrap = $('imo-mine-wrap');
+    wrap.hidden = !imo.mine.length;
+    if (!imo.mine.length) return;
+    const now = Date.now();
+    $('imo-mine-sub').textContent = `${imo.mine.length} annonce${imo.mine.length > 1 ? 's' : ''}`;
+    $('imo-mine').innerHTML = imo.mine.map(m => {
+      const exp = new Date(m.expires_at).getTime() < now, hidden = m.signalements >= 3;
+      const st = m.statut === 'louee' ? '<em class="py-tag">louée</em>' : hidden ? '<em class="py-tag bad">masquée (signalée)</em>' : exp ? '<em class="py-tag wait">expirée</em>' : '<em class="py-tag ok">en ligne</em>';
+      const left = Math.max(0, Math.ceil((new Date(m.expires_at).getTime() - now) / 864e5));
+      return `<div class="py-row imo-row mine" data-mine="${esc(m.id)}" role="button" tabindex="0">
+        <span class="imo-th">${imo.thumbs.get(m.id) ? `<img src="${imo.thumbs.get(m.id)}" alt="">` : ic('key')}</span>
+        <span class="imo-main"><b>${esc(IMO_SHORT[m.type] || m.type)} · ${esc(m.quartier)}</b><small>${money(m.loyer)} F/mois · ${m.nb_photos} photo${m.nb_photos > 1 ? 's' : ''}${m.statut === 'active' && !exp ? ` · ${left} j restants` : ''}</small>${st}</span>
+        <span class="imo-d"></span><span class="imo-go">${ic('more')}</span></div>`;
+    }).join('');
+  }
+  $('imo-list').addEventListener('click', e => {
+    const row = e.target.closest('[data-imo]'); if (!row) return;
+    const id = row.dataset.imo;
+    if (isFollowed('imo', id)) { $('screen-imo').scrollTo({ top: 0, behavior: 'smooth' }); live.open = true; $('live').classList.add('open'); return; }
+    followPlace('imo', id);
+    $('screen-imo').scrollTo({ top: 0, behavior: 'smooth' });
+  });
+  $('imo-mine').addEventListener('click', e => {
+    const row = e.target.closest('[data-mine]'); if (!row) return;
+    const m = imo.mine.find(x => x.id === row.dataset.mine); if (!m) return;
+    const act = async (action, ok) => {
+      const r = await rpc('annonce_statut', { p_id: m.id, p_action: action });
+      if (!r.ok) { toast(r.net ? 'Pas de connexion internet.' : 'Action impossible : ' + sbErr(r), 'error'); return; }
+      toast(ok, 'success'); fetchMine(); fetchImo(true);
+    };
+    openActions({ title: `${IMO_SHORT[m.type]} · ${m.quartier}`, sub: `${money(m.loyer)} F/mois`, actions: [
+      ...(imoById(m.id) ? [{ icon: 'home', label: 'Voir l’annonce', fn: () => followPlace('imo', m.id) }] : []),
+      { icon: 'refresh', label: 'Toujours disponible', hint: 'Reste en ligne 45 jours de plus', fn: () => act('renouveler', 'Annonce prolongée de 45 jours.') },
+      { icon: 'check', label: 'C’est loué', hint: 'L’annonce n’apparaît plus', fn: () => act('louee', 'Annonce marquée louée. Félicitations !') },
+      { icon: 'trash', label: 'Supprimer l’annonce', danger: true, fn: () => { if (confirm('Supprimer définitivement cette annonce et ses photos ?')) act('retirer', 'Annonce supprimée.'); } }] });
+  });
+  $('imo-more').onclick = () => { imo.shown += 30; renderImo(); };
+  $('imo-refresh').onclick = () => { fetchImo(true); fetchMine(); };
+  $('imo-find').onclick = () => openImoSearch();
+  $('imo-pub').onclick = () => openImoPub();
+  $('imo-crit').addEventListener('click', e => {
+    if (e.target.closest('#imo-crit-edit')) openImoSearch();
+    else if (e.target.closest('#imo-crit-x')) { const old = imo.q; imo.q = null; store.set('imoQ', null); renderImo(); toast('Recherche effacée.', 'info', 4000, { label: 'Annuler', fn: () => { imo.q = old; store.set('imoQ', old); renderImo(); } }); }
+  });
+
+  /* ---------- Bulle : l'annonce sélectionnée, présentée comme une fiche ---------- */
+  function imoTarget() {
+    const d = live.dest && live.dest.kind === 'imo' && Date.now() - live.dest.t < DEST_TTL ? live.dest : null;
+    let a = d && imoById(d.id), kicker = 'Votre sélection';
+    if (!a) {
+      const { main } = imoResults();
+      const x = main[0];
+      if (!x) return null;
+      a = x.a; kicker = imo.q ? 'Le mieux placé pour vous' : 'Le plus proche de vous';
+    }
+    return { kind: 'imo', p: { ...a, name: imoName(a) }, a, icon: 'home', dest: !!d, far: FAR_KM, at: 0.04, kicker,
+      tags: `<span class="live-sub imo-live-price">${money(a.loyer)} F/mois</span>` };
+  }
+  function imoDistances(a) {
+    const out = [], here = [a.lat, a.lon];
+    const w = privOf('work'), h = privOf('home');
+    if (w) out.push(['work', 'Lieu de travail', Core.haversine(a.lat, a.lon, w.lat, w.lon)]);
+    if (h) out.push(['home', 'Domicile actuel', Core.haversine(a.lat, a.lon, h.lat, h.lon)]);
+    if (state.pos && !w && !h) out.push(['locate', 'Votre position', Core.haversine(a.lat, a.lon, state.pos[0], state.pos[1])]);
+    const st = Core.nearbyStops(D, a.lat, a.lon, 2, 1)[0];
+    if (st) out.push(['bus', 'Arrêt de bus', st.d]);
+    const near = cat => { let b = null; for (const p of placesBase()) if (p.cat === cat) { const k = Core.haversine(a.lat, a.lon, p.lat, p.lon); if (!b || k < b) b = k; } return b; };
+    const mk = near('marche'); if (mk != null && mk < 15) out.push(['market', 'Marché', mk]);
+    let ph0 = null; for (const p of allPharmacies()) { const k = Core.haversine(a.lat, a.lon, p.lat, p.lon); if (ph0 == null || k < ph0) ph0 = k; }
+    if (ph0 != null && ph0 < 15) out.push(['cross', 'Pharmacie', ph0]);
+    void here;
+    return out;
+  }
+  function imoCardHtml(a) {
+    const stat = (icn, v, l) => v == null || v === '' ? '' : `<div class="ic-stat">${ic(icn)}<b>${esc(String(v))}</b><small>${l}</small></div>`;
+    const cond = [a.avance != null ? `Avance : ${a.avance} mois` : '', a.caution != null ? `Caution : ${a.caution} mois` : '',
+      a.frais_visite != null ? (a.frais_visite ? `Frais de visite : ${money(a.frais_visite)} FCFA` : 'Visite gratuite') : '',
+      a.bail_mois ? `Durée du bail : ${a.bail_mois} mois` : '', a.meuble ? 'Meublé' : '',
+      [a.cuisine ? 'Cuisine' : 'Sans cuisine', a.douche_int ? 'douche interne' : 'douche externe'].join(', ')].filter(Boolean);
+    const ph = imo.photos.get(a.id), nb = a.nb_photos || 0, th = imo.thumbs.get(a.id);
+    let photos = '';
+    if (nb) {
+      const list = ph && ph.length ? ph : th ? [th] : [];
+      photos = `<div class="ic-h">${ic('camera')}<b>Photos du logement</b>${nb > 1 ? `<small>${nb}</small>` : ''}</div>
+        <div class="ic-photos${list.length > 1 ? ' multi' : ''}">${list.map((src, i) => `<button type="button" class="ic-ph${i === 0 ? ' big' : ''}" data-ph="${i}" aria-label="Photo ${i + 1}"><img src="${src}" alt=""></button>`).join('')}${ph ? '' : '<span class="ic-ph-load"><span class="spinner"></span></span>'}</div>`;
+    }
+    const dist = imoDistances(a);
+    const tel = String(a.tel || '');
+    const telFmt = tel.replace(/(\d{2})(?=\d)/g, '$1 ');
+    return `<article class="imo-card" data-id="${esc(a.id)}">
+      <span class="ic-badge">${ic('key')}À LOUER</span>
+      <h3 class="ic-title">${esc(imoTitle(a))}</h3>
+      <p class="ic-addr">${ic('pin')}<span>${esc(a.quartier)}${a.adresse ? ' – ' + esc(a.adresse) : ''}</span></p>
+      <p class="ic-gps">${ic('locate')}Position GPS vérifiée sur place (± ${Math.round(a.gps_acc || 0)} m)</p>
+      <p class="ic-price">${money(a.loyer)} FCFA <small>/ mois</small></p>
+      <div class="ic-stats">${stat('bed', a.chambres, a.chambres > 1 ? 'Chambres' : 'Chambre')}${stat('bath', a.sdb, a.sdb > 1 ? 'Salles de bain' : 'Salle de bain')}${stat('area', a.surface ? a.surface + ' m²' : null, 'Surface')}${stat('floor', a.etage == null ? null : a.etage === 0 ? 'RDC' : a.etage, 'Étage')}</div>
+      <div class="ic-boxes">
+        ${dist.length ? `<div class="ic-box"><div class="ic-h">${ic('pin')}<b>Distances pratiques</b></div>${dist.map(([icn, l, d]) => `<div class="ic-li">${ic(icn)}<span>${l}</span><b>${fmtDist(d)}</b></div>`).join('')}</div>` : ''}
+        <div class="ic-box"><div class="ic-h">${ic('doc')}<b>Conditions</b></div>${cond.map(c => `<div class="ic-li ok">${ic('check')}<span>${esc(c)}</span></div>`).join('')}</div>
+      </div>
+      ${a.description ? `<p class="ic-desc">${esc(a.description)}</p>` : ''}
+      ${photos}
+      <button type="button" class="ic-route" data-ic="route">${ic('route')}Voir l’itinéraire</button>
+      <div class="ic-contact">
+        <div class="ic-who">${ic('user')}<span><b>${esc(a.contact_nom || (a.role === 'agent' ? 'Agent immobilier' : 'Propriétaire'))}</b><small>${a.role === 'agent' ? 'Agent immobilier' : 'Propriétaire'} · ${esc(telFmt)}</small></span></div>
+        <div class="ic-btns">${a.whatsapp ? `<button type="button" class="ic-wa" data-ic="wa">${ic('chat')}WhatsApp</button>` : ''}<button type="button" class="ic-call" data-ic="call">${ic('phone')}Appeler</button></div>
+      </div>
+      <button type="button" class="ic-report link" data-ic="report">${ic('flag')}Signaler cette annonce</button>
+    </article>`;
+  }
+  function renderLiveImo(tg) {
+    const box = $('live-imo');
+    if (!tg || tg.kind !== 'imo') { box.innerHTML = ''; live.imoId = null; return; }
+    const a = tg.a, key = a.id + '|' + (imo.photos.get(a.id) || []).length + '|' + (privOf('work') ? 1 : 0);
+    if (live.imoKey === key) return;
+    live.imoKey = key; live.imoId = a.id;
+    box.innerHTML = imoCardHtml(a);
+    if (a.nb_photos && !imo.photos.has(a.id)) loadImoPhotos(a.id);
+  }
+  async function loadImoPhotos(id) {
+    if (imo.photos.has(id) || !sbOn()) return;
+    imo.photos.set(id, null);
+    const r = await sb(`/rest/v1/annonce_photos?select=idx,data&annonce_id=eq.${id}&order=idx`, { timeout: 20000 });
+    if (r.ok && Array.isArray(r.data)) imo.photos.set(id, r.data.map(x => x.data)); else imo.photos.delete(id);
+    live.imoKey = ''; if (current === 'screen-imo') renderLive();
+  }
+  function imoRoute(a) {
+    setDestPlace({ name: imoName(a), lat: a.lat, lon: a.lon, icon: 'home' });
+    show('screen-home');
+    setTimeout(() => { if (typeof searchRoutes === 'function') searchRoutes(); }, 60);
+  }
+  $('live-imo').addEventListener('click', e => {
+    const b = e.target.closest('[data-ic],[data-ph]'); if (!b) return;
+    const a = live.tg && live.tg.a; if (!a) return;
+    e.stopPropagation();
+    if (b.dataset.ph != null) { openViewer(imo.photos.get(a.id) || [imo.thumbs.get(a.id)].filter(Boolean), +b.dataset.ph); return; }
+    const k = b.dataset.ic, tel = String(a.tel || '');
+    if (k === 'route') imoRoute(a);
+    else if (k === 'call') openExternal('tel:' + tel);
+    else if (k === 'wa') openExternal(`https://wa.me/225${tel}?text=${encodeURIComponent(`Bonjour, je vous contacte depuis ZUPA pour votre annonce : ${imoTitle(a)} à ${a.quartier}, ${money(a.loyer)} FCFA/mois. Est-il toujours disponible ?`)}`);
+    else if (k === 'report') reportImo(a);
+  });
+  function reportImo(a) {
+    if (imo.reported.includes(a.id)) { toast('Vous avez déjà signalé cette annonce. Merci !'); return; }
+    const send = async motif => {
+      const r = await rpc('annonce_signaler', { p_id: a.id, p_motif: motif });
+      if (!r.ok) { toast(r.net ? 'Pas de connexion internet.' : 'Signalement impossible : ' + sbErr(r), 'error'); return; }
+      imo.reported.push(a.id); store.set('imoReported', imo.reported.slice(-300));
+      toast('Merci. L’annonce est masquée après 3 signalements.', 'success');
+    };
+    openActions({ title: 'Signaler l’annonce', sub: imoName(a), actions: [
+      { icon: 'pin', label: 'Mal localisée', hint: 'Le logement n’est pas à cet endroit', fn: () => send('mal_localisee') },
+      { icon: 'block', label: 'Logement fictif', hint: 'Ce logement n’existe pas', fn: () => send('fictive') },
+      { icon: 'check', label: 'Déjà loué', fn: () => send('deja_louee') },
+      { icon: 'flag', label: 'Arnaque', hint: 'Argent demandé avant visite, etc.', danger: true, fn: () => send('arnaque') }] });
+  }
+  // visionneuse plein écran (défilement horizontal)
+  function openViewer(list, i) {
+    if (!list.length) return;
+    const v = $('imo-viewer'), rail = $('imo-viewer-rail');
+    rail.innerHTML = list.map(src => `<div class="imo-viewer-sl"><img src="${src}" alt=""></div>`).join('');
+    v.hidden = false;
+    requestAnimationFrame(() => { rail.scrollLeft = i * rail.clientWidth; upd(); });
+    function upd() { $('imo-viewer-n').textContent = `${Math.round(rail.scrollLeft / Math.max(1, rail.clientWidth)) + 1} / ${list.length}`; }
+    rail.onscroll = upd;
+  }
+  $('imo-viewer-x').onclick = () => { $('imo-viewer').hidden = true; };
+
+  /* ---------- Je cherche ---------- */
+  const is = { type: null, zone: null, cuisine: false, douche: false, meuble: false };
+  function openImoSearch() {
+    const q = imo.q || {};
+    Object.assign(is, { type: q.type || null, zone: q.zone || null, cuisine: !!q.cuisine, douche: !!q.douche, meuble: !!q.meuble });
+    $('is-budget').value = q.budget ? money(q.budget) : '';
+    $('is-q').value = '';
+    renderImoSearch();
+    show('screen-imo-search');
+  }
+  function renderImoSearch() {
+    $('is-type').innerHTML = IMO_TYPES.map(([k, l]) => `<button type="button" role="radio" aria-checked="${is.type === k}" class="${is.type === k ? 'on' : ''}" data-v="${k}">${esc(k === '2p' ? '2 pièces (chambre salon)' : l)}</button>`).join('');
+    $('is-eq').querySelectorAll('button').forEach(b => { const on = !!is[b.dataset.k]; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
+    const here = state.pos ? nearestZone(state.pos[0], state.pos[1]) : null;
+    const chips = [];
+    if (here && here.d < 3) chips.push({ k: 'here', l: `${ic('locate')}Mon quartier : ${esc(here.name)}`, on: !!(is.zone && is.zone.here) });
+    if (is.zone && !is.zone.here) chips.push({ k: 'cur', l: `${ic('pin')}${esc(is.zone.name)}`, on: true });
+    chips.push({ k: 'any', l: 'Peu importe', on: !is.zone });
+    $('is-qchips').innerHTML = chips.map(c => `<button type="button" role="radio" aria-checked="${c.on}" class="${c.on ? 'on' : ''}" data-z="${c.k}">${c.l}</button>`).join('');
+    const b = intOf($('is-budget').value);
+    $('is-bchips').innerHTML = [30000, 60000, 100000, 150000, 250000, 500000].map(v => `<button type="button" class="${b === v ? 'on' : ''}" data-b="${v}">${money(v)}</button>`).join('');
+    const w = privOf('work');
+    const ref = is.zone && is.zone.here ? 'les plus proches de vous (votre quartier actuel)' : w ? 'les plus proches de votre lieu de travail' : is.zone ? `les plus proches du centre de ${is.zone.name}` : 'les plus proches de vous';
+    $('is-ref').innerHTML = `${ic('info')}<span>Les logements seront classés : <b>${esc(ref)}</b>.${!w ? ' Astuce : enregistrez votre <b>lieu de travail</b> (Profil, lieux confidentiels) pour classer les annonces selon votre trajet quotidien. Il reste sur votre téléphone.' : ''}</span>`;
+  }
+  $('is-type').addEventListener('click', e => { const b = e.target.closest('[data-v]'); if (!b) return; is.type = is.type === b.dataset.v ? null : b.dataset.v; renderImoSearch(); });
+  $('is-eq').addEventListener('click', e => { const b = e.target.closest('[data-k]'); if (!b) return; is[b.dataset.k] = !is[b.dataset.k]; renderImoSearch(); });
+  $('is-qchips').addEventListener('click', e => {
+    const b = e.target.closest('[data-z]'); if (!b) return;
+    if (b.dataset.z === 'any') is.zone = null;
+    else if (b.dataset.z === 'here' && state.pos) { const z = nearestZone(state.pos[0], state.pos[1]); is.zone = { name: z.name, lat: state.pos[0], lon: state.pos[1], here: true }; }
+    renderImoSearch();
+  });
+  $('is-bchips').addEventListener('click', e => { const b = e.target.closest('[data-b]'); if (!b) return; $('is-budget').value = money(+b.dataset.b); renderImoSearch(); });
+  $('is-budget').addEventListener('input', e => { const v = intOf(e.target.value); e.target.value = v ? money(v) : ''; renderImoSearch(); });
+  makeSuggest($('is-q'), $('is-suggest'), {
+    search: q => { const k = Core.key(q); return ZONES.filter(z => Core.key(z.name).includes(k)).sort((a, b) => Core.key(a.name).indexOf(k) - Core.key(b.name).indexOf(k) || a.name.length - b.name.length)
+      .filter((z, i, arr) => arr.findIndex(x => Core.key(x.name) === Core.key(z.name)) === i).slice(0, 8)
+      .map(z => ({ z, html: `${ic('pin')}<span class="sg-main"><b>${esc(z.name)}</b><small>${state.pos ? fmtDist(Core.haversine(state.pos[0], state.pos[1], z.lat, z.lon)) + ' de vous' : 'quartier'}</small></span>` })); },
+    onPick: it => { is.zone = { name: it.z.name, lat: it.z.lat, lon: it.z.lon, here: false }; $('is-q').value = ''; renderImoSearch(); }
+  });
+  $('is-back').onclick = () => goBack();
+  $('is-clear').onclick = () => { imo.q = null; store.set('imoQ', null); show('screen-imo'); };
+  $('is-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const budget = intOf($('is-budget').value);
+    if (budget != null && budget < 5000) { toast('Indiquez un loyer d’au moins 5 000 FCFA.', 'error'); return; }
+    imo.q = { type: is.type, zone: is.zone, budget, cuisine: is.cuisine, douche: is.douche, meuble: is.meuble, t: Date.now() };
+    store.set('imoQ', imo.q); imo.shown = 30;
+    if (live.dest && live.dest.kind === 'imo') { live.dest = null; store.set('liveDest', null); }
+    show('screen-imo');
+  });
+
+  /* ---------- Publier : GPS obligatoire et vérifié ---------- */
+  const ip = { st: 'none', gps: null, pin: null, type: '2p', role: 'proprietaire', eq: { cuisine: true, douche: true, meuble: false }, zone: null, zones: [], photos: [], timer: 0, sending: false };
+  let ipMap = null, ipCircle = null, ipMoving = false;
+  function openImoPub() {
+    if (!sbOn()) { toast('Publication indisponible : base partagée non configurée.', 'error'); return; }
+    renderImoPub();
+    show('screen-imo-pub');
+  }
+  function renderImoPub() {
+    const acc = ip.gps ? `± ${Math.round(ip.gps.acc)} m` : '';
+    const T = {
+      none: [ic('info'), 'Aucune position. Touchez le bouton ci-dessous une fois sur place.', 'warn'],
+      locating: ['<span class="spinner"></span>', `Mesure GPS en cours… ${acc} <small>(il faut ± ${IMO_GPS_MAX} m ou mieux)</small>`, ''],
+      weak: [ic('info'), `Signal GPS trop imprécis (± ${ip.weakAcc || '?'} m, il faut ± ${IMO_GPS_MAX} m). Sortez devant la porte ou près d’une fenêtre, activez la localisation précise, puis réessayez. Publication impossible sans une mesure précise.`, 'warn'],
+      fail: [ic('info'), 'GPS indisponible. Activez la localisation du téléphone et autorisez ZUPA, puis réessayez.', 'warn'],
+      ok: [ic('check'), `Logement localisé par GPS (${acc}). Vous pouvez ajuster le repère de ${IMO_PIN_MAX} m au plus.`, 'ok'],
+      old: [ic('info'), 'Mesure GPS de plus de 2 h : localisez à nouveau le logement.', 'warn']
+    }[ip.st];
+    $('ip-state').className = 'ap-state ' + T[2];
+    $('ip-state').innerHTML = `${T[0]}<span>${T[1]}</span>`;
+    $('ip-locate').disabled = ip.st === 'locating';
+    $('ip-locate').lastChild.textContent = ip.st === 'ok' ? 'Mesurer à nouveau' : 'Je suis au logement : localiser';
+    $('ip-map-wrap').hidden = !ip.gps;
+    $('ip-quartier').innerHTML = ip.zones.length ? ip.zones.map(z => `<button type="button" role="radio" aria-checked="${ip.zone === z.name}" class="${ip.zone === z.name ? 'on' : ''}" data-z="${esc(z.name)}">${esc(z.name)}</button>`).join('') : '<span class="ip-wait">Localisez d’abord le logement.</span>';
+    $('ip-type').innerHTML = IMO_TYPES.map(([k, l]) => `<button type="button" role="radio" aria-checked="${ip.type === k}" class="${ip.type === k ? 'on' : ''}" data-v="${k}">${esc(k === '2p' ? '2 pièces (chambre salon)' : l)}</button>`).join('');
+    $('ip-eq').querySelectorAll('button').forEach(b => { const on = !!ip.eq[b.dataset.k]; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
+    $('ip-role').querySelectorAll('button').forEach(b => { const on = b.dataset.v === ip.role; b.classList.toggle('active', on); b.setAttribute('aria-checked', String(on)); });
+    $('ip-photos').innerHTML = ip.photos.map((p, i) => `<div class="ip-ph"><img src="${p.data}" alt=""><button type="button" data-rm="${i}" aria-label="Retirer la photo">${ic('close')}</button>${i === 0 ? '<em>Principale</em>' : ''}</div>`).join('') || '<p class="ip-wait">Ajoutez au moins une photo du logement.</p>';
+    $('ip-cam').disabled = $('ip-gal').disabled = ip.photos.length >= 6;
+    checkImoPub();
+  }
+  function imoPubProblem() {
+    if (ip.st !== 'ok' || !ip.gps || !ip.pin) return 'Localisez le logement par GPS, sur place (obligatoire).';
+    if (Date.now() - ip.gps.t > IMO_GPS_TTL) return 'Mesure GPS trop ancienne : localisez à nouveau le logement.';
+    if (Core.haversine(ip.pin[0], ip.pin[1], ip.gps.lat, ip.gps.lon) * 1000 > IMO_PIN_MAX + 1) return `Le repère doit rester à ${IMO_PIN_MAX} m au plus de la mesure GPS.`;
+    if (!ip.zone) return 'Choisissez le quartier.';
+    const loyer = intOf($('ip-loyer').value);
+    if (!loyer || loyer < 5000) return 'Indiquez le loyer mensuel (5 000 FCFA au moins).';
+    const ch = intOf($('ip-ch').value), sdb = intOf($('ip-sdb').value);
+    if (ch == null || ch > 12 || sdb == null || sdb > 10) return 'Indiquez le nombre de chambres et de salles de bain.';
+    if (!ip.photos.length) return 'Ajoutez au moins une photo du logement.';
+    if (phoneDigits($('ip-tel').value).length !== 10) return 'Indiquez un numéro de téléphone à 10 chiffres.';
+    if (!$('ip-certif').checked) return 'Cochez la case de certification.';
+    return '';
+  }
+  function checkImoPub() { const pb = imoPubProblem(); $('ip-save').disabled = !!pb || ip.sending; $('ip-why').textContent = pb; }
+  function ensureIpMap() {
+    if (!ip.gps) return;
+    if (!hasL) { mapOff('ip-map'); return; }
+    if (!ipMap) {
+      ipMap = baseMap($('ip-map'), { onLocate: () => { ipLocate(); return false; } });
+      ipMap.on('dragstart', () => { ipMoving = true; });
+      ipMap.on('moveend', () => {
+        if (!ipMoving || !ip.gps) return;
+        ipMoving = false;
+        const c = ipMap.getCenter(), d = Core.haversine(c.lat, c.lng, ip.gps.lat, ip.gps.lon) * 1000;
+        if (d > IMO_PIN_MAX) { // garde-fou : retour au point le plus éloigné autorisé
+          const k = IMO_PIN_MAX / d;
+          ip.pin = [ip.gps.lat + (c.lat - ip.gps.lat) * k, ip.gps.lon + (c.lng - ip.gps.lon) * k];
+          ipMap.panTo(ip.pin);
+          toast(`Le repère ne peut pas s’éloigner de plus de ${IMO_PIN_MAX} m de votre position GPS.`, 'error', 4000);
+          vibrate(60);
+        } else ip.pin = [c.lat, c.lng];
+        setIpZones(); renderImoPub();
+      });
+    }
+    ipMap.invalidateSize();
+    if (ipCircle) ipCircle.remove();
+    ipCircle = L.circle([ip.gps.lat, ip.gps.lon], { radius: IMO_PIN_MAX, color: '#0b7a53', weight: 2, fillOpacity: 0.08, dashArray: '6 6', interactive: false }).addTo(ipMap);
+    ipMap.setView(ip.pin, 18, { animate: false });
+  }
+  function setIpZones() {
+    const p = ip.pin;
+    ip.zones = zonesAround(p[0], p[1], 3, 6);
+    if (!ip.zones.length) { const z = nearestZone(p[0], p[1]); if (z) ip.zones = [z]; }
+    if (!ip.zones.some(z => z.name === ip.zone)) ip.zone = ip.zones[0] ? ip.zones[0].name : null;
+  }
+  // mesure GPS fraîche : seules les mesures reçues APRÈS l'appui comptent ; la meilleure des 20 s (arrêt dès ± 12 m)
+  function ipLocate() {
+    clearTimeout(ip.timer);
+    ip.st = 'locating'; renderImoPub();
+    if (!gotFix && !watchHigh) startGeo(true);
+    const t0 = Date.now(); let best = null, n = 0, lastT = 0;
+    const tick = () => {
+      if (current !== 'screen-imo-pub') { if (ip.st === 'locating') ip.st = 'none'; return; }
+      const r = state.gpsRaw;
+      if (r && r.t > t0 && r.t !== lastT) { lastT = r.t; n++; if (!best || r.acc < best.acc) best = { ...r }; }
+      if (best) { ip.gps = best; renderImoPub(); $('ip-map-wrap').hidden = true; }
+      const done = best && ((best.acc <= 12 && n >= 2) || Date.now() - t0 > 20000);
+      if (done) {
+        if (best.acc > IMO_GPS_MAX) { ip.st = 'weak'; ip.weakAcc = Math.round(best.acc); ip.gps = null; ip.pin = null; ip.zones = []; ip.zone = null; renderImoPub(); return; }
+        ip.gps = best; ip.pin = [best.lat, best.lon]; ip.st = 'ok';
+        setIpZones(); vibrate(60); renderImoPub(); ensureIpMap(); return;
+      }
+      if (!best && Date.now() - t0 > 20000) { ip.st = 'fail'; renderImoPub(); return; }
+      ip.timer = setTimeout(tick, 400);
+    };
+    tick();
+  }
+  $('ip-locate').onclick = ipLocate;
+  $('ip-back').onclick = () => goBack();
+  leaveGuards['screen-imo-pub'] = () => {
+    const dirty = ip.st === 'ok' || ip.photos.length || ['ip-loyer', 'ip-tel', 'ip-desc', 'ip-adresse'].some(i => $(i).value.trim());
+    return ip.sending ? false : !dirty || confirm('Abandonner cette annonce ? Les informations saisies seront perdues.');
+  };
+  $('ip-quartier').addEventListener('click', e => { const b = e.target.closest('[data-z]'); if (!b) return; ip.zone = b.dataset.z; renderImoPub(); });
+  $('ip-type').addEventListener('click', e => {
+    const b = e.target.closest('[data-v]'); if (!b) return; ip.type = b.dataset.v;
+    const ch = { chambre: 1, studio: 1, '2p': 1, '3p': 2, '4p': 3, '5p': 4 }[ip.type]; if (ch) $('ip-ch').value = ch;
+    renderImoPub();
+  });
+  $('ip-eq').addEventListener('click', e => { const b = e.target.closest('[data-k]'); if (!b) return; ip.eq[b.dataset.k] = !ip.eq[b.dataset.k]; renderImoPub(); });
+  $('ip-role').addEventListener('click', e => { const b = e.target.closest('[data-v]'); if (!b) return; ip.role = b.dataset.v; renderImoPub(); });
+  $('ip-photos').addEventListener('click', e => { const b = e.target.closest('[data-rm]'); if (!b) return; ip.photos.splice(+b.dataset.rm, 1); renderImoPub(); });
+  $('ip-form').addEventListener('input', e => {
+    if (['ip-loyer', 'ip-visite'].includes(e.target.id)) { const v = intOf(e.target.value); e.target.value = v != null ? money(v) : ''; }
+    checkImoPub();
+  });
+  $('ip-certif').addEventListener('change', checkImoPub);
+  // photos : réduites sur le téléphone (1280 px, JPEG) avant l'envoi ; vignette 200 px pour les listes
+  function shrink(file, max, q) {
+    return new Promise((res, rej) => {
+      const url = URL.createObjectURL(file), img = new Image();
+      img.onload = () => {
+        const k = Math.min(1, max / Math.max(img.width, img.height));
+        const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url); res(c.toDataURL('image/jpeg', q));
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('image illisible')); };
+      img.src = url;
+    });
+  }
+  async function addPhotos(files) {
+    for (const f of [...files].slice(0, 6 - ip.photos.length)) {
+      if (!/^image\//.test(f.type)) continue;
+      try {
+        let data = await shrink(f, 1280, 0.72);
+        if (data.length > 380000) data = await shrink(f, 960, 0.62);
+        const thumb = ip.photos.length ? null : await shrink(f, 220, 0.6);
+        ip.photos.push({ data, thumb });
+      } catch (_) { toast('Une photo n’a pas pu être lue.', 'error'); }
+    }
+    if (ip.photos[0] && !ip.photos[0].thumb) ip.photos[0].thumb = ip.photos[0].data; // ne devrait pas arriver
+    renderImoPub();
+  }
+  ['ip-cam', 'ip-gal'].forEach(id => $(id).addEventListener('change', async e => { await addPhotos(e.target.files || []); e.target.value = ''; }));
+  $('ip-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const pb = imoPubProblem();
+    if (pb) { toast(pb, 'error'); if (/GPS|Localisez|repère/.test(pb)) $('screen-imo-pub').scrollTo({ top: 0, behavior: 'smooth' }); return; }
+    if (ip.photos[0] && ip.photos[0].thumb && ip.photos[0].thumb.length > 38000) ip.photos[0].thumb = null;
+    const n = v => intOf(v);
+    const body = {
+      role: ip.role, type: ip.type, chambres: n($('ip-ch').value), sdb: n($('ip-sdb').value), cuisine: ip.eq.cuisine, douche_int: ip.eq.douche, meuble: ip.eq.meuble,
+      surface: n($('ip-surf').value), etage: n($('ip-etage').value), loyer: n($('ip-loyer').value), avance: n($('ip-avance').value), caution: n($('ip-caution').value),
+      frais_visite: n($('ip-visite').value), bail_mois: n($('ip-bail').value), description: $('ip-desc').value.trim(), quartier: ip.zone, adresse: $('ip-adresse').value.trim(),
+      lat: +ip.pin[0].toFixed(6), lon: +ip.pin[1].toFixed(6), gps_lat: +ip.gps.lat.toFixed(6), gps_lon: +ip.gps.lon.toFixed(6), gps_acc: Math.max(1, Math.round(ip.gps.acc)),
+      gps_at: new Date(ip.gps.t).toISOString(), contact_nom: $('ip-nom').value.trim(), tel: phoneDigits($('ip-tel').value), whatsapp: $('ip-wa').checked,
+      thumb: ip.photos[0] && ip.photos[0].thumb || null
+    };
+    ip.sending = true; $('ip-save').classList.add('loading'); checkImoPub();
+    try {
+      const r = await rpc('annonce_publier', { p: body });
+      if (!r.ok || !r.data) { toast(r.net ? 'Pas de connexion internet. Réessayez.' : 'Publication refusée : ' + sbErr(r), 'error', 7000); return; }
+      const id = r.data;
+      let sent = 0;
+      for (let i = 0; i < ip.photos.length; i++) {
+        $('ip-why').textContent = `Envoi des photos… ${i + 1}/${ip.photos.length}`;
+        const pr = await sb('/rest/v1/rpc/annonce_photo', { method: 'POST', body: { p_secret: mySecret, p_id: id, p_idx: i, p_data: ip.photos[i].data }, timeout: 40000 });
+        if (pr.ok) sent++;
+      }
+      if (body.thumb) imo.thumbs.set(id, body.thumb);
+      store.set('imoPubLast', { tel: body.tel, contact_nom: body.contact_nom, role: body.role, whatsapp: body.whatsapp });
+      toast(sent === ip.photos.length ? 'Annonce publiée ! Elle est visible par tous pendant 45 jours.' : `Annonce publiée, mais ${ip.photos.length - sent} photo(s) n’ont pas pu être envoyées.`, sent === ip.photos.length ? 'success' : 'error', 7000);
+      resetImoPub();
+      await fetchImo(true); fetchMine();
+      live.dest = { kind: 'imo', id, t: Date.now() }; store.set('liveDest', live.dest);
+      show('screen-imo', { force: true });
+    } finally { ip.sending = false; $('ip-save').classList.remove('loading'); checkImoPub(); }
+  });
+  function resetImoPub() {
+    clearTimeout(ip.timer);
+    Object.assign(ip, { st: 'none', gps: null, pin: null, zone: null, zones: [], photos: [] });
+    $('ip-form').reset();
+    const last = store.get('imoPubLast', null);
+    if (last) { $('ip-tel').value = last.tel || ''; $('ip-nom').value = last.contact_nom || ''; ip.role = last.role || 'proprietaire'; $('ip-wa').checked = last.whatsapp !== false; }
+    ip.eq = { cuisine: true, douche: true, meuble: false };
+    $('ip-ch').value = 1; $('ip-sdb').value = 1;
+  }
+  resetImoPub();
+  setTimeout(() => fetchImo(false), 6000);
 
   /* ---------- Démarrage ---------- */
   // un écran à carte plein écran ne doit jamais défiler lui-même

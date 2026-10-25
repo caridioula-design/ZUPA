@@ -80,3 +80,26 @@ insert into public.admin_codes (code) values ('VOTRE-CODE-SECRET');
 ```
 
 Pour changer de code, supprimez l'ancien dans **Table Editor › admin_codes**, puis insérez-en un nouveau.
+
+## Imo : logements à louer (`imo.sql`)
+
+Exécutez ce script une fois dans **SQL Editor**, après `amis.sql`. Vous pouvez le relancer sans risque.
+
+Il crée les annonces de logements publiées par les propriétaires et les agents.
+
+**La localisation GPS est obligatoire.** Le serveur refuse toute annonce qui ne respecte pas ces règles :
+- les coordonnées GPS sont présentes (un nom de quartier ou une adresse seule ne suffit jamais) ;
+- la mesure GPS est précise à ± 50 m au plus ;
+- elle a été prise moins de 2 heures avant la publication ;
+- le repère publié est à 80 m au plus de cette mesure (60 m dans l'application) ;
+- le logement est en Côte d'Ivoire.
+
+**Garde-fous :**
+- 5 annonces par jour et 15 annonces actives au plus par téléphone.
+- Une annonce en double est refusée.
+- Une annonce expire après 45 jours, sauf si son auteur la prolonge.
+- Une annonce est masquée après 3 signalements de personnes différentes (mal localisée, fictive, déjà louée, arnaque).
+
+**Confidentialité :** l'auteur n'est identifié que par l'empreinte de son secret. Cette empreinte et la mesure GPS brute ne sont pas lisibles. Seuls le repère publié et sa précision le sont.
+
+Les photos (6 au plus, réduites sur le téléphone) sont enregistrées dans la table `annonce_photos`.

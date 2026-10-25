@@ -26,5 +26,8 @@ const pub = await call('/rest/v1/publications?select=id&limit=1');
 out.push(pub.s === 200 ? 'publications OK' : pub.s === 404 ? 'PUBLICATIONS NON INSTALLÉES : exécutez supabase/pubs.sql' : 'publications : ' + pub.s);
 const lig = await call('/rest/v1/lignes?select=id&limit=1');
 out.push(lig.s === 200 ? 'lignes gbaka/wôrô/saloni OK' : lig.s === 404 ? 'MISE À JOUR 2 NON INSTALLÉE : exécutez supabase/v2.sql' : 'lignes : ' + lig.s);
+const imo = await call('/rest/v1/annonces?select=id&limit=1');
+const imoGps = imo.s === 200 ? await call('/rest/v1/rpc/annonce_publier', { method: 'POST', body: JSON.stringify({ p_secret: '00000000-0000-4000-8000-0000000000ff', p: { role: 'agent', type: '2p', chambres: 1, sdb: 1, loyer: 60000, quartier: 'Test', tel: '0700000000' } }) }) : null;
+out.push(imo.s === 200 ? `Imo OK${imoGps && imoGps.s >= 400 && /GPS/.test(imoGps.t) ? ' (annonce sans GPS refusée)' : ' : CONTRÔLE GPS À VÉRIFIER ' + (imoGps && imoGps.s)}` : imo.s === 404 ? 'IMO NON INSTALLÉ : exécutez supabase/imo.sql' : 'Imo : ' + imo.s);
 const ok = lig.s === 200 && pub.s === 200 && psh.s !== 404 && blq.s !== 404 && popu.s === 200 && read.s === 200 && dev.s >= 400 && bad.s === 400 && upd.s >= 400;
 note(ok ? 'notice' : 'warning', out.join(' · '));

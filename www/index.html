@@ -48,6 +48,7 @@
             <button type="button" class="live-prev" id="trk-prev" aria-label="Arrêt précédent"><span data-icon="back"></span></button>
             <button type="button" class="live-btn live-step" id="trk-step">Arrêt suivant</button>
           </div>
+          <div class="live-imo" id="live-imo"></div>
           <div class="live-acts"><button type="button" class="live-btn" id="live-act"></button><button type="button" class="live-btn sec" id="live-clear" hidden><span data-icon="close"></span>Ne plus suivre</button></div>
         </div>
       </div>
@@ -387,6 +388,136 @@
   </section>
 
   <!-- ================= PROFIL ================= -->
+  <!-- ================= IMO : logements à louer ================= -->
+  <section class="screen imo" id="screen-imo" aria-label="Imo, logements à louer">
+    <header class="py-hero imo-hero" id="imo-hero">
+      <svg class="py-hero-art" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      <div class="py-hero-top">
+        <span class="py-brand">Imo</span>
+        <button class="py-hero-btn" id="imo-refresh" type="button" aria-label="Actualiser les annonces"><span data-icon="refresh"></span></button>
+      </div>
+      <h1 class="py-title" id="imo-title">Trouvez votre maison</h1>
+      <p class="py-pulse" id="imo-pulse"></p>
+    </header>
+    <div class="imo-actions" id="imo-actions">
+      <button class="imo-act main" id="imo-find" type="button"><span data-icon="search"></span><span><b>Je cherche</b><small>Type, quartier, budget</small></span></button>
+      <button class="imo-act" id="imo-pub" type="button"><span data-icon="key"></span><span><b>Publier</b><small>Propriétaire ou agent</small></span></button>
+    </div>
+    <div class="imo-crit" id="imo-crit" hidden></div>
+    <div class="py-head"><h2 id="imo-list-h">Autour de vous</h2><span id="imo-sub"></span></div>
+    <div id="imo-list" class="py-list imo-list"></div>
+    <button class="btn ghost block" id="imo-more" type="button" hidden>Afficher plus</button>
+    <section id="imo-mine-wrap" hidden>
+      <div class="py-head imo-mine-h"><h2>Mes annonces</h2><span id="imo-mine-sub"></span></div>
+      <div id="imo-mine" class="py-list imo-list"></div>
+    </section>
+    <p class="foot-note">Chaque annonce est localisée par GPS, sur place, au moment de sa publication. Signalez toute annonce mal placée ou fictive : elle est masquée après 3 signalements.</p>
+  </section>
+
+  <!-- ================= IMO : je cherche ================= -->
+  <section class="screen imo" id="screen-imo-search" aria-label="Je cherche un logement">
+    <div class="topbar">
+      <button class="icon-btn" id="is-back" type="button" aria-label="Retour"><span data-icon="back"></span></button>
+      <div class="topbar-text"><div class="title">Je cherche</div><div class="subtitle">Le logement qu'il vous faut</div></div>
+    </div>
+    <form class="card form imo-form" id="is-form" novalidate>
+      <label>Type de logement</label>
+      <div class="ap-chips" id="is-type" role="radiogroup" aria-label="Type de logement"></div>
+      <label>Indispensable</label>
+      <div class="ap-chips" id="is-eq" aria-label="Équipements">
+        <button type="button" data-k="cuisine" aria-pressed="false">Cuisine</button>
+        <button type="button" data-k="douche" aria-pressed="false">Douche interne</button>
+        <button type="button" data-k="meuble" aria-pressed="false">Meublé</button>
+      </div>
+      <label for="is-q">Quartier souhaité</label>
+      <div class="ap-chips" id="is-qchips" role="radiogroup" aria-label="Quartier"></div>
+      <div class="imo-q"><input class="input" id="is-q" autocomplete="off" placeholder="ou tapez un quartier : Angré, Selmer…" aria-autocomplete="list"><div class="suggest" id="is-suggest" role="listbox" hidden></div></div>
+      <label for="is-budget">Loyer maximum par mois</label>
+      <div class="imo-money"><input class="input" id="is-budget" inputmode="numeric" autocomplete="off" placeholder="60 000"><span>FCFA</span></div>
+      <div class="ap-chips" id="is-bchips"></div>
+      <p class="imo-ref" id="is-ref"></p>
+      <button class="btn primary block" id="is-go" type="submit"><span data-icon="search"></span>Voir les logements</button>
+      <button class="btn ghost block" id="is-clear" type="button">Effacer ma recherche</button>
+    </form>
+  </section>
+
+  <!-- ================= IMO : publier une annonce ================= -->
+  <section class="screen imo" id="screen-imo-pub" aria-label="Publier une annonce">
+    <div class="topbar">
+      <button class="icon-btn" id="ip-back" type="button" aria-label="Retour"><span data-icon="back"></span></button>
+      <div class="topbar-text"><div class="title">Publier un logement</div><div class="subtitle">Visible par tous les utilisateurs de ZUPA</div></div>
+    </div>
+    <div class="card ip-geo">
+      <h3><span class="ip-step">1</span>Localisation GPS du logement <em>obligatoire</em></h3>
+      <p class="ip-rule">Rendez-vous <b>dans le logement ou devant sa porte</b>. La position est mesurée par le GPS du téléphone : une adresse ou un nom de quartier seul ne suffit pas.</p>
+      <div class="map-wrap ap-map-wrap ip-map-wrap" id="ip-map-wrap" hidden>
+        <div class="map" id="ip-map"></div>
+        <svg class="center-pin" viewBox="0 0 24 34" width="30" height="43" aria-hidden="true"><path d="M12 0C5.4 0 0 5.3 0 11.9 0 20.6 12 34 12 34s12-13.4 12-22.1C24 5.3 18.6 0 12 0z" fill="var(--imo)" stroke="rgba(0,0,0,.35)"/><circle cx="12" cy="12" r="4.3" fill="#fff"/></svg>
+      </div>
+      <div class="ap-state" id="ip-state" aria-live="polite"></div>
+      <button class="btn primary block" id="ip-locate" type="button"><span data-icon="locate"></span>Je suis au logement : localiser</button>
+    </div>
+    <form class="card form imo-form" id="ip-form" novalidate>
+      <h3><span class="ip-step">2</span>Le logement</h3>
+      <label>Quartier <small>(déduit de la position GPS)</small></label>
+      <div class="ap-chips" id="ip-quartier" role="radiogroup" aria-label="Quartier"><span class="ip-wait">Localisez d'abord le logement.</span></div>
+      <label for="ip-adresse">Repère ou rue <small>(facultatif, complète le GPS)</small></label>
+      <input class="input" id="ip-adresse" maxlength="120" autocomplete="off" placeholder="ex. Rue Paul Langevin, derrière la pharmacie">
+      <label>Type</label>
+      <div class="ap-chips" id="ip-type" role="radiogroup" aria-label="Type"></div>
+      <div class="ip-grid">
+        <div><label for="ip-ch">Chambres</label><input class="input" id="ip-ch" inputmode="numeric" maxlength="2" value="1"></div>
+        <div><label for="ip-sdb">Salles de bain</label><input class="input" id="ip-sdb" inputmode="numeric" maxlength="2" value="1"></div>
+        <div><label for="ip-surf">Surface m² <small>(facult.)</small></label><input class="input" id="ip-surf" inputmode="numeric" maxlength="4"></div>
+        <div><label for="ip-etage">Étage <small>(0 = rez)</small></label><input class="input" id="ip-etage" inputmode="numeric" maxlength="2"></div>
+      </div>
+      <div class="ap-chips" id="ip-eq" aria-label="Équipements">
+        <button type="button" data-k="cuisine" class="on" aria-pressed="true">Cuisine</button>
+        <button type="button" data-k="douche" class="on" aria-pressed="true">Douche interne</button>
+        <button type="button" data-k="meuble" aria-pressed="false">Meublé</button>
+      </div>
+      <h3 class="ip-h"><span class="ip-step">3</span>Loyer et conditions</h3>
+      <label for="ip-loyer">Loyer par mois</label>
+      <div class="imo-money"><input class="input" id="ip-loyer" inputmode="numeric" autocomplete="off" placeholder="60 000"><span>FCFA</span></div>
+      <div class="ip-grid">
+        <div><label for="ip-avance">Avance (mois)</label><input class="input" id="ip-avance" inputmode="numeric" maxlength="2" placeholder="2"></div>
+        <div><label for="ip-caution">Caution (mois)</label><input class="input" id="ip-caution" inputmode="numeric" maxlength="2" placeholder="2"></div>
+        <div><label for="ip-visite">Frais de visite</label><input class="input" id="ip-visite" inputmode="numeric" maxlength="7" placeholder="0"></div>
+        <div><label for="ip-bail">Durée du bail (mois)</label><input class="input" id="ip-bail" inputmode="numeric" maxlength="3" placeholder="12"></div>
+      </div>
+      <label for="ip-desc">Description <small>(facultatif)</small></label>
+      <textarea class="input" id="ip-desc" maxlength="600" rows="3" placeholder="ex. Carrelé, eau et électricité séparées, parking…"></textarea>
+      <h3 class="ip-h"><span class="ip-step">4</span>Photos <small>(1 à 6)</small></h3>
+      <div class="ip-photos" id="ip-photos"></div>
+      <div class="ip-photo-btns">
+        <label class="btn ghost sm" for="ip-cam"><span data-icon="camera"></span>Prendre une photo</label>
+        <label class="btn ghost sm" for="ip-gal"><span data-icon="image"></span>Galerie</label>
+        <input type="file" id="ip-cam" accept="image/*" capture="environment" hidden>
+        <input type="file" id="ip-gal" accept="image/*" multiple hidden>
+      </div>
+      <h3 class="ip-h"><span class="ip-step">5</span>Contact</h3>
+      <div class="segmented ip-role" id="ip-role" role="radiogroup" aria-label="Vous êtes">
+        <button type="button" data-v="proprietaire" role="radio" class="active" aria-checked="true">Propriétaire</button>
+        <button type="button" data-v="agent" role="radio" aria-checked="false">Agent immobilier</button>
+      </div>
+      <label for="ip-nom">Nom <small>(facultatif)</small></label>
+      <input class="input" id="ip-nom" maxlength="60" autocomplete="off" placeholder="ex. M. Koné">
+      <label for="ip-tel">Téléphone</label>
+      <input class="input" id="ip-tel" type="tel" inputmode="tel" maxlength="20" autocomplete="off" placeholder="07 00 00 00 00">
+      <label class="ap-check"><input type="checkbox" id="ip-wa" checked> Joignable sur WhatsApp</label>
+      <label class="ap-check"><input type="checkbox" id="ip-certif"> Je certifie que ce logement existe, qu'il est à louer et que sa position GPS est exacte.</label>
+      <button class="btn primary block ap-save" id="ip-save" type="submit">Publier l'annonce</button>
+      <p class="ap-why" id="ip-why"></p>
+    </form>
+  </section>
+
+  <!-- visionneuse de photos -->
+  <div class="imo-viewer" id="imo-viewer" hidden>
+    <button class="imo-viewer-x" id="imo-viewer-x" type="button" aria-label="Fermer"><span data-icon="close"></span></button>
+    <div class="imo-viewer-rail" id="imo-viewer-rail"></div>
+    <div class="imo-viewer-n" id="imo-viewer-n"></div>
+  </div>
+
   <section class="screen" id="screen-profile" aria-label="Profil">
     <div class="topbar"><div class="topbar-text"><div class="title">Profil</div></div></div>
     <form class="card form" id="profile-form">
@@ -489,6 +620,7 @@
   <button class="nav-btn active" data-nav="screen-home"><span data-icon="bus"></span>Go !</button>
   <button class="nav-btn" data-nav="screen-pharma"><span data-icon="cross"></span>Pharmacies</button>
   <button class="nav-btn" data-nav="screen-paiya"><span data-icon="explore"></span>Paiya</button>
+  <button class="nav-btn" data-nav="screen-imo"><span data-icon="home"></span>Imo</button>
   <button class="nav-btn" data-nav="screen-track" id="nav-track"><span data-icon="route"></span>Trajet<span class="badge" id="nav-badge" hidden></span></button>
   <button class="nav-btn" data-nav="screen-profile"><span data-icon="user"></span>Profil<span class="badge num" id="nav-pf-badge" hidden></span></button>
 </nav>
