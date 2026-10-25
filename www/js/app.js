@@ -201,6 +201,7 @@
     if (prev !== id) { const el = $(id); el.classList.remove('in-push', 'in-pop', 'in-tab'); void el.offsetWidth; el.classList.add('in-' + dir); }
     closeSuggests();
     if (sheets[id]) sheets[id].snapTo(sheets[id].idx);
+    syncBars();
     requestAnimationFrame(() => {
       placeLive(id);
       if (id === 'screen-home') renderHome();
@@ -321,8 +322,35 @@
     $('theme-quick').setAttribute('aria-label', dark ? 'Passer en thème clair' : 'Passer en thème sombre');
     document.querySelectorAll('#theme-seg button').forEach(b => b.classList.toggle('active', b.dataset.theme === state.theme));
     if (typeof L !== 'undefined' && maps.length) refreshMapTheme();
+    syncBars();
   }
   function setTheme(t) { state.theme = t; store.set('theme', t); applyTheme(); }
+
+  /* ---------- Barre d'état du téléphone : même couleur que le haut de l'onglet ---------- */
+  // fond coloré de chaque onglet principal, prolongé sous la barre d'état
+  ['screen-pharma', 'screen-paiya', 'screen-imo', 'screen-profile'].forEach(id => { const sc = $(id); if (sc && !sc.querySelector('.tab-aura')) { sc.classList.add('has-aura'); sc.insertAdjacentHTML('afterbegin', '<div class="tab-aura" aria-hidden="true"></div>'); } });
+  document.body.insertAdjacentHTML('beforeend', '<div class="sb-scrim" id="sb-scrim" aria-hidden="true"></div>');
+  var barsLast = '';
+  function syncBars() {
+    const sc = document.getElementById('sb-scrim'); if (!sc || typeof current === 'undefined') return;
+    const scr = document.getElementById(current), dark = isDark();
+    let color = '', map = false, statusLight;
+    if (current === 'screen-home') { const sky = document.getElementById('home-sky'); color = sky ? getComputedStyle(sky).getPropertyValue('--s1').trim() : ''; statusLight = true; }
+    else if (scr && scr.classList.contains('has-aura')) { color = getComputedStyle(scr).getPropertyValue('--a1').trim(); statusLight = true; }
+    else if (scr && scr.classList.contains('immersive')) { map = true; statusLight = true; }
+    else { color = getComputedStyle(document.body).getPropertyValue('--bg').trim(); statusLight = dark; }
+    // color-mix() n'est pas toujours calculé en couleur : on passe par un élément témoin
+    if (/color-mix/.test(color)) { sc.style.background = color; color = getComputedStyle(sc).backgroundColor; sc.style.background = ''; }
+    sc.classList.toggle('map', map);
+    sc.style.setProperty('--sb-c', map ? 'transparent' : (color || 'transparent'));
+    const meta = document.querySelector('meta[name=theme-color]'); if (meta && color) meta.content = color;
+    const key = `${statusLight}|${dark}`;
+    if (key === barsLast) return;
+    barsLast = key;
+    const B = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.ZupaBars;
+    if (B && B.setStyle) B.setStyle({ statusLight, navLight: dark }).catch(() => {});
+  }
+  window.addEventListener('zupabars', () => { barsLast = ''; syncBars(); });
   mq.addEventListener && mq.addEventListener('change', () => state.theme === 'auto' && applyTheme());
 
   /* ---------- Cartes (Leaflet) ---------- */
@@ -2940,7 +2968,7 @@
     const col = PY_COLOR[py.cat];
     // en-tête coloré : la couleur, l'icône géante et l'accroche suivent la catégorie
     const scr = $('screen-paiya');
-    scr.style.setProperty('--c', col);
+    if (scr.style.getPropertyValue('--c') !== col) { scr.style.setProperty('--c', col); if (current === 'screen-paiya') syncBars(); }
     const title = pyTitle(py.cat), tEl = $('py-title');
     if (tEl.textContent !== title) { tEl.textContent = title; tEl.classList.remove('swap'); void tEl.offsetWidth; tEl.classList.add('swap'); }
     const art = $('py-hero-art');
@@ -4521,6 +4549,7 @@
     const phase = wx.d && wx.d.isDay === 0 ? 'night' : wx.d && wx.d.isDay === 1 ? (h < 7.5 || h >= 17.5 ? 'dusk' : 'day') : h < 5.8 || h >= 19 ? 'night' : h < 7.5 || h >= 17.5 ? 'dusk' : 'day';
     const c = wx.d ? wx.d.code : 1;
     el.className = `home-sky ${phase}${c >= 51 ? ' rain' : c >= 3 ? ' grey' : ''}${c >= 95 ? ' storm' : ''}`;
+    syncBars();
   }
   // icônes météo animées (codes WMO d'Open-Meteo)
   function wxIcon(code, day) {

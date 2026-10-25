@@ -14,13 +14,16 @@
       "androidScaleType": "CENTER_CROP"
     },
     "StatusBar": {
-      "backgroundColor": "#E97234",
+      "overlaysWebView": true,
       "style": "DARK",
-      "overlaysWebView": false
+      "backgroundColor": "#00000000"
     },
     "LocalNotifications": {
       "smallIcon": "ic_stat_zupa",
       "iconColor": "#E97234"
+    },
+    "SystemBars": {
+      "insetsHandling": "disable"
     }
   }
 }
