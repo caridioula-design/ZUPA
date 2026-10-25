@@ -1314,3 +1314,12 @@ body.dark .live.t-bus{background:linear-gradient(135deg,#d9622a,#9a3412 75%)}
 body.dark .live.t-py{background:linear-gradient(135deg,color-mix(in srgb,var(--pyc) 70%,#000),color-mix(in srgb,var(--pyc) 55%,#000) 75%)}
 .ad-slot.filled{display:block;border:0;min-height:0;max-width:440px;padding:0}
 .ad-slot.filled .zad{width:100%;box-shadow:var(--shadow)}
+/* curseur « vous » dans la bande des arrêts : suit la position GPS en continu */
+.live-stops{position:relative}
+.live-stops li.lst-me{position:absolute;left:0;top:-1px;width:26px;height:26px;flex:none;padding:0;border-radius:50%;background:#fff;color:var(--lb2,#c2410c);display:grid;place-items:center;z-index:3;box-shadow:0 2px 8px rgba(0,0,0,.3),0 0 0 4px rgba(255,255,255,.3);transition:transform 1s linear;pointer-events:none;scroll-snap-align:none}
+.live-stops li.lst-me::before,.live-stops li.lst-me::after{display:none!important}
+.live-stops li.lst-me .ic{width:16px;height:16px}
+.live-stops li.lst-me.pre{background:#fde68a;color:#7c2d12}
+.live-stops li.lst-me[hidden]{display:none}
+.live-stops li.current:not(:last-child)::after{transition:width 1s linear}
+@media(prefers-reduced-motion:reduce){.live-stops li.lst-me{transition:none}}

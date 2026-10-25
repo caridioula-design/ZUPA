@@ -543,10 +543,24 @@
       cur = L.marker(state.pos, { icon: L.divIcon({ className: 'mk mk-user', html: '<i class="hd-cone"></i><span></span>', iconSize: [18, 18], iconAnchor: [9, 9] }), interactive: false, zIndexOffset: 1000 }).addTo(map);
       headingMarkers.add(cur);
       cur._acc = L.circle(state.pos, { radius: 0, color: G.blue, weight: 1, opacity: .45, fillColor: G.blue, fillOpacity: .12, interactive: false }).addTo(map);
-    } else { cur.setLatLng(state.pos); cur._acc.setLatLng(state.pos); }
+    } else glide(cur, state.pos);
     cur._acc.setRadius(r > 15 ? r : 0);
     updateHeadingMarkers();
     return cur;
+  }
+  // le point bleu glisse jusqu'à la nouvelle position (mouvement continu entre deux mesures GPS)
+  function glide(m, to) {
+    const from = m.getLatLng(), km = Core.haversine(from.lat, from.lng, to[0], to[1]);
+    cancelAnimationFrame(m._gl);
+    if (km > 0.4 || km < 0.0005 || document.visibilityState !== 'visible') { m.setLatLng(to); m._acc.setLatLng(to); return; }
+    const now = performance.now(), dur = Math.min(1100, Math.max(250, now - (m._glT || now - 900)));
+    m._glT = now;
+    const step = t => {
+      const k = Math.min(1, (t - now) / dur), ll = [from.lat + (to[0] - from.lat) * k, from.lng + (to[1] - from.lng) * k];
+      m.setLatLng(ll); m._acc.setLatLng(ll);
+      if (k < 1) m._gl = requestAnimationFrame(step);
+    };
+    m._gl = requestAnimationFrame(step);
   }
   function mapOff(id) { $(id).innerHTML = '<div class="map-off">Carte indisponible (pas de connexion)</div>'; }
 
@@ -1678,15 +1692,41 @@
     renderTracking(false, true);
   }
 
+  // Où en est-on sur le trajet ? On projette la position sur chaque tronçon arrêt → arrêt suivant
+  // (autour de l'arrêt en cours) : on obtient le tronçon parcouru et la fraction déjà faite.
+  function trackProgress(t, pos) {
+    const n = t.pts.length, cosL = Math.cos(pos[0] * Math.PI / 180), K = 111.32;
+    const xy = p => [(p.lon - pos[1]) * K * cosL, (p.lat - pos[0]) * K]; // km, origine = la position
+    let best = null;
+    for (let j = Math.max(0, t.idx - 1); j < Math.min(n - 1, Math.max(0, t.idx) + 8); j++) {
+      const a = xy(t.pts[j]), b = xy(t.pts[j + 1]), vx = b[0] - a[0], vy = b[1] - a[1], L2 = vx * vx + vy * vy;
+      const f = L2 ? Math.max(0, Math.min(1, -(a[0] * vx + a[1] * vy) / L2)) : 0;
+      const d = Math.hypot(a[0] + vx * f, a[1] + vy * f);
+      if (!best || d < best.d - 0.01 || (d <= best.d + 0.01 && j > best.j)) best = { j, f, d, len: Math.sqrt(L2) };
+    }
+    return best;
+  }
   function onTrackPos() {
     const t = state.tracking;
     if (!t || !state.pos) return;
+    const acc = (state.accuracy || 30) / 1000;
+    // arrêt atteint : à moins de 60 m (ou de la précision GPS, 150 m au plus)
+    const near = Math.min(0.15, Math.max(0.06, acc));
     let best = -1, bd = Infinity;
-    for (let j = Math.max(0, t.idx); j < t.pts.length; j++) {
+    for (let j = Math.max(0, t.idx); j < Math.min(t.pts.length, Math.max(0, t.idx) + 10); j++) {
       const d = dist(state.pos, t.pts[j]);
       if (d < bd) { bd = d; best = j; }
     }
-    if (best >= 0 && bd <= 0.12 && best > t.idx) setIdx(best, true);
+    if (t.idx < 0 && dist(state.pos, t.pts[0]) <= Math.max(0.08, near)) t.sawStart = true;
+    const pr = trackProgress(t, state.pos);
+    t.seg = 0;
+    if (best >= 0 && bd <= near && best > t.idx) setIdx(best, true);
+    else if (pr && pr.d <= Math.max(0.15, acc * 1.5)) {
+      // on suit le tracé : un arrêt dépassé sans passer tout près (bus rapide, GPS lent) compte quand même
+      if (t.idx < 0) { if (t.sawStart && pr.j * 1 + pr.f > 0 && pr.len * pr.f > 0.1) setIdx(pr.j, true); }
+      else if (pr.j > t.idx) setIdx(pr.j, true);
+      if (pr.j === t.idx) t.seg = pr.f;
+    }
     const nx = t.pts[t.idx + 1];
     if (t.idx >= 0 && nx && ['alight', 'transfer', 'transfer-off'].includes(nx.kind) && dist(state.pos, nx) < 0.45 && !t.alerted.has(t.idx + 1)) {
       t.alerted.add(t.idx + 1);
@@ -1736,18 +1776,38 @@
     $('trk-step').textContent = t.idx < 0 ? 'Je suis à bord' : 'Arrêt suivant';
 
     // avancement entre l'arrêt en cours et le suivant (0 à 1), d'après la position GPS
-    let seg = 0;
-    const a0 = t.pts[Math.max(0, t.idx)], b0 = t.pts[t.idx + 1];
-    if (state.pos && b0 && t.idx >= 0) { const tot = dist(a0, b0), rest = dist(state.pos, b0); seg = tot > 0 ? Math.max(0, Math.min(1, 1 - rest / tot)) : 0; }
-    $('trk-list').style.setProperty('--seg', seg.toFixed(3));
-    $('trk-list').innerHTML = t.pts.map((p, j) => {
-      const cls = [j < t.idx ? 'passed' : '', j === t.idx ? 'current' : '', p.kind !== 'stop' ? 'key' : ''].join(' ');
-      const sub = p.kind !== 'stop' ? hint(p) : (j === t.idx ? 'Vous êtes ici' : '');
-      return `<li class="${cls}" data-j="${j}" style="--c:${lineColor(p.line)}"><span class="tl-dot"></span><div><div class="tl-name">${esc(p.name)}</div>${sub ? `<div class="tl-sub">${esc(sub)}</div>` : ''}</div></li>`;
-    }).join('');
-    // la liste des arrêts est dans la bulle en direct : elle défile toute seule jusqu'à l'arrêt en cours
-    { const box = $('trk-list'), li = box.children[Math.max(0, t.idx)];
-      if (li && (scroll || fit || !box.dataset.done)) { box.dataset.done = '1'; requestAnimationFrame(() => box.scrollTo({ left: Math.max(0, li.offsetLeft - box.clientWidth / 3), behavior: scroll ? 'smooth' : 'auto' })); } }
+    let seg = t.idx >= 0 && !t.arrived ? (t.seg || 0) : 0;
+    if (!seg && state.pos && t.idx >= 0 && t.pts[t.idx + 1]) { const a0 = t.pts[t.idx], b0 = t.pts[t.idx + 1], tot = dist([a0.lat, a0.lon], b0), rest = dist(state.pos, b0); seg = tot > 0 ? Math.max(0, Math.min(1, 1 - rest / tot)) : 0; }
+    const box = $('trk-list');
+    box.style.setProperty('--seg', seg.toFixed(3));
+    // la liste n'est reconstruite que si l'arrêt en cours change : sinon seuls la jauge et le curseur bougent
+    const key = `${t.idx}|${t.arrived}`;
+    if (box._r !== t.r || box._key !== key || fit) {
+      box._r = t.r; box._key = key;
+      box.innerHTML = t.pts.map((p, j) => {
+        const cls = [j < t.idx ? 'passed' : '', j === t.idx ? 'current' : '', p.kind !== 'stop' ? 'key' : ''].join(' ');
+        const sub = p.kind !== 'stop' ? hint(p) : (j === t.idx ? 'Vous êtes ici' : '');
+        return `<li class="${cls}" data-j="${j}" style="--c:${lineColor(p.line)}"><span class="tl-dot"></span><div><div class="tl-name">${esc(p.name)}</div>${sub ? `<div class="tl-sub">${esc(sub)}</div>` : ''}</div></li>`;
+      }).join('') + `<li class="lst-me" aria-hidden="true">${ic(t.idx < 0 ? 'walk' : 'bus')}</li>`;
+    }
+    // curseur « vous » : glisse entre l'arrêt en cours et le suivant, au rythme du GPS
+    const me = box.querySelector('.lst-me');
+    if (me) {
+      const i0 = Math.max(0, t.idx), li = box.children[i0], nx = box.children[i0 + 1];
+      if (li) {
+        const x0 = li.offsetLeft + li.offsetWidth / 2, x1 = nx && !nx.classList.contains('lst-me') ? nx.offsetLeft + nx.offsetWidth / 2 : x0;
+        const x = t.idx < 0 ? x0 - 30 : x0 + (x1 - x0) * seg;
+        me.style.transform = `translateX(${(x - 13).toFixed(1)}px)`;
+        me.classList.toggle('pre', t.idx < 0);
+        me.hidden = !!t.arrived;
+        // la bande défile toute seule pour garder « vous » à l'écran (sauf si on vient de la faire défiler au doigt)
+        if (Date.now() - (box._touchT || 0) > 6000) {
+          const left = Math.max(0, x - box.clientWidth * 0.4);
+          if (Math.abs(box.scrollLeft - left) > 4) box.scrollTo({ left, behavior: fit || !box.dataset.done ? 'auto' : 'smooth' });
+          box.dataset.done = '1';
+        }
+      }
+    }
 
     if (trkMap) {
       if (fit) drawRoute(trkMap, trkLayer, t.r, t.origin.stopId ? null : t.origin, true, t.destObj);
@@ -1873,6 +1933,7 @@
 
   $('trk-step').onclick = () => state.tracking && setIdx(state.tracking.idx + 1, false);
   $('trk-prev').onclick = () => { if (!state.tracking) return; state.tracking.arrived = false; setIdx(state.tracking.idx - 1, false); };
+  ['pointerdown', 'wheel'].forEach(ev => $('trk-list').addEventListener(ev, () => { $('trk-list')._touchT = Date.now(); }, { passive: true }));
   $('trk-list').addEventListener('click', e => { const li = e.target.closest('[data-j]'); if (li && state.tracking) { state.tracking.arrived = false; setIdx(+li.dataset.j, false); } });
   $('trk-stop').onclick = () => { if (confirm('Terminer le suivi de ce trajet ?')) endTracking(); };
   function exitFull() {}
