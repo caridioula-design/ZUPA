@@ -1210,3 +1210,107 @@ body.dark .imo-crit{color:#a7f3d0}
 .ic-stat .ic{width:24px;height:24px}
 .ic-stat b{font-size:.98rem;line-height:1.1}
 .ic-stat small{font-size:.64rem}
+
+/* =====================================================================
+   ACCUEIL « GO ! » — ciel, météo, publicités de la bulle
+   ===================================================================== */
+#screen-home{isolation:isolate}
+.home-sky{position:absolute;left:0;right:0;top:0;height:calc(400px + env(safe-area-inset-top));z-index:-1;overflow:hidden;pointer-events:none;
+  --s1:#0a5cc2;--s2:#2a8be0;--s3:#86c8f5;background:linear-gradient(180deg,var(--s1) 0%,var(--s2) 34%,var(--s3) 68%,var(--bg) 100%);transition:background .8s}
+.home-sky.dusk{--s1:#2e2a7a;--s2:#b4466a;--s3:#f6a15c}
+.home-sky.night{--s1:#030716;--s2:#0c1d4a;--s3:#22408f}
+.home-sky.grey{--s1:#41556f;--s2:#6c829c;--s3:#a9bacb}
+.home-sky.night.grey{--s1:#05080f;--s2:#1a2436;--s3:#33435c}
+body.dark .home-sky{filter:brightness(.82) saturate(.9)}
+.sky-cloud{position:absolute;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.75),rgba(255,255,255,0));filter:blur(2px);animation:sky-drift linear infinite}
+.sky-cloud.c1{width:260px;height:90px;top:70px;left:-40px;animation-duration:70s}
+.sky-cloud.c2{width:200px;height:70px;top:150px;left:55%;opacity:.7;animation-duration:95s;animation-delay:-30s}
+.sky-cloud.c3{width:320px;height:110px;top:230px;left:20%;opacity:.45;animation-duration:120s;animation-delay:-60s}
+.home-sky.night .sky-cloud{opacity:.18}
+.home-sky.grey .sky-cloud{background:radial-gradient(closest-side,rgba(226,232,240,.8),rgba(226,232,240,0));opacity:.9}
+@keyframes sky-drift{from{transform:translateX(-30vw)}to{transform:translateX(110vw)}}
+.sky-stars{position:absolute;inset:0 0 40% 0;opacity:0;transition:opacity 1s;
+  background-image:radial-gradient(1.4px 1.4px at 12% 18%,#fff,transparent),radial-gradient(1px 1px at 28% 42%,#fff,transparent),radial-gradient(1.6px 1.6px at 47% 12%,#fff,transparent),radial-gradient(1px 1px at 63% 35%,#fff,transparent),radial-gradient(1.3px 1.3px at 78% 20%,#fff,transparent),radial-gradient(1px 1px at 90% 48%,#fff,transparent),radial-gradient(1.2px 1.2px at 8% 60%,#fff,transparent),radial-gradient(1px 1px at 38% 70%,#fff,transparent),radial-gradient(1.5px 1.5px at 70% 62%,#fff,transparent);
+  animation:sky-twinkle 4s ease-in-out infinite alternate}
+.home-sky.night .sky-stars{opacity:.9}
+.home-sky.night.grey .sky-stars{opacity:.15}
+@keyframes sky-twinkle{to{filter:brightness(.55)}}
+.sky-rain{position:absolute;inset:0;opacity:0;background-image:repeating-linear-gradient(105deg,transparent 0 14px,rgba(255,255,255,.28) 14px 15px,transparent 15px 31px);background-size:100% 60px;animation:sky-rain .5s linear infinite}
+.home-sky.rain .sky-rain{opacity:.7}
+@keyframes sky-rain{to{background-position:-16px 60px}}
+.home-sky.storm{animation:sky-flash 7s infinite}
+@keyframes sky-flash{0%,93%,97%,100%{filter:none}95%{filter:brightness(1.8)}}
+
+.home-head.hero{display:block;margin:0 0 14px;color:#fff}
+.hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.hero .brand{color:#fff;font-size:3.1rem;font-weight:800;letter-spacing:1px;text-shadow:0 2px 14px rgba(0,0,0,.18)}
+.hero .slogan{color:rgba(255,255,255,.92);font-size:1rem;font-weight:500;letter-spacing:.2px}
+.hero .greet{color:#fff;font-family:var(--font);font-weight:300;font-size:clamp(1.45rem,7vw,1.95rem);line-height:1.2;margin:20px 0 4px;letter-spacing:-.2px;text-shadow:0 2px 12px rgba(0,0,0,.15)}
+.wx{display:flex;align-items:center;gap:2px;background:none;border:0;color:#fff;padding:0;margin-top:-4px;cursor:pointer;font:inherit}
+.wx b{font-size:1.35rem;font-weight:400;letter-spacing:.3px;text-shadow:0 1px 8px rgba(0,0,0,.2)}
+.wx-ic svg{width:62px;height:62px;display:block;overflow:visible;filter:drop-shadow(0 4px 10px rgba(0,0,0,.18))}
+.wx-sun circle{fill:#ffd34d}
+.wx-rays{fill:#ffc31f;transform-origin:13px 13px;animation:wx-spin 16s linear infinite}
+.wx-moon{fill:#f1f5f9}
+.wx-cloud{fill:#fff}
+.wx-cloud.back{fill:#dbe4ee;transform:translate(-6px,-6px) scale(.85)}
+.wx-cloud.dark{fill:#94a3b8}
+.wx-cloud.front{animation:wx-float 5s ease-in-out infinite}
+.wx-drops path{stroke:#93c5fd;stroke-width:2;stroke-linecap:round;animation:wx-drop 1s linear infinite}
+.wx-drops path:nth-child(2){animation-delay:-.33s}.wx-drops path:nth-child(3){animation-delay:-.66s}
+.wx-bolt{fill:#fde047;animation:wx-bolt 2.4s steps(1) infinite}
+@keyframes wx-spin{to{transform:rotate(360deg)}}
+@keyframes wx-float{50%{transform:translateX(2px)}}
+@keyframes wx-drop{from{transform:translateY(-2px);opacity:1}to{transform:translateY(4px);opacity:0}}
+@keyframes wx-bolt{0%,60%{opacity:1}70%{opacity:.2}80%,100%{opacity:1}}
+
+/* recherche repliée : « Trouver mon trajet » l'ouvre */
+.search-fold:not(.open){display:none}
+.search-fold.open{animation:fold-in .32s cubic-bezier(.16,1,.3,1)}
+@keyframes fold-in{from{opacity:0;transform:translateY(-8px)}}
+#screen-home .search-go{margin-top:14px;min-height:56px;border-radius:18px;font-size:1.1rem;box-shadow:0 8px 20px color-mix(in srgb,var(--brand) 35%,transparent)}
+
+/* publicités de la bulle */
+.live-ads{margin-top:14px}
+.lads-cap{margin:0 0 8px;color:#fff;font-weight:600;font-size:.95rem;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lads-cap b{font-weight:800}
+.lads-rail{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;border-radius:20px;touch-action:pan-x pan-y}
+.lads-rail::-webkit-scrollbar{display:none}
+.lads-dots{display:flex;justify-content:center;gap:6px;margin-top:10px}
+.lads-dots i{width:7px;height:7px;border-radius:4px;background:rgba(255,255,255,.55);transition:width .3s,background-color .3s}
+.lads-dots i.on{width:22px;background:#fff}
+.zad{flex:0 0 100%;scroll-snap-align:start;position:relative;aspect-ratio:16/10;border:0;margin:0;border-radius:20px;display:flex;align-items:center;gap:8px;padding:14px 16px;text-align:left;overflow:hidden;font:inherit;cursor:pointer;color:#fff;-webkit-tap-highlight-color:transparent}
+.zad:active{transform:scale(.985)}
+.zad-art{flex:0 0 42%;align-self:stretch;display:grid;place-items:center}
+.zad-art svg{width:100%;max-height:100%}
+.zad-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;line-height:1.02;font-family:var(--font-title)}
+.zad-txt small{font-size:.78rem;font-weight:700;line-height:1.2}
+.zad-big{font-size:clamp(1.5rem,8vw,2.4rem);font-weight:900;letter-spacing:-.5px}
+.zad-pct{font-size:clamp(2.2rem,12vw,3.4rem);font-weight:900;letter-spacing:-1.5px}
+.zad-price{font-size:1.25rem;font-weight:900}
+.zad-kick{text-transform:uppercase;letter-spacing:.08em;opacity:.9}
+.zad-cta{align-self:flex-start;margin-top:6px;padding:6px 12px;border-radius:6px;font-size:.82rem;font-weight:800;background:#fff;color:#111}
+.zad-tag{position:absolute;top:8px;right:10px;z-index:2;font-size:.6rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:6px;background:rgba(0,0,0,.38);color:#fff}
+.zad-paint{background:#ffe500;color:#111}
+.zad-paint .zad-big{color:#111}.zad-paint .zad-red{font-size:clamp(1.6rem,9vw,2.5rem);font-weight:900;color:#e10e1e;letter-spacing:-.5px}
+.zad-paint .zad-pct{color:#e10e1e}.zad-paint .zad-cta{background:#e10e1e;color:#fff;border-radius:2px}
+.zad-garba{background:radial-gradient(120% 120% at 100% 100%,#16a34a 0 18%,transparent 19%),linear-gradient(135deg,#f97316,#c2410c)}
+.zad-garba .zad-price{align-self:flex-start;background:#fde047;color:#7c2d12;padding:2px 10px;border-radius:10px;transform:rotate(-3deg)}
+.zad-data{background:radial-gradient(90% 90% at 90% 10%,#a855f7,transparent 60%),linear-gradient(140deg,#2e1065,#6d28d9)}
+.zad-data .zad-go{color:#fde047;font-size:clamp(2.6rem,14vw,3.8rem)}
+.zad-data .zad-cta{background:#fde047;color:#2e1065}
+.zad-press{background:linear-gradient(140deg,#0c4a6e,#0284c7 70%,#38bdf8)}
+.zad-press .zad-pct{color:#fde68a}
+.zad-press .zad-cta{color:#0c4a6e}
+@media (prefers-reduced-motion:reduce){.sky-cloud,.sky-rain,.sky-stars,.wx-rays,.wx-cloud.front,.wx-drops path,.wx-bolt,.home-sky.storm{animation:none}}
+/* position correcte : une petite pastille discrète au lieu d'une carte */
+.loc-chip.ok{display:flex;width:fit-content;max-width:100%;margin:0 auto 2px;padding:5px 12px;border-radius:999px;align-items:center;font-size:.8rem;box-shadow:none;border:1px solid var(--border);border-left-width:1px}
+.loc-chip.ok>span{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.loc-chip.ok .loc-actions{margin:0;display:inline-flex}
+.loc-chip.ok .ic{width:15px;height:15px;margin:0}
+.lads-cap{white-space:normal;text-wrap:balance;font-size:.92rem;line-height:1.3}
+.zad{aspect-ratio:16/9.4}
+body.dark .live.t-bus{background:linear-gradient(135deg,#d9622a,#9a3412 75%)}
+body.dark .live.t-py{background:linear-gradient(135deg,color-mix(in srgb,var(--pyc) 70%,#000),color-mix(in srgb,var(--pyc) 55%,#000) 75%)}
+.ad-slot.filled{display:block;border:0;min-height:0;max-width:440px;padding:0}
+.ad-slot.filled .zad{width:100%;box-shadow:var(--shadow)}

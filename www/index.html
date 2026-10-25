@@ -17,20 +17,25 @@
 <main>
   <!-- ================= ACCUEIL ================= -->
   <section class="screen active" id="screen-home" aria-label="Accueil">
-    <header class="home-head">
-      <div>
-        <div class="brand">ZUPA</div>
-        <div class="slogan">Bouge. Trouve. Vis.</div>
-        <div class="greet" id="greet">Bonjour</div>
+    <!-- ciel animé selon l'heure et la météo -->
+    <div class="home-sky" id="home-sky" aria-hidden="true"><i class="sky-cloud c1"></i><i class="sky-cloud c2"></i><i class="sky-cloud c3"></i><i class="sky-stars"></i><i class="sky-rain"></i></div>
+    <header class="home-head hero">
+      <div class="hero-top">
+        <div>
+          <div class="brand">ZUPA</div>
+          <div class="slogan">Bouge. Trouve. Vis.</div>
+        </div>
+        <button class="wx" id="wx" type="button" hidden><span class="wx-ic" id="wx-ic"></span><b id="wx-t"></b></button>
       </div>
-      <button class="icon-btn" id="theme-quick" aria-label="Changer le thème"></button>
+      <h1 class="greet" id="greet">Bonjour, où allez-vous ?</h1>
+      <button class="icon-btn" id="theme-quick" aria-label="Changer le thème" hidden></button>
     </header>
 
     <!-- Activité en direct : distance jusqu'à l'arrêt, mise à jour en continu -->
-    <div class="live" id="live" hidden>
+    <div class="live open" id="live" hidden>
       <button class="live-back" id="live-back" type="button" hidden aria-label="Retour aux itinéraires"><span data-icon="back"></span></button>
       <svg class="live-ecg" viewBox="0 0 400 40" preserveAspectRatio="none" aria-hidden="true"><path d="M0 24h150l9-12 11 22 11-30 9 20h40l7-7 7 7h156"/></svg>
-      <button class="live-pill" id="live-pill" type="button" aria-expanded="false" aria-controls="live-more">
+      <button class="live-pill" id="live-pill" type="button" aria-expanded="true" aria-controls="live-more">
         <span class="live-ic" id="live-ic"><span data-icon="bus"></span></span>
         <span class="live-c"><small id="live-kicker">Arrêt le plus proche</small><b id="live-name"></b></span>
         <span class="live-r" aria-live="polite"><b id="live-dist"></b><small id="live-unit"></small></span>
@@ -50,12 +55,19 @@
           </div>
           <div class="live-imo" id="live-imo"></div>
           <div class="live-acts"><button type="button" class="live-btn" id="live-act"></button><button type="button" class="live-btn sec" id="live-clear" hidden><span data-icon="close"></span>Ne plus suivre</button></div>
+          <!-- publicités autour de l'arrêt (exemples fictifs en attendant la régie) -->
+          <div class="live-ads" id="live-ads" hidden>
+            <p class="lads-cap" id="lads-cap" aria-live="polite"></p>
+            <div class="lads-rail" id="lads-rail" role="region" aria-roledescription="carrousel" aria-label="Offres près de vous"></div>
+            <div class="lads-dots" id="lads-dots" aria-hidden="true"></div>
+          </div>
         </div>
       </div>
     </div>
 
     <div class="loc-chip" id="loc-chip" aria-live="polite"></div>
 
+    <div class="search-fold" id="search-fold">
     <div class="card search-card" role="search">
       <div class="field">
         <span class="dot o" aria-hidden="true"></span>
@@ -71,7 +83,8 @@
       <button class="swap-btn" id="swap-btn" aria-label="Inverser départ et destination"></button>
       <div class="suggest" id="suggest-home" role="listbox" hidden></div>
     </div>
-    <button class="btn primary block" id="search-btn">Trouver mon trajet</button>
+    </div>
+    <button class="btn primary block search-go" id="search-btn">Trouver mon trajet</button>
     <div class="quick-places" id="quick-places" aria-label="Mes lieux confidentiels"></div>
 
     <button class="ph-teaser" id="ph-teaser" aria-label="Voir les pharmacies" hidden>
@@ -606,7 +619,7 @@
     </div>
     <div class="card">
       <h3>À propos</h3>
-      <p class="muted"><b>ZUPA</b> — Bouge. Trouve. Vis.<br>Version <span id="app-version">1.0.0</span>. Données © contributeurs OpenStreetMap (ODbL).</p>
+      <p class="muted"><b>ZUPA</b> — Bouge. Trouve. Vis.<br>Version <span id="app-version">1.0.0</span>. Données © contributeurs OpenStreetMap (ODbL). Météo : <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0).</p>
     </div>
     <div class="card">
       <h3>Données</h3>
@@ -618,7 +631,7 @@
 
 <nav class="navbar" aria-label="Navigation principale">
   <button class="nav-btn active" data-nav="screen-home"><span data-icon="bus"></span>Go !</button>
-  <button class="nav-btn" data-nav="screen-pharma"><span data-icon="cross"></span>Pharmacies</button>
+  <button class="nav-btn" data-nav="screen-pharma"><span data-icon="cross"></span>Pharma</button>
   <button class="nav-btn" data-nav="screen-paiya"><span data-icon="explore"></span>Paiya</button>
   <button class="nav-btn" data-nav="screen-imo"><span data-icon="home"></span>Imo</button>
   <button class="nav-btn" data-nav="screen-track" id="nav-track"><span data-icon="route"></span>Trajet<span class="badge" id="nav-badge" hidden></span></button>

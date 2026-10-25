@@ -745,7 +745,8 @@
      Capsule noire en haut de l'onglet Bus : distance jusqu'à l'arrêt, mise à jour à chaque mesure GPS.
      Cible : arrêt de départ ou prochain arrêt pendant un trajet suivi, sinon l'arrêt le plus proche.
      Elle verdit à l'approche (500 m -> 30 m) et clignote en vert à l'arrêt. Un appui l'agrandit. */
-  const live = { open: false, shown: null, raf: 0, key: '', dest: store.get('liveDest', null) };
+  const live = { open: true, // ouverte au démarrage (arrêt, direction et offres visibles)
+    shown: null, raf: 0, key: '', dest: store.get('liveDest', null) };
   const CARD = ['le nord', 'le nord-est', "l'est", 'le sud-est', 'le sud', 'le sud-ouest', "l'ouest", 'le nord-ouest'];
   const CARD16 = ['le nord', 'le nord-nord-est', 'le nord-est', "l'est-nord-est", "l'est", "l'est-sud-est", 'le sud-est', 'le sud-sud-est', 'le sud', 'le sud-sud-ouest', 'le sud-ouest', "l'ouest-sud-ouest", "l'ouest", "l'ouest-nord-ouest", 'le nord-ouest', 'le nord-nord-ouest'];
   const LIVE_HOST = { 'screen-home': ['loc-chip', 'before'], 'screen-pharma': ['ph-filter', 'after'], 'screen-paiya': ['py-cats', 'after'], 'screen-imo': ['imo-hero', 'after'], 'screen-track': ['trk-live-slot', 'in'] };
@@ -854,6 +855,7 @@
     box.classList.toggle('t-py', current === 'screen-paiya');
     box.classList.toggle('t-imo', current === 'screen-imo');
     if (current === 'screen-imo') renderLiveImo(tg); else if (live.imoId) { live.imoId = null; $('live-imo').innerHTML = ''; }
+    renderLiveAds(tg); if (wx) wxMaybe();
     if (current === 'screen-paiya') box.style.setProperty('--pyc', PY_COLOR[(tg.p && PYC.CATS[tg.p.cat]) ? tg.p.cat : py.cat]);
     const key = current + tg.kicker + tg.p.name;
     if (key !== live.key) {
@@ -969,7 +971,7 @@
     const warn = state.approx && !state.posStale
       ? `<br><small class="warn-txt">Position approximative : le navigateur n'a pas accès à la « position exacte ».</small>`
       : (!state.posStale && acc > 150 ? `<br><small class="warn-txt">Précision faible : vérifiez votre position ou corrigez-la.</small>` : '');
-    el.className = 'loc-chip' + (state.approx || acc > 150 ? ' warn' : '');
+    el.className = 'loc-chip' + (state.approx || acc > 150 ? ' warn' : !nearTxt && !state.posStale ? ' ok' : '');
     el.innerHTML = `${ic('pin')}<span>${where}${state.posStale ? ' <small>(mise à jour…)</small>' : quality}${nearTxt ? `<br><small>${nearTxt}</small>` : ''}${warn}<span class="loc-actions"><button class="link" data-geo="fix">${acc > 50 || state.posStale ? 'Position inexacte ? Corriger' : 'Corriger'}</button>${state.approx || acc > 150 ? '<button class="link" data-geo="help">Améliorer le GPS</button>' : ''}</span></span>`;
   }
   $('loc-chip').addEventListener('click', e => {
@@ -1292,6 +1294,7 @@
   function syncClear() {
     $('origin-clear').hidden = !originInput.value;
     $('dest-clear').hidden = !destInput.value;
+    if (originInput.value || destInput.value) foldSearch(true);
   }
 
   makeSuggest(originInput, $('suggest-home'), {
@@ -1348,15 +1351,31 @@
     }
     setOriginStop(d || null); setDest(o);
   };
-  $('search-btn').onclick = runSearch;
+  // Les champs de recherche sont repliés : « Trouver mon trajet » les ouvre, puis lance la recherche
+  function foldSearch(open) {
+    const f = $('search-fold'); if (!f) return;
+    f.classList.toggle('open', open);
+    f.setAttribute('aria-hidden', String(!open));
+    f.querySelectorAll('input,button').forEach(el => { el.tabIndex = open ? 0 : -1; });
+    $('search-btn').textContent = open ? 'Rechercher' : 'Trouver mon trajet';
+  }
+  $('search-btn').onclick = () => {
+    if (!$('search-fold').classList.contains('open')) { foldSearch(true); vibrate(10); setTimeout(() => destInput.focus(), 260); return; }
+    if (!destInput.value) { destInput.focus(); return; }
+    runSearch();
+  };
 
   function greeting() {
     const h = new Date().getHours();
     const hello = h < 5 || h >= 18 ? 'Bonsoir' : 'Bonjour';
-    $('greet').textContent = `${hello}${state.profile.firstname ? ' ' + state.profile.firstname : ''} 👋 Où allez-vous ?`;
+    $('greet').textContent = `${hello}${state.profile.firstname ? ' ' + state.profile.firstname : ''}, où allez-vous ?`;
+    skyPaint();
   }
 
-  function renderHome() { greeting(); renderLoc(); renderBoard(); renderRecents(); }
+  function renderHome() {
+    greeting(); renderLoc(); renderBoard(); renderRecents();
+    if (!originInput.value && !destInput.value && document.activeElement !== destInput && document.activeElement !== originInput) foldSearch(false);
+  }
 
   function renderBoard() {
     const el = $('fav-board');
@@ -4429,6 +4448,124 @@
   }
   resetImoPub();
   setTimeout(() => fetchImo(false), 6000);
+
+  /* =====================================================================
+     ACCUEIL « GO ! » : ciel, météo et publicités de la bulle
+     ===================================================================== */
+  // ciel : jour, aube/crépuscule ou nuit (et gris s'il pleut)
+  var wx = { d: store.get('wx', null), busy: false }; // var : lisible avant cette ligne (rendu précoce)
+  function skyPaint() {
+    const el = $('home-sky'); if (!el || !wx) return;
+    const h = new Date().getHours() + new Date().getMinutes() / 60;
+    const phase = wx.d && wx.d.isDay === 0 ? 'night' : wx.d && wx.d.isDay === 1 ? (h < 7.5 || h >= 17.5 ? 'dusk' : 'day') : h < 5.8 || h >= 19 ? 'night' : h < 7.5 || h >= 17.5 ? 'dusk' : 'day';
+    const c = wx.d ? wx.d.code : 1;
+    el.className = `home-sky ${phase}${c >= 51 ? ' rain' : c >= 3 ? ' grey' : ''}${c >= 95 ? ' storm' : ''}`;
+  }
+  // icônes météo animées (codes WMO d'Open-Meteo)
+  function wxIcon(code, day) {
+    const sun = '<g class="wx-sun"><circle cx="13" cy="13" r="5.5"/><g class="wx-rays">' + [0, 45, 90, 135, 180, 225, 270, 315].map(a => `<rect x="12.2" y="2" width="1.6" height="3.4" rx=".8" transform="rotate(${a} 13 13)"/>`).join('') + '</g></g>';
+    const moon = '<path class="wx-moon" d="M16 5.5a7.5 7.5 0 1 0 5.6 11.6A6 6 0 0 1 16 5.5z"/>';
+    const cloud = (cls = '') => `<path class="wx-cloud ${cls}" d="M10 29h17a6 6 0 0 0 .6-12A8 8 0 0 0 12.4 15 7 7 0 0 0 10 29z"/>`;
+    const drops = '<g class="wx-drops"><path d="M13 31l-1.5 4M19 31l-1.5 4M25 31l-1.5 4"/></g>';
+    const bolt = '<path class="wx-bolt" d="M20 27l-4 6h3l-2 5 6-7h-3l2-4z"/>';
+    let inner;
+    if (code === 0) inner = day ? '<g transform="translate(5 4)">' + sun + '</g>' : '<g transform="translate(4 4)">' + moon + '</g>';
+    else if (code <= 2) inner = (day ? sun : '<g transform="translate(-2 -1)">' + moon + '</g>') + cloud('front');
+    else if (code <= 48) inner = cloud('back') + cloud('front');
+    else if (code < 95) inner = cloud('front') + drops;
+    else inner = cloud('front dark') + bolt;
+    return `<svg viewBox="0 0 40 40" aria-hidden="true">${inner}</svg>`;
+  }
+  const WX_TXT = c => c === 0 ? 'Ciel dégagé' : c <= 2 ? 'Partiellement nuageux' : c === 3 ? 'Couvert' : c <= 48 ? 'Brouillard' : c <= 67 ? 'Pluie' : c <= 82 ? 'Averses' : 'Orage';
+  function renderWx() {
+    const b = $('wx'); if (!b) return;
+    if (!wx.d) { b.hidden = true; return; }
+    b.hidden = false;
+    $('wx-ic').innerHTML = wxIcon(wx.d.code, wx.d.isDay !== 0);
+    $('wx-t').textContent = `${Math.round(wx.d.temp)} °C`;
+    b.setAttribute('aria-label', `Météo : ${WX_TXT(wx.d.code)}, ${Math.round(wx.d.temp)} degrés`);
+    b.title = WX_TXT(wx.d.code);
+    skyPaint();
+  }
+  async function wxMaybe() {
+    if (wx.busy || !state.pos || !navigator.onLine) return;
+    const d = wx.d, moved = d ? Core.haversine(d.lat, d.lon, state.pos[0], state.pos[1]) : 99;
+    if (d && Date.now() - d.t < 30 * 60e3 && moved < 15) return;
+    wx.busy = true;
+    try {
+      const [la, lo] = [state.pos[0].toFixed(2), state.pos[1].toFixed(2)]; // position arrondie (≈ 1 km) : rien de précis ne sort du téléphone
+      const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${la}&longitude=${lo}&current=temperature_2m,weather_code,is_day&timezone=auto`);
+      const j = await r.json();
+      if (j && j.current && typeof j.current.temperature_2m === 'number') {
+        wx.d = { t: Date.now(), lat: +la, lon: +lo, temp: j.current.temperature_2m, code: j.current.weather_code | 0, isDay: j.current.is_day };
+        store.set('wx', wx.d); renderWx();
+      }
+    } catch (e) { /* hors ligne : on garde la dernière météo */ }
+    wx.busy = false;
+  }
+  $('wx').onclick = () => { if (wx.d) toast(`${WX_TXT(wx.d.code)} · ${Math.round(wx.d.temp)} °C${Date.now() - wx.d.t > 3600e3 ? ' (relevé ancien)' : ''}`); };
+  renderWx(); skyPaint();
+  setInterval(() => { skyPaint(); wxMaybe(); }, 5 * 60e3);
+
+  // Publicités de la bulle : EXEMPLES FICTIFS (marques inventées) en attendant la régie publicitaire.
+  // Chaque offre est placée à quelques mètres de l'arrêt le plus proche pour montrer le rendu « près de vous ».
+  var DEMO_ADS = [
+    { id: 'paint', brand: 'Zolikolor', dx: 4, dy: 3, cls: 'zad-paint', cat: 'shop',
+      html: `<div class="zad-art"><svg viewBox="0 0 120 120" aria-hidden="true"><ellipse cx="60" cy="104" rx="42" ry="8" fill="rgba(0,0,0,.18)"/><path d="M22 34h76l-7 66a8 8 0 0 1-8 7H37a8 8 0 0 1-8-7z" fill="#fff"/><path d="M26 52h68l-4 40H30z" fill="#ffd400"/><ellipse cx="60" cy="34" rx="38" ry="9" fill="#222"/><ellipse cx="60" cy="32" rx="34" ry="6" fill="#e11d48"/><path d="M40 70c6-10 14-14 20-9s14 2 20-6" stroke="#e11d48" stroke-width="7" fill="none" stroke-linecap="round"/><text x="60" y="88" text-anchor="middle" font-size="11" font-weight="900" fill="#1f2937">ZOLIKOLOR</text></svg></div>
+        <div class="zad-txt"><b class="zad-big">BIG</b><b class="zad-red">PROMO</b><b class="zad-pct">-35%</b><small>sur vos pots de peinture</small><span class="zad-cta">Savoir plus ›</span></div>` },
+    { id: 'garba', brand: 'Chez Tantie Zouzou', dx: -25, dy: 18, cls: 'zad-garba', cat: 'maquis',
+      html: `<div class="zad-txt"><small class="zad-kick">Garba du midi</small><b class="zad-big">Garba + alloco</b><b class="zad-price">1 000 F</b><small>Thon frais · piment à volonté · prêt en 5 min</small><span class="zad-cta">Je passe commande ›</span></div>
+        <div class="zad-art"><svg viewBox="0 0 120 120" aria-hidden="true"><ellipse cx="60" cy="74" rx="50" ry="22" fill="#fff"/><ellipse cx="60" cy="70" rx="44" ry="17" fill="#fde68a"/>${[[38,66],[48,62],[58,70],[70,64],[80,70],[46,74],[66,76]].map(([x,y]) => `<circle cx="${x}" cy="${y}" r="3" fill="#f5f5dc" stroke="#e5d9a8"/>`).join('')}<path d="M70 58c8-6 20-6 26 2-8 4-18 4-26-2z" fill="#9ca3af"/><rect x="28" y="58" width="14" height="7" rx="3" fill="#f59e0b" transform="rotate(-20 35 61)"/><rect x="82" y="72" width="14" height="7" rx="3" fill="#f59e0b" transform="rotate(15 89 75)"/><circle cx="54" cy="58" r="3.5" fill="#dc2626"/></svg></div>` },
+    { id: 'data', brand: 'Lagunet (exemple)', dx: 40, dy: -30, cls: 'zad-data', cat: 'shop',
+      html: `<div class="zad-txt"><small class="zad-kick">Pass internet</small><b class="zad-big zad-go">5 Go</b><b class="zad-price">1 000 F · 7 jours</b><small>Activez avec le code *000#</small><span class="zad-cta">J'active ›</span></div>
+        <div class="zad-art"><svg viewBox="0 0 120 120" aria-hidden="true"><rect x="38" y="14" width="44" height="88" rx="9" fill="#111827"/><rect x="42" y="22" width="36" height="70" rx="4" fill="#a78bfa"/><g fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"><path d="M46 52a20 20 0 0 1 28 0"/><path d="M51 59a12 12 0 0 1 18 0"/></g><circle cx="60" cy="67" r="4" fill="#fff"/><circle cx="96" cy="30" r="10" fill="#fde047"/><text x="96" y="34" text-anchor="middle" font-size="10" font-weight="900" fill="#4c1d95">+</text></svg></div>` },
+    { id: 'pressing', brand: 'Pressing Linge d\'Or', dx: -12, dy: -45, cls: 'zad-press', cat: 'shop',
+      html: `<div class="zad-art"><svg viewBox="0 0 120 120" aria-hidden="true"><path d="M30 34l18-12h24l18 12-8 14-8-4v52H46V44l-8 4z" fill="#fff"/><path d="M48 22c3 8 21 8 24 0" fill="none" stroke="#93c5fd" stroke-width="3"/>${[[24,84],[96,40],[100,90]].map(([x,y]) => `<circle cx="${x}" cy="${y}" r="7" fill="none" stroke="#bfdbfe" stroke-width="2.5"/>`).join('')}</svg></div>
+        <div class="zad-txt"><small class="zad-kick">Le lundi seulement</small><b class="zad-pct">-20%</b><b class="zad-big">sur tout le linge</b><small>Repassage inclus · prêt en 24 h</small><span class="zad-cta">Voir l'adresse ›</span></div>` }
+  ];
+  var lads = { i: 0, key: '', timer: null, hold: false, holdT: null, pts: [] };
+  function renderLiveAds(tg) {
+    const box = $('live-ads'); if (!box || !lads) return;
+    const on = current === 'screen-home' && tg && tg.act === 'origin' && tg.stop;
+    box.hidden = !on;
+    if (!on) { clearInterval(lads.timer); lads.timer = null; lads.key = ''; return; }
+    const s = tg.stop, cosL = Math.cos(s.lat * Math.PI / 180);
+    lads.pts = DEMO_ADS.map(a => ({ lat: s.lat + a.dy / 111320, lon: s.lon + a.dx / (111320 * cosL) }));
+    if (lads.key !== s.id) {
+      lads.key = s.id;
+      $('lads-rail').innerHTML = DEMO_ADS.map((a, k) => `<button type="button" class="zad ${a.cls}" data-ad="${k}" aria-label="${esc(a.brand)} — publicité fictive"><span class="zad-tag">Pub fictive</span>${a.html}</button>`).join('');
+      $('lads-dots').innerHTML = DEMO_ADS.map((_, k) => `<i class="${k === lads.i ? 'on' : ''}"></i>`).join('');
+      $('lads-rail').scrollLeft = 0; lads.i = 0;
+    }
+    ladsCaption();
+    if (!lads.timer) lads.timer = setInterval(() => { if (current === 'screen-home' && live.open && !lads.hold && document.visibilityState === 'visible') ladsGo(lads.i + 1); }, 5000);
+  }
+  function ladsCaption() {
+    const a = DEMO_ADS[lads.i], p = lads.pts[lads.i]; if (!a || !p || !state.pos) return;
+    const m = Math.max(5, Math.round(dist(state.pos, p) * 1000 / 5) * 5);
+    $('lads-cap').innerHTML = `Regardez près de vous ${m < 1000 ? `à ${m} m` : `à ${(m / 1000).toFixed(1).replace('.', ',')} km`} chez <b>${esc(a.brand)}</b>`;
+  }
+  function ladsGo(i) {
+    const rail = $('lads-rail'), n = DEMO_ADS.length;
+    lads.i = (i + n) % n;
+    rail.scrollTo({ left: rail.clientWidth * lads.i, behavior: 'smooth' });
+    ladsMark();
+  }
+  function ladsMark() { $('lads-dots').querySelectorAll('i').forEach((d, k) => d.classList.toggle('on', k === lads.i)); ladsCaption(); }
+  $('lads-rail').addEventListener('scroll', debounce(() => { const r = $('lads-rail'); const k = Math.round(r.scrollLeft / Math.max(1, r.clientWidth)); if (k !== lads.i) { lads.i = k; ladsMark(); } }, 80), { passive: true });
+  $('lads-rail').addEventListener('pointerdown', () => { lads.hold = true; clearTimeout(lads.holdT); lads.holdT = setTimeout(() => { lads.hold = false; }, 10000); }, { passive: true });
+  $('lads-rail').addEventListener('click', e => {
+    const b = e.target.closest('[data-ad]'); if (!b) return;
+    toast(`« ${DEMO_ADS[+b.dataset.ad].brand} » est une publicité fictive : les vraies offres des commerces près de vous arrivent bientôt.`, 'info', 5000);
+  });
+
+  // les anciens emplacements « Espace publicitaire » montrent aussi des exemples fictifs
+  document.querySelectorAll('.ad-slot').forEach((el, k) => {
+    const a = DEMO_ADS[(k + 1) % DEMO_ADS.length];
+    el.classList.add('filled');
+    el.innerHTML = `<button type="button" class="zad ${a.cls}" data-ad="${DEMO_ADS.indexOf(a)}" aria-label="${esc(a.brand)} — publicité fictive"><span class="zad-tag">Pub fictive</span>${a.html}</button>`;
+    el.addEventListener('click', e => { const bt = e.target.closest('[data-ad]'); if (bt) toast(`« ${DEMO_ADS[+bt.dataset.ad].brand} » est une publicité fictive : les vraies offres arrivent bientôt.`, 'info', 5000); });
+  });
 
   /* ---------- Démarrage ---------- */
   // un écran à carte plein écran ne doit jamais défiler lui-même
