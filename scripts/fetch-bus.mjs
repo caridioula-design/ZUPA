@@ -11,7 +11,7 @@ let json;
 try { json = await O.download(m => console.log(m)); }
 catch (e) { console.log(`::warning title=Lignes OSM::téléchargement impossible (${e.message || e}) : fichier conservé`); process.exit(0); }
 const { lines, skipped } = O.convert(json);
-const m = O.merge(old, lines, { kinds: ['bus', 'gbaka', 'woro'] });
+const m = O.merge(old, lines, { kinds: ['bus', 'gbaka', 'woro', 'bateau'] });
 const busOld = count(old, 'bus'), busNew = count(m.lines, 'bus');
 if (busNew < busOld * 0.8) { console.log(`::warning title=Lignes OSM::seulement ${busNew} trajets de bus reçus (avant ${busOld}) : fichier conservé`); process.exit(0); }
 writeFileSync(FILE, O.writeBusFile(m.lines));
