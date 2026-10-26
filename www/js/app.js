@@ -91,6 +91,7 @@
     area: 'M17.66 17.66l-1.06 1.06-.71-.71 1.06-1.06-1.94-1.94-1.06 1.06-.71-.71 1.06-1.06-1.94-1.94-1.06 1.06-.71-.71 1.06-1.06L9.7 9.7l-1.06 1.06-.71-.71 1.06-1.06-1.94-1.94-1.06 1.06-.71-.71 1.06-1.06L4 4v14c0 1.1.9 2 2 2h14l-2.34-2.34zM7 17v-5.76L12.76 17H7z',
     floor: 'M17 11V3H7v4H3v14h8v-4h2v4h8V11h-4zM7 19H5v-2h2v2zm0-4H5v-2h2v2zm0-4H5V9h2v2zm4 4H9v-2h2v2zm0-4H9V9h2v2zm0-4H9V5h2v2zm4 8h-2v-2h2v2zm0-4h-2V9h2v2zm0-4h-2V5h2v2zm4 12h-2v-2h2v2zm0-4h-2v-2h2v2z',
     doc: 'M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z',
+    school: 'M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3 1 9l11 6 9-4.91V17h2V9L12 3z',
     clock: 'M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z'
   };
   const ic = n => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONS[n]}"/></svg>`;
@@ -4190,19 +4191,21 @@
     return { kind: 'imo', p: { ...a, name: imoName(a) }, a, icon: 'home', dest: !!d, far: FAR_KM, at: 0.04, kicker,
       tags: '' }; // le prix n'apparaît qu'une fois, dans l'aperçu
   }
+  // Distances pratiques : arrêt de bus le plus proche (et ses lignes), école primaire, collège et marché les plus proches
+  const ECOLES = (window.ZUPA_ECOLES && Array.isArray(window.ZUPA_ECOLES.list)) ? window.ZUPA_ECOLES.list : [];
+  function nearestEcole(lat, lon, kind) {
+    let b = null, bd = Infinity;
+    for (const e of ECOLES) { if (e[1] !== kind) continue; const d = Core.haversine(lat, lon, e[2], e[3]); if (d < bd) { bd = d; b = e; } }
+    return b && bd <= 6 ? { name: b[0], d: bd } : null;
+  }
   function imoDistances(a) {
-    const out = [], here = [a.lat, a.lon];
-    const w = privOf('work'), h = privOf('home');
-    if (w) out.push(['work', 'Lieu de travail', Core.haversine(a.lat, a.lon, w.lat, w.lon)]);
-    if (h) out.push(['home', 'Domicile actuel', Core.haversine(a.lat, a.lon, h.lat, h.lon)]);
-    if (state.pos && !w && !h) out.push(['locate', 'Votre position', Core.haversine(a.lat, a.lon, state.pos[0], state.pos[1])]);
-    const st = Core.nearbyStops(D, a.lat, a.lon, 2, 1)[0];
-    if (st) out.push(['bus', 'Arrêt de bus', st.d]);
-    const near = cat => { let b = null; for (const p of placesBase()) if (p.cat === cat) { const k = Core.haversine(a.lat, a.lon, p.lat, p.lon); if (!b || k < b) b = k; } return b; };
-    const mk = near('marche'); if (mk != null && mk < 15) out.push(['market', 'Marché', mk]);
-    let ph0 = null; for (const p of allPharmacies()) { const k = Core.haversine(a.lat, a.lon, p.lat, p.lon); if (ph0 == null || k < ph0) ph0 = k; }
-    if (ph0 != null && ph0 < 15) out.push(['cross', 'Pharmacie', ph0]);
-    void here;
+    const out = []; // [icône, titre, distance km, détail (HTML)]
+    const st = Core.nearbyStops(D, a.lat, a.lon, 3, 1)[0];
+    if (st) out.push(['bus', `Arrêt ${st.stop.label}`, st.d, st.stop.lines && st.stop.lines.length ? `<span class="ic-lines">${linesHtml(st.stop)}</span>` : '']);
+    const ep = nearestEcole(a.lat, a.lon, 'p'); if (ep) out.push(['school', 'École primaire', ep.d, `<small>${esc(ep.name)}</small>`]);
+    const co = nearestEcole(a.lat, a.lon, 'c'); if (co) out.push(['school', 'Collège', co.d, `<small>${esc(co.name)}</small>`]);
+    let mk = null; for (const p of placesBase()) if (p.cat === 'marche') { const k = Core.haversine(a.lat, a.lon, p.lat, p.lon); if (!mk || k < mk.d) mk = { d: k, name: p.name }; }
+    if (mk && mk.d < 15) out.push(['market', 'Marché', mk.d, mk.name && !/^march[ée]$/i.test(mk.name) ? `<small>${esc(mk.name)}</small>` : '']);
     return out;
   }
   function imoCardHtml(a) {
@@ -4230,7 +4233,7 @@
       <p class="ic-price">${money(a.loyer)} FCFA <small>/ mois</small></p>
       <div class="ic-stats">${stat('bed', a.chambres, a.chambres > 1 ? 'Chambres' : 'Chambre')}${stat('bath', a.sdb, a.sdb > 1 ? 'Salles de bain' : 'Salle de bain')}${stat('area', a.surface ? a.surface + ' m²' : null, 'Surface')}${stat('floor', a.etage == null ? null : a.etage === 0 ? 'RDC' : a.etage, 'Étage')}</div>
       <div class="ic-boxes">
-        ${dist.length ? `<div class="ic-box"><div class="ic-h">${ic('pin')}<b>Distances pratiques</b></div>${dist.map(([icn, l, d]) => `<div class="ic-li">${ic(icn)}<span>${l}</span><b>${fmtDist(d)}</b></div>`).join('')}</div>` : ''}
+        ${dist.length ? `<div class="ic-box"><div class="ic-h">${ic('pin')}<b>Distances pratiques</b></div>${dist.map(([icn, l, d, sub]) => `<div class="ic-li">${ic(icn)}<span class="ic-li-t">${esc(l)}${sub || ''}</span><b>${fmtDist(d)}</b></div>`).join('')}</div>` : ''}
         <div class="ic-box"><div class="ic-h">${ic('doc')}<b>Conditions</b></div>${cond.map(c => `<div class="ic-li ok">${ic('check')}<span>${esc(c)}</span></div>`).join('')}</div>
       </div>
       ${a.description ? `<p class="ic-desc">${esc(a.description)}</p>` : ''}
@@ -4250,7 +4253,7 @@
     const d = imoDistances(a)[0];
     return `<article class="imo-prev" data-id="${esc(a.id)}">
       <button type="button" class="ip-th" data-ph="0" aria-label="Voir les photos"${th ? '' : ' disabled'}>${th ? `<img src="${th}" alt="">` : ic('home')}${a.nb_photos > 1 ? `<em>${a.nb_photos}</em>` : ''}</button>
-      <div class="ip-main"><b class="ip-price">${money(a.loyer)} FCFA<small> / mois</small></b><span>${esc(facts)}</span>${d ? `<small>${ic(d[0])}${esc(d[1])} : <b>${fmtDist(d[2])}</b></small>` : ''}</div>
+      <div class="ip-main"><b class="ip-price">${money(a.loyer)} FCFA<small> / mois</small></b><span>${esc(facts)}</span>${d ? `<small>${ic(d[0])}<span>${esc(d[1])}</span> <b>${fmtDist(d[2])}</b></small>` : ''}</div>
       <div class="ip-acts">${a.whatsapp ? `<button type="button" class="ic-wa" data-ic="wa" aria-label="WhatsApp">${ic('chat')}</button>` : ''}<button type="button" class="ic-call" data-ic="call" aria-label="Appeler">${ic('phone')}</button></div>
       <button type="button" class="ip-more" data-ic="more">Voir tout ${ic('chevron')}</button>
     </article>`;

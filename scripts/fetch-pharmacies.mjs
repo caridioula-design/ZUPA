@@ -63,3 +63,28 @@ window.ZUPA_PAIYA = ${JSON.stringify({ updated: new Date().toISOString(), list: 
 `);
   console.log(`::notice title=Paiya OSM::${lieux.length} lieux (${Object.keys(PY.CATS).map(c => PY.CATS[c].label.toLowerCase() + ' ' + n(c)).join(', ')})`);
 } else console.log(`::warning title=Paiya OSM::${lieux.length} reçus : fichier conservé`);
+
+// Écoles du Grand Abidjan : primaires et collèges (distances pratiques des annonces Imo)
+{
+  const B = PY.BBOX; // [sud, ouest, nord, est]
+  const ej = await overpass(`[out:json][timeout:180];nwr["amenity"~"^(school|college)$"](${B.join(',')});out center tags;`);
+  const kindOf = t => {
+    const n = (t.name || t['name:fr'] || '').toLowerCase(), sc = (t.school || t['school:type'] || '').toLowerCase(), isced = String(t['isced:level'] || '');
+    if (/coll[eè]ge|lyc[ée]e|\bceg\b|\bcepg\b|secondaire/.test(n) || /secondary/.test(sc) || /(^|[;,\s])[23]/.test(isced)) return 'c';
+    if (t.amenity === 'college') return null; // enseignement supérieur
+    if (/\bepp\b|e\.p\.p|primaire|groupe scolaire|\bg\.?s\.?\b|ecole|école|cours|maternelle/.test(n) || /primary/.test(sc) || /(^|[;,\s])1/.test(isced)) return 'p';
+    return null;
+  };
+  const ecoles = ej ? ej.elements.map(e => {
+    const t = e.tags || {}, lat = e.lat ?? (e.center && e.center.lat), lon = e.lon ?? (e.center && e.center.lon);
+    const name = (t.name || t['name:fr'] || '').trim().replace(/\s+/g, ' ');
+    const k = name && Number.isFinite(lat) ? kindOf(t) : null;
+    return k ? [name.slice(0, 70), k, +lat.toFixed(5), +lon.toFixed(5)] : null;
+  }).filter(Boolean) : [];
+  if (ecoles.length >= 100) {
+    writeFileSync(out('ecoles.js'), `/* ZUPA — écoles primaires (p) et collèges/lycées (c) du Grand Abidjan (© contributeurs OpenStreetMap, ODbL) */
+window.ZUPA_ECOLES = ${JSON.stringify({ updated: new Date().toISOString(), list: ecoles })};
+`);
+    console.log(`::notice title=Écoles OSM::${ecoles.filter(e => e[1] === 'p').length} écoles primaires, ${ecoles.filter(e => e[1] === 'c').length} collèges et lycées`);
+  } else console.log(`::warning title=Écoles OSM::${ecoles.length} reçues : fichier conservé`);
+}

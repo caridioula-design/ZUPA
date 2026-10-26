@@ -1545,3 +1545,14 @@ body.dark .live,body.dark .live.t-bus,body.dark .live.t-py,body.dark .live.t-imo
 .ip-main{grid-column:2;grid-row:1}
 .ip-acts{grid-column:2;grid-row:2;justify-self:start}
 .ip-more{grid-column:2;grid-row:2;justify-self:end;align-self:center}
+/* nuages flous, sans bord net (le flou est calculé une fois : seule la couche entière glisse) */
+.home-sky .sky-layer>div{filter:blur(7px)}
+.home-sky .sky-layer.l1>div{filter:blur(11px)}
+.home-sky .sky-layer.l3>div{filter:blur(6px)}
+.home-sky .sky-cl{transform:scale(1.25);transform-origin:center}
+/* distances pratiques : arrêt et ses lignes, écoles et marché avec leur nom */
+.ic-li-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;line-height:1.25}
+.ic-li-t small{font-size:.74rem;color:var(--text-3);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ic-lines{display:flex;flex-wrap:wrap;gap:3px}
+.ic-lines .lb{font-size:.62rem}
+.ip-main>small span{overflow:hidden;text-overflow:ellipsis}
