@@ -4201,11 +4201,11 @@
   function imoDistances(a) {
     const out = []; // [icône, titre, distance km, détail (HTML)]
     const st = Core.nearbyStops(D, a.lat, a.lon, 3, 1)[0];
-    if (st) out.push(['bus', `Arrêt ${st.stop.label}`, st.d, st.stop.lines && st.stop.lines.length ? `<span class="ic-lines">${linesHtml(st.stop)}</span>` : '']);
-    const ep = nearestEcole(a.lat, a.lon, 'p'); if (ep) out.push(['school', 'École primaire', ep.d, `<small>${esc(ep.name)}</small>`]);
-    const co = nearestEcole(a.lat, a.lon, 'c'); if (co) out.push(['school', 'Collège', co.d, `<small>${esc(co.name)}</small>`]);
+    if (st) out.push(['bus', 'Arrêt de bus', st.d, '', st.stop.label, st.stop.lines && st.stop.lines.length ? `<span class="imc-lines">${st.stop.lines.slice(0, 5).map(n => lineBadge(n, true)).join('')}${st.stop.lines.length > 5 ? `<small>+${st.stop.lines.length - 5}</small>` : ''}</span>` : '']);
+    const ep = nearestEcole(a.lat, a.lon, 'p'); if (ep) out.push(['school', 'École primaire', ep.d, '', ep.name]);
+    const co = nearestEcole(a.lat, a.lon, 'c'); if (co) out.push(['school', 'Collège', co.d, '', co.name]);
     let mk = null; for (const p of placesBase()) if (p.cat === 'marche') { const k = Core.haversine(a.lat, a.lon, p.lat, p.lon); if (!mk || k < mk.d) mk = { d: k, name: p.name }; }
-    if (mk && mk.d < 15) out.push(['market', 'Marché', mk.d, mk.name && !/^march[ée]$/i.test(mk.name) ? `<small>${esc(mk.name)}</small>` : '']);
+    if (mk && mk.d < 15) out.push(['market', 'Marché', mk.d, '', mk.name && !/^march[ée]$/i.test(mk.name) ? mk.name : '']);
     return out;
   }
   function imoCardHtml(a) {
@@ -4233,7 +4233,7 @@
       <p class="ic-price">${money(a.loyer)} FCFA <small>/ mois</small></p>
       <div class="ic-stats">${stat('bed', a.chambres, a.chambres > 1 ? 'Chambres' : 'Chambre')}${stat('bath', a.sdb, a.sdb > 1 ? 'Salles de bain' : 'Salle de bain')}${stat('area', a.surface ? a.surface + ' m²' : null, 'Surface')}${stat('floor', a.etage == null ? null : a.etage === 0 ? 'RDC' : a.etage, 'Étage')}</div>
       <div class="ic-boxes">
-        ${dist.length ? `<div class="ic-box"><div class="ic-h">${ic('pin')}<b>Distances pratiques</b></div>${dist.map(([icn, l, d, sub]) => `<div class="ic-li">${ic(icn)}<span class="ic-li-t">${esc(l)}${sub || ''}</span><b>${fmtDist(d)}</b></div>`).join('')}</div>` : ''}
+        ${dist.length ? `<div class="ic-box"><div class="ic-h">${ic('pin')}<b>Distances pratiques</b></div>${dist.map(([icn, l, d, , name]) => `<div class="ic-li">${ic(icn)}<span class="ic-li-t">${esc(l)}${name ? `<small>${esc(name)}</small>` : ''}</span><b>${fmtDist(d)}</b></div>`).join('')}</div>` : ''}
         <div class="ic-box"><div class="ic-h">${ic('doc')}<b>Conditions</b></div>${cond.map(c => `<div class="ic-li ok">${ic('check')}<span>${esc(c)}</span></div>`).join('')}</div>
       </div>
       ${a.description ? `<p class="ic-desc">${esc(a.description)}</p>` : ''}
@@ -4258,17 +4258,64 @@
       <button type="button" class="ip-more" data-ic="more">Voir tout ${ic('chevron')}</button>
     </article>`;
   }
+  // Bulle Imo : la fiche du logement en cartes qui défilent (automatiquement toutes les 5 s, ou au doigt)
+  function imoCards(a) {
+    const photos = imo.photos.get(a.id) || [], th = photos[0] || imo.thumbs.get(a.id), nb = a.nb_photos || 0;
+    const tel = String(a.tel || ''), telFmt = tel.replace(/(\d{2})(?=\d)/g, '$1 ');
+    const cards = [];
+    // 1. la photo, le titre et le prix
+    cards.push(`<div class="imc imc-photo${th ? '' : ' nophoto'}" data-ph="0" role="button" aria-label="Voir les photos">
+      ${th ? `<img src="${th}" alt="">` : `<span class="imc-house">${ic('home')}</span>`}
+      <span class="imc-tag">${ic('key')}À LOUER</span>${nb ? `<span class="imc-nb">${ic('camera')}${nb}</span>` : ''}
+      <div class="imc-ov"><b class="imc-t">${esc(imoTitle(a))}</b><span>${ic('pin')}${esc(a.quartier)}${a.adresse ? ' – ' + esc(a.adresse) : ''}</span><b class="imc-price">${money(a.loyer)} FCFA<small> / mois</small></b></div></div>`);
+    // 2. le logement
+    const stat = (icn, v, l) => v == null || v === '' ? '' : `<div class="imc-st">${ic(icn)}<b>${esc(String(v))}</b><small>${l}</small></div>`;
+    const eq = [a.cuisine ? 'Cuisine' : 'Sans cuisine', a.douche_int ? 'Douche interne' : 'Douche externe', a.meuble ? 'Meublé' : ''].filter(Boolean);
+    cards.push(`<div class="imc imc-info"><p class="imc-h">${ic('home')}Le logement</p>
+      <div class="imc-stats">${stat('bed', a.chambres, a.chambres > 1 ? 'chambres' : 'chambre')}${stat('bath', a.sdb, a.sdb > 1 ? 'salles de bain' : 'salle de bain')}${stat('area', a.surface ? a.surface + ' m²' : null, 'surface')}${stat('floor', a.etage == null ? null : a.etage === 0 ? 'RDC' : a.etage + 'e', 'étage')}</div>
+      <div class="imc-chips">${eq.map(x => `<span>${esc(x)}</span>`).join('')}${a.porte ? `<span>${esc(a.porte)}</span>` : ''}</div>
+      <p class="imc-gps">${ic('locate')}Position GPS vérifiée sur place (± ${Math.round(a.gps_acc || 0)} m)</p></div>`);
+    // 3. le prix et ce qu'il faut prévoir à l'entrée
+    const entree = (a.loyer || 0) * ((a.avance || 0) + (a.caution || 0)) + (a.frais_visite || 0);
+    const row = (l, v) => `<div class="imc-row"><span>${l}</span><b>${v}</b></div>`;
+    cards.push(`<div class="imc imc-money"><p class="imc-h">${ic('key')}Loyer et conditions</p>
+      <b class="imc-big">${money(a.loyer)} FCFA<small> / mois</small></b>
+      ${row('Avance', a.avance != null ? `${a.avance} mois` : '—')}${row('Caution', a.caution != null ? `${a.caution} mois` : '—')}${row('Frais de visite', a.frais_visite ? money(a.frais_visite) + ' F' : a.frais_visite === 0 ? 'gratuit' : '—')}${row('Bail', a.bail_mois ? `${a.bail_mois} mois` : '—')}
+      ${entree > a.loyer ? `<p class="imc-total">À prévoir à l’entrée : <b>${money(entree)} FCFA</b></p>` : ''}</div>`);
+    // 4. distances pratiques
+    const dist = imoDistances(a);
+    if (dist.length) cards.push(`<div class="imc imc-dist"><p class="imc-h">${ic('pin')}Distances pratiques</p>
+      ${dist.map(([icn, l, d, , name, lines]) => `<div class="imc-d">${ic(icn)}<span class="imc-dl"><b>${esc(l)}</b>${name ? `<small>${esc(name)}</small>` : ''}${lines || ''}</span><em>${fmtDist(d)}</em></div>`).join('')}</div>`);
+    // 5. contact
+    cards.push(`<div class="imc imc-who"><p class="imc-h">${ic('user')}Contact</p>
+      <b class="imc-name">${esc(a.contact_nom || (a.role === 'agent' ? 'Agent immobilier' : 'Propriétaire'))}</b>
+      <small>${a.role === 'agent' ? 'Agent immobilier' : 'Propriétaire'} · ${esc(telFmt)}</small>
+      ${a.remises > 0 ? `<p class="ic-trust">${ic('key')}${a.remises} remise${a.remises > 1 ? 's' : ''} de clés réussie${a.remises > 1 ? 's' : ''} avec ZUPA</p>` : ''}
+      <div class="imc-btns">${a.whatsapp ? `<button type="button" class="ic-wa" data-ic="wa">${ic('chat')}WhatsApp</button>` : ''}<button type="button" class="ic-call" data-ic="call">${ic('phone')}Appeler</button></div>
+      <div class="imc-links"><button type="button" class="link" data-ic="route">${ic('route')}Itinéraire</button><button type="button" class="link" data-ic="report">${ic('flag')}Signaler</button></div></div>`);
+    if (a.description) cards.splice(2, 0, `<div class="imc imc-desc"><p class="imc-h">${ic('edit')}Description</p><p>${esc(a.description)}</p></div>`);
+    return cards;
+  }
+  const imc = { i: 0, timer: null, hold: false, holdT: null, n: 0 };
   function renderLiveImo(tg) {
     const box = $('live-imo');
-    if (!tg || tg.kind !== 'imo') { box.innerHTML = ''; live.imoId = null; live.imoFull = false; return; }
+    if (!tg || tg.kind !== 'imo') { box.innerHTML = ''; live.imoId = null; clearInterval(imc.timer); imc.timer = null; return; }
     const a = tg.a;
-    if (live.imoId !== a.id) live.imoFull = false;
-    const key = a.id + '|' + (imo.photos.get(a.id) || []).length + '|' + (privOf('work') ? 1 : 0) + '|' + !!live.imoFull;
+    const key = a.id + '|' + (imo.photos.get(a.id) || []).length + '|' + (imo.thumbs.has(a.id) ? 1 : 0);
     if (live.imoKey === key) return;
+    if (live.imoId !== a.id) imc.i = 0;
     live.imoKey = key; live.imoId = a.id;
-    box.innerHTML = live.imoFull ? `<button type="button" class="ip-less" data-ic="less">${ic('close')}Réduire</button>${imoCardHtml(a)}` : imoPreviewHtml(a);
-    if (a.nb_photos && !imo.photos.has(a.id) && (live.imoFull || !imo.thumbs.get(a.id))) loadImoPhotos(a.id);
+    const cards = imoCards(a); imc.n = cards.length; imc.i = Math.min(imc.i, cards.length - 1);
+    box.innerHTML = `<div class="imc-rail" id="imc-rail">${cards.join('')}</div><div class="imc-dots" id="imc-dots">${cards.map((_, k) => `<i class="${k === imc.i ? 'on' : ''}"></i>`).join('')}</div>`;
+    const rail = $('imc-rail');
+    if (imc.i) rail.scrollLeft = rail.clientWidth * imc.i;
+    rail.addEventListener('scroll', debounce(() => { const k = Math.round(rail.scrollLeft / Math.max(1, rail.clientWidth)); if (k !== imc.i) { imc.i = k; imcMark(); } }, 80), { passive: true });
+    rail.addEventListener('pointerdown', () => { imc.hold = true; clearTimeout(imc.holdT); imc.holdT = setTimeout(() => { imc.hold = false; }, 10000); }, { passive: true });
+    if (!imc.timer) imc.timer = setInterval(() => { if (current === 'screen-imo' && live.open && !imc.hold && document.visibilityState === 'visible' && $('imc-rail')) imcGo(imc.i + 1); }, 5000);
+    if (a.nb_photos && !imo.photos.has(a.id)) loadImoPhotos(a.id);
   }
+  function imcMark() { const d = $('imc-dots'); if (d) d.querySelectorAll('i').forEach((x, k) => x.classList.toggle('on', k === imc.i)); }
+  function imcGo(i) { const rail = $('imc-rail'); if (!rail || !imc.n) return; imc.i = (i + imc.n) % imc.n; rail.scrollTo({ left: rail.clientWidth * imc.i, behavior: 'smooth' }); imcMark(); }
   async function loadImoPhotos(id) {
     if (imo.photos.has(id) || !sbOn()) return;
     imo.photos.set(id, null);

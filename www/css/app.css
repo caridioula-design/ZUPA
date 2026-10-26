@@ -1556,3 +1556,74 @@ body.dark .live,body.dark .live.t-bus,body.dark .live.t-py,body.dark .live.t-imo
 .ic-lines{display:flex;flex-wrap:wrap;gap:3px}
 .ic-lines .lb{font-size:.62rem}
 .ip-main>small span{overflow:hidden;text-overflow:ellipsis}
+/* =====================================================================
+   IMO — fiche du logement en cartes défilantes dans la bulle
+   ===================================================================== */
+.live-imo{margin-top:12px}
+.imc-rail{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;border-radius:20px;touch-action:pan-x pan-y}
+.imc-rail::-webkit-scrollbar{display:none}
+.imc{flex:0 0 100%;min-width:0;height:236px;scroll-snap-align:start;position:relative;overflow:hidden;border-radius:20px;padding:14px 16px;background:var(--surface);color:var(--text);text-align:left;white-space:normal;display:flex;flex-direction:column;gap:6px;box-sizing:border-box}
+.imc .ic{flex:none}
+.imc-h{display:flex;align-items:center;gap:8px;margin:0 0 2px;font-weight:800;font-size:.95rem}
+.imc-h .ic{width:20px;height:20px;padding:3px;border-radius:7px;background:var(--imo);color:#111;box-sizing:content-box}
+/* 1. photo */
+.imc-photo{padding:0;background:#111;color:#fff;cursor:pointer}
+.imc-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.imc-photo.nophoto{background:linear-gradient(140deg,#ffe14d,#ffc400);color:#111}
+.imc-house{position:absolute;right:-10px;top:-10px;opacity:.18}
+.imc-house .ic{width:170px;height:170px}
+.imc-tag{position:absolute;left:12px;top:12px;display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:9px;background:var(--imo);color:#111;font-weight:800;font-size:.72rem;letter-spacing:.3px}
+.imc-tag .ic{width:14px;height:14px}
+.imc-nb{position:absolute;right:12px;top:12px;display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:9px;background:rgba(0,0,0,.55);color:#fff;font-size:.72rem;font-weight:700}
+.imc-nb .ic{width:14px;height:14px}
+.imc-ov{position:absolute;left:0;right:0;bottom:0;padding:40px 16px 14px;display:flex;flex-direction:column;gap:3px;background:linear-gradient(180deg,transparent,rgba(0,0,0,.72) 45%)}
+.imc-photo.nophoto .imc-ov{background:none}
+.imc-t{font-family:var(--font-title);font-size:1.3rem;line-height:1.1}
+.imc-ov>span{display:flex;align-items:center;gap:4px;font-size:.82rem;opacity:.92;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.imc-ov>span .ic{width:14px;height:14px}
+.imc-price{font-family:var(--font-title);font-size:1.45rem;color:#ffd000}
+.imc-photo.nophoto .imc-price{color:#111}
+.imc-price small{font-family:var(--font);font-size:.75rem;font-weight:600;opacity:.85}
+/* 2. logement */
+.imc-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.imc-st{display:flex;flex-direction:column;align-items:center;gap:1px;padding:8px 4px;border-radius:14px;background:var(--imo-50)}
+.imc-st .ic{width:22px;height:22px;color:var(--imo-t)}
+.imc-st b{font-size:1.05rem;line-height:1.1}
+.imc-st small{font-size:.64rem;color:var(--text-3);text-align:center;line-height:1.1}
+.imc-chips{display:flex;flex-wrap:wrap;gap:5px}
+.imc-chips span{font-size:.72rem;font-weight:600;padding:3px 9px;border-radius:999px;border:1px solid var(--border);color:var(--text-2)}
+.imc-gps{display:flex;align-items:center;gap:5px;margin:auto 0 0;font-size:.72rem;font-weight:600;color:var(--imo-t)}
+.imc-gps .ic{width:14px;height:14px}
+/* 3. loyer */
+.imc-money{background:linear-gradient(140deg,#ffe14d,#ffc400);color:#111}
+.imc-money .imc-h .ic{background:#111;color:#ffd000}
+.imc-big{font-family:var(--font-title);font-size:1.7rem;line-height:1.05;margin-bottom:2px}
+.imc-big small{font-family:var(--font);font-size:.8rem;font-weight:600}
+.imc-row{display:flex;justify-content:space-between;font-size:.84rem;padding:2px 0;border-bottom:1px solid rgba(0,0,0,.08)}
+.imc-row b{font-weight:800}
+.imc-total{margin:auto 0 0;font-size:.8rem;background:rgba(255,255,255,.55);border-radius:10px;padding:5px 9px}
+/* 4. distances */
+.imc-dist{gap:4px}
+.imc-d{display:grid;grid-template-columns:22px minmax(0,1fr) auto;align-items:center;gap:8px;padding:3px 0;border-bottom:1px solid var(--border)}
+.imc-d:last-child{border-bottom:0}
+.imc-d>.ic{width:20px;height:20px;color:var(--imo-t)}
+.imc-dl{min-width:0;display:flex;flex-direction:column;line-height:1.2}
+.imc-dl b{font-size:.82rem;font-weight:700}
+.imc-dl small{font-size:.72rem;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.imc-lines{display:flex;flex-wrap:nowrap;gap:3px;margin-top:2px;overflow:hidden}
+.imc-lines .lb{flex:none}
+.imc-lines small{font-size:.66rem;color:var(--text-3);align-self:center}
+.imc-d em{font-style:normal;font-weight:800;font-size:.86rem;white-space:nowrap}
+/* 5. contact */
+.imc-name{font-size:1.15rem}
+.imc-who>small{color:var(--text-3);font-size:.8rem;margin-top:-4px}
+.imc-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:auto}
+.imc-btns button{display:flex;align-items:center;justify-content:center;gap:6px;height:42px;border-radius:12px;font-weight:700}
+.imc-btns .ic{width:18px;height:18px}
+.imc-links{display:flex;justify-content:space-between}
+.imc-links .link{display:inline-flex;align-items:center;gap:4px;font-size:.78rem;color:var(--text-2);font-weight:600}
+.imc-links .ic{width:15px;height:15px}
+.imc-desc p:not(.imc-h){margin:0;font-size:.86rem;color:var(--text-2);overflow:auto}
+.imc-dots{display:flex;justify-content:center;gap:6px;margin-top:10px}
+.imc-dots i{width:7px;height:7px;border-radius:4px;background:rgba(0,0,0,.25);transition:width .3s,background-color .3s}
+.imc-dots i.on{width:22px;background:#111}
