@@ -4821,17 +4821,137 @@
   /* =====================================================================
      ACCUEIL « GO ! » : ciel, météo et publicités de la bulle
      ===================================================================== */
-  // ciel : jour, aube/crépuscule ou nuit (et gris s'il pleut)
-  var wx = { d: store.get('wx', null), busy: false }; // var : lisible avant cette ligne (rendu précoce)
+  /* Ciel vivant : couleurs calculées d'après la hauteur réelle du soleil (aube, journée, couchant, nuit),
+     nuages selon la couverture nuageuse mesurée, pluie SEULEMENT s'il tombe vraiment de l'eau
+     (précipitations mesurées > 0), orage avec éclairs, brume. Transitions douces, animations sur le GPU. */
+  var wx = { d: store.get('wx2', null), busy: false }; // var : lisible avant cette ligne (rendu précoce)
+  // palettes du ciel selon la hauteur du soleil (degrés) : haut, milieu, bas
+  const SKY = [
+    [-18, ['#02040d', '#071230', '#13275e']],
+    [-10, ['#070d2b', '#1b2357', '#3d3f86']],
+    [-4, ['#1d2463', '#5b3a7a', '#c0657a']],
+    [0, ['#2b3f8f', '#c86a7c', '#f6a35e']],
+    [5, ['#2c64b8', '#7aa9de', '#f3cd92']],
+    [14, ['#0d5fc4', '#3b93e3', '#9ad0f6']],
+    [40, ['#0757bd', '#2a8be0', '#86c8f5']]
+  ];
+  const hex = c => [1, 3, 5].map(k => parseInt(c.slice(k, k + 2), 16));
+  const mixRGB = (a, b, t) => a.map((v, k) => Math.round(v + (b[k] - v) * t));
+  const rgbS = a => `rgb(${a.join(',')})`;
+  // hauteur du soleil (approximation astronomique, suffisante à ±1°)
+  function sunElev(date, lat, lon) {
+    const d0 = Date.UTC(date.getUTCFullYear(), 0, 0), N = (date - d0) / 864e5;
+    const g = 2 * Math.PI / 365 * (N - 1 + (date.getUTCHours() - 12) / 24);
+    const eqt = 229.18 * (0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g) - 0.014615 * Math.cos(2 * g) - 0.040849 * Math.sin(2 * g));
+    const decl = 0.006918 - 0.399912 * Math.cos(g) + 0.070257 * Math.sin(g) - 0.006758 * Math.cos(2 * g) + 0.000907 * Math.sin(2 * g);
+    const tst = date.getUTCHours() * 60 + date.getUTCMinutes() + eqt + 4 * lon;
+    const ha = (tst / 4 - 180) * Math.PI / 180, la = lat * Math.PI / 180;
+    return Math.asin(Math.sin(la) * Math.sin(decl) + Math.cos(la) * Math.cos(decl) * Math.cos(ha)) * 180 / Math.PI;
+  }
+  // ce que montre le ciel : on se fie aux mesures (pluie, nuages), pas seulement au code « temps »
+  function wxNow() {
+    const d = wx.d;
+    if (!d) return { code: 1, cover: 25, rain: 0, storm: false, fog: false };
+    const rain = Math.max(d.precip || 0, (d.rain || 0) + (d.showers || 0));
+    const storm = d.code >= 95 && rain > 0;
+    const raining = rain >= 0.1 && (d.code >= 51 || rain >= 0.3);
+    // code « pluie » sans pluie mesurée : c'est seulement nuageux
+    const code = raining ? (storm ? 95 : d.code >= 51 ? d.code : 61) : d.code >= 51 ? (d.cover >= 80 ? 3 : 2) : d.code;
+    return { code, cover: d.cover != null ? d.cover : code >= 3 ? 90 : code >= 1 ? 40 : 5, rain: raining ? rain : 0, storm, fog: d.code === 45 || d.code === 48 };
+  }
+  // nuages : trois couches à vitesses différentes (parallaxe), dessinées une fois
+  function cloudSVG(w, seed) {
+    let r = seed; const rnd = () => (r = (r * 9301 + 49297) % 233280) / 233280;
+    const n = 4 + Math.floor(rnd() * 3), parts = [];
+    for (let k = 0; k < n; k++) { const cx = 20 + k * (60 / n) + rnd() * 8, cy = 30 - Math.sin(k / (n - 1) * Math.PI) * (10 + rnd() * 8), rr = 12 + rnd() * 9; parts.push(`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${rr.toFixed(1)}"/>`); }
+    parts.push('<rect x="12" y="30" width="76" height="14" rx="7"/>');
+    return `<svg class="sky-cl" viewBox="0 0 100 46" style="width:${w}px" aria-hidden="true"><g fill="url(#skycg)">${parts.join('')}</g></svg>`;
+  }
+  function skyBuild() {
+    const el = $('home-sky'); if (!el || el.dataset.built) return;
+    el.dataset.built = '1';
+    let html = '<svg width="0" height="0" style="position:absolute"><defs><linearGradient id="skycg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--cl-top)"/><stop offset="1" stop-color="var(--cl-bot)"/></linearGradient></defs></svg>';
+    html += '<i class="sky-stars"></i><i class="sky-glow" id="sky-glow"></i><i class="sky-sun" id="sky-sun"></i>';
+    [[3, 150, 11], [4, 115, 23], [5, 85, 37]].forEach(([n, w, seed], L) => {
+      let row = '';
+      for (let k = 0; k < n; k++) row += `<span style="left:${(k / n * 100 + (seed * 7 + k * 13) % 17).toFixed(1)}%;top:${(18 + L * 26 + ((seed + k * 29) % 22)).toFixed(0)}%">${cloudSVG(w * (0.75 + ((seed + k * 7) % 10) / 20), seed + k)}</span>`;
+      html += `<div class="sky-layer l${L + 1}"><div>${row}</div><div aria-hidden="true">${row}</div></div>`;
+    });
+    html += '<i class="sky-haze"></i><canvas class="sky-drops" id="sky-drops"></canvas><i class="sky-flash" id="sky-flash"></i>';
+    el.innerHTML = html;
+  }
   function skyPaint() {
     const el = $('home-sky'); if (!el || !wx) return;
-    const h = new Date().getHours() + new Date().getMinutes() / 60;
-    const phase = wx.d && wx.d.isDay === 0 ? 'night' : wx.d && wx.d.isDay === 1 ? (h < 7.5 || h >= 17.5 ? 'dusk' : 'day') : h < 5.8 || h >= 19 ? 'night' : h < 7.5 || h >= 17.5 ? 'dusk' : 'day';
-    const c = wx.d ? wx.d.code : 1;
-    el.className = `home-sky ${phase}${c >= 51 ? ' rain' : c >= 3 ? ' grey' : ''}${c >= 95 ? ' storm' : ''}`;
+    skyBuild();
+    const now = new Date(), w = wxNow();
+    const lat = state.pos ? state.pos[0] : 5.33, lon = state.pos ? state.pos[1] : -4.03;
+    const e = sunElev(now, lat, lon);
+    let k = SKY.findIndex(([a]) => a >= e); if (k <= 0) k = k === 0 ? 1 : SKY.length - 1;
+    const [ea, pa] = SKY[k - 1], [eb, pb] = SKY[k], t = Math.max(0, Math.min(1, (e - ea) / (eb - ea)));
+    let cols = pa.map((c, i) => mixRGB(hex(c), hex(pb[i]), t));
+    // ciel couvert ou pluvieux : les couleurs se ternissent vers le gris (de jour comme de nuit)
+    const grey = Math.min(0.75, Math.max(0, (w.cover - 45) / 55) * 0.6 + (w.rain ? 0.25 : 0) + (w.fog ? 0.25 : 0));
+    if (grey > 0) { const night = e < -4; const G = night ? [[22, 26, 34], [36, 42, 54], [58, 66, 80]] : [[92, 108, 128], [130, 146, 164], [176, 189, 203]]; cols = cols.map((c, i) => mixRGB(c, G[i], grey)); }
+    if (isDark()) cols = cols.map(c => c.map(v => Math.round(v * 0.78)));
+    cols.forEach((c, i) => el.style.setProperty(`--s${i + 1}`, rgbS(c)));
+    // soleil / lune : se lève à gauche, se couche à droite ; lueur chaude près de l'horizon
+    const day = e > -3, sun = $('sky-sun'), glow = $('sky-glow');
+    const hrs = (now.getUTCHours() + now.getUTCMinutes() / 60 + lon / 15 + 24) % 24; // heure solaire
+    const f = day ? Math.max(0, Math.min(1, (hrs - 6) / 12)) : ((hrs + 6) % 24) / 12; // 0 = lever, 1 = coucher
+    const x = 8 + f * 84, y = 62 - Math.sin(Math.max(0, Math.min(1, f)) * Math.PI) * 50;
+    const first = !sun.dataset.p; if (first) sun.style.transition = 'none'; // premier placement : sans glisser depuis le coin
+    sun.style.transform = `translate3d(${(el.clientWidth * x / 100).toFixed(0)}px, ${(el.clientHeight * 0.8 * y / 100).toFixed(0)}px, 0)`;
+    if (first && el.clientWidth) { void sun.offsetWidth; sun.dataset.p = '1'; sun.style.transition = ''; }
+    sun.classList.toggle('moon', !day);
+    sun.style.opacity = (Math.max(0, 1 - w.cover / 95) * (day ? 1 : 0.85)).toFixed(2);
+    glow.style.setProperty('--gx', x.toFixed(1) + '%');
+    glow.style.opacity = day ? (Math.max(0, 1 - Math.abs(e) / 14) * (1 - grey)).toFixed(2) : '0';
+    el.style.setProperty('--stars', e < -6 ? (Math.min(1, (-e - 6) / 6) * Math.max(0, 1 - w.cover / 80)).toFixed(2) : '0');
+    // nuages : quantité et teinte selon la couverture mesurée
+    const cov = w.cover / 100;
+    el.style.setProperty('--c1', Math.min(1, cov * 1.6).toFixed(2));
+    el.style.setProperty('--c2', Math.max(0, Math.min(1, (cov - 0.25) * 1.6)).toFixed(2));
+    el.style.setProperty('--c3', Math.max(0, Math.min(1, (cov - 0.55) * 2.2)).toFixed(2));
+    const lit = e < -4 ? [[70, 78, 96], [46, 52, 66]] : e < 4 ? [[255, 214, 196], [196, 150, 160]] : [[255, 255, 255], [220, 229, 240]];
+    const dim = grey * 0.55;
+    const ct = mixRGB(lit[0], [150, 158, 170], dim), cb = mixRGB(lit[1], [112, 120, 134], dim);
+    el.style.setProperty('--cl-top', rgbS(ct)); el.style.setProperty('--cl-bot', rgbS(cb));
+    el.style.setProperty('--haze', w.fog ? '0.55' : w.rain ? '0.22' : '0');
+    el.classList.toggle('thunder', w.storm);
+    rainSet(w.rain);
     syncBars();
   }
-  // icônes météo animées (codes WMO d'Open-Meteo)
+  // pluie : gouttes dessinées sur un canevas, densité selon l'intensité mesurée (mm), arrêt hors de l'écran Go
+  const rainFx = { mm: 0, drops: [], raf: 0, last: 0 };
+  function rainSet(mm) {
+    rainFx.mm = mm;
+    if (!mm) { cancelAnimationFrame(rainFx.raf); rainFx.raf = 0; const cv = $('sky-drops'); if (cv) cv.getContext('2d').clearRect(0, 0, cv.width, cv.height); return; }
+    if (!rainFx.raf && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) rainFx.raf = requestAnimationFrame(rainTick);
+  }
+  function rainTick(ts) {
+    rainFx.raf = 0;
+    const cv = $('sky-drops'); if (!cv || !rainFx.mm) return;
+    if (current !== 'screen-home' || document.visibilityState !== 'visible') { setTimeout(() => { if (rainFx.mm && !rainFx.raf) rainFx.raf = requestAnimationFrame(rainTick); }, 800); return; }
+    const W = cv.clientWidth, H = cv.clientHeight, dpr = Math.min(2, window.devicePixelRatio || 1);
+    if (cv.width !== Math.round(W * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+    const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const dt = Math.min(50, ts - (rainFx.last || ts)) / 1000; rainFx.last = ts;
+    const target = Math.round(Math.min(260, 40 + rainFx.mm * 60));
+    while (rainFx.drops.length < target) rainFx.drops.push({ x: Math.random() * W * 1.2, y: Math.random() * -H, v: 520 + Math.random() * 380, l: 10 + Math.random() * 14, a: 0.18 + Math.random() * 0.32 });
+    if (rainFx.drops.length > target) rainFx.drops.length = target;
+    ctx.clearRect(0, 0, W, H); ctx.lineCap = 'round'; ctx.lineWidth = 1.1;
+    for (const d of rainFx.drops) {
+      d.y += d.v * dt; d.x -= d.v * dt * 0.18;
+      if (d.y > H + 20 || d.x < -20) { d.y = -20 - Math.random() * 80; d.x = Math.random() * W * 1.2; }
+      ctx.strokeStyle = `rgba(220,232,245,${d.a})`;
+      ctx.beginPath(); ctx.moveTo(d.x, d.y); ctx.lineTo(d.x + d.l * 0.18, d.y - d.l); ctx.stroke();
+    }
+    rainFx.raf = requestAnimationFrame(rainTick);
+  }
+  // éclairs occasionnels pendant un orage
+  setInterval(() => { const el = $('home-sky'); if (el && el.classList.contains('thunder') && current === 'screen-home' && Math.random() < 0.35) { const f = $('sky-flash'); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); } }, 4000);
+
+  // icônes météo animées (d'après ce qui est réellement observé)
   function wxIcon(code, day) {
     const sun = '<g class="wx-sun"><circle cx="13" cy="13" r="5.5"/><g class="wx-rays">' + [0, 45, 90, 135, 180, 225, 270, 315].map(a => `<rect x="12.2" y="2" width="1.6" height="3.4" rx=".8" transform="rotate(${a} 13 13)"/>`).join('') + '</g></g>';
     const moon = '<path class="wx-moon" d="M16 5.5a7.5 7.5 0 1 0 5.6 11.6A6 6 0 0 1 16 5.5z"/>';
@@ -4846,36 +4966,37 @@
     else inner = cloud('front dark') + bolt;
     return `<svg viewBox="0 0 40 40" aria-hidden="true">${inner}</svg>`;
   }
-  const WX_TXT = c => c === 0 ? 'Ciel dégagé' : c <= 2 ? 'Partiellement nuageux' : c === 3 ? 'Couvert' : c <= 48 ? 'Brouillard' : c <= 67 ? 'Pluie' : c <= 82 ? 'Averses' : 'Orage';
+  const WX_TXT = c => c === 0 ? 'Ciel dégagé' : c === 1 ? 'Peu nuageux' : c === 2 ? 'Partiellement nuageux' : c === 3 ? 'Couvert' : c <= 48 ? 'Brouillard' : c <= 57 ? 'Bruine' : c <= 67 ? 'Pluie' : c <= 82 ? 'Averses' : 'Orage';
   function renderWx() {
     const b = $('wx'); if (!b) return;
     if (!wx.d) { b.hidden = true; return; }
+    const w = wxNow();
     b.hidden = false;
-    $('wx-ic').innerHTML = wxIcon(wx.d.code, wx.d.isDay !== 0);
+    $('wx-ic').innerHTML = wxIcon(w.code, wx.d.isDay !== 0);
     $('wx-t').textContent = `${Math.round(wx.d.temp)} °C`;
-    b.setAttribute('aria-label', `Météo : ${WX_TXT(wx.d.code)}, ${Math.round(wx.d.temp)} degrés`);
-    b.title = WX_TXT(wx.d.code);
+    b.setAttribute('aria-label', `Météo : ${WX_TXT(w.code)}, ${Math.round(wx.d.temp)} degrés`);
+    b.title = WX_TXT(w.code);
     skyPaint();
   }
   async function wxMaybe() {
     if (wx.busy || !state.pos || !navigator.onLine) return;
     const d = wx.d, moved = d ? Core.haversine(d.lat, d.lon, state.pos[0], state.pos[1]) : 99;
-    if (d && Date.now() - d.t < 30 * 60e3 && moved < 15) return;
+    if (d && Date.now() - d.t < 15 * 60e3 && moved < 10) return;
     wx.busy = true;
     try {
       const [la, lo] = [state.pos[0].toFixed(2), state.pos[1].toFixed(2)]; // position arrondie (≈ 1 km) : rien de précis ne sort du téléphone
-      const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${la}&longitude=${lo}&current=temperature_2m,weather_code,is_day&timezone=auto`);
-      const j = await r.json();
-      if (j && j.current && typeof j.current.temperature_2m === 'number') {
-        wx.d = { t: Date.now(), lat: +la, lon: +lo, temp: j.current.temperature_2m, code: j.current.weather_code | 0, isDay: j.current.is_day };
-        store.set('wx', wx.d); renderWx();
+      const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${la}&longitude=${lo}&current=temperature_2m,weather_code,is_day,cloud_cover,precipitation,rain,showers&timezone=auto`);
+      const j = await r.json(), c = j && j.current;
+      if (c && typeof c.temperature_2m === 'number') {
+        wx.d = { t: Date.now(), lat: +la, lon: +lo, temp: c.temperature_2m, code: c.weather_code | 0, isDay: c.is_day, cover: c.cloud_cover, precip: c.precipitation || 0, rain: c.rain || 0, showers: c.showers || 0 };
+        store.set('wx2', wx.d); renderWx();
       }
     } catch (e) { /* hors ligne : on garde la dernière météo */ }
     wx.busy = false;
   }
-  $('wx').onclick = () => { if (wx.d) toast(`${WX_TXT(wx.d.code)} · ${Math.round(wx.d.temp)} °C${Date.now() - wx.d.t > 3600e3 ? ' (relevé ancien)' : ''}`); };
+  $('wx').onclick = () => { if (!wx.d) return; const w = wxNow(); toast(`${WX_TXT(w.code)} · ${Math.round(wx.d.temp)} °C${w.cover != null && wx.d.cover != null ? ` · nuages ${Math.round(wx.d.cover)} %` : ''}${w.rain ? ` · ${w.rain.toFixed(1).replace('.', ',')} mm` : ''}${Date.now() - wx.d.t > 3600e3 ? ' (relevé ancien)' : ''}`); };
   renderWx(); skyPaint();
-  setInterval(() => { skyPaint(); wxMaybe(); }, 5 * 60e3);
+  setInterval(() => { skyPaint(); wxMaybe(); }, 60e3); // le ciel suit le soleil minute par minute
 
   // Publicités de la bulle : EXEMPLES FICTIFS (marques inventées) en attendant la régie publicitaire.
   // Chaque offre est placée à quelques mètres de l'arrêt le plus proche pour montrer le rendu « près de vous ».
