@@ -260,6 +260,49 @@ begin
   return n;
 end $$;
 
+-- ---------- modifier une annonce (par son auteur) ----------
+-- La position GPS ne se modifie pas : pour déplacer un logement, il faut le republier sur place.
+create or replace function public.annonce_detail(p_secret uuid, p_id uuid) returns jsonb
+language sql security definer set search_path = public, extensions as $$
+  select to_jsonb(a) - 'owner_hash' - 'gps_lat' - 'gps_lon' || jsonb_build_object('photos',
+    (select coalesce(jsonb_agg(ph.data order by ph.idx), '[]') from annonce_photos ph where ph.annonce_id = a.id))
+  from annonces a where a.id = p_id and a.owner_hash = digest(p_secret::text, 'sha256');
+$$;
+create or replace function public.annonce_modifier(p_secret uuid, p_id uuid, p jsonb) returns boolean
+language plpgsql security definer set search_path = public, extensions as $$
+declare h bytea := digest(p_secret::text, 'sha256'); a annonces;
+begin
+  select * into a from annonces where id = p_id and owner_hash = h for update;
+  if not found then raise exception 'Annonce introuvable' using errcode = 'P0001'; end if;
+  if a.statut = 'occupee' or exists (select 1 from cles where annonce_id = a.id and statut in ('active', 'en_attente')) then
+    raise exception 'Logement occupé : une clé numérique est en cours, l''annonce ne peut pas être modifiée' using errcode = 'P0001';
+  end if;
+  if exists (select 1 from cles c join annonces o on o.id = c.annonce_id
+             where c.statut in ('active', 'en_attente') and o.id <> a.id and imo_metres(o.lat, o.lon, a.lat, a.lon) <= 30
+               and o.type = p->>'type' and coalesce(o.etage, -99) = coalesce((p->>'etage')::smallint, -99)
+               and (nullif(btrim(o.porte), '') is null or nullif(btrim(p->>'porte'), '') is null or lower(btrim(o.porte)) = lower(btrim(p->>'porte')))) then
+    raise exception 'Un logement occupé correspond à cette description : indiquez la porte ou l''étage exact' using errcode = 'P0001';
+  end if;
+  update annonces set role = p->>'role', type = p->>'type', chambres = (p->>'chambres')::smallint, sdb = (p->>'sdb')::smallint,
+    cuisine = coalesce((p->>'cuisine')::boolean, true), douche_int = coalesce((p->>'douche_int')::boolean, true), meuble = coalesce((p->>'meuble')::boolean, false),
+    surface = (p->>'surface')::smallint, etage = (p->>'etage')::smallint, loyer = (p->>'loyer')::int, avance = (p->>'avance')::smallint,
+    caution = (p->>'caution')::smallint, frais_visite = (p->>'frais_visite')::int, bail_mois = (p->>'bail_mois')::smallint,
+    description = nullif(btrim(p->>'description'), ''), adresse = nullif(btrim(p->>'adresse'), ''), porte = nullif(btrim(p->>'porte'), ''),
+    contact_nom = nullif(btrim(p->>'contact_nom'), ''), tel = regexp_replace(coalesce(p->>'tel', ''), '\D', '', 'g'),
+    whatsapp = coalesce((p->>'whatsapp')::boolean, true), thumb = coalesce(p->>'thumb', thumb)
+  where id = a.id;
+  return true;
+end $$;
+-- après l'envoi des photos modifiées : on retire celles en trop
+create or replace function public.annonce_photos_garder(p_secret uuid, p_id uuid, p_n int) returns boolean
+language plpgsql security definer set search_path = public, extensions as $$
+begin
+  if not exists (select 1 from annonces where id = p_id and owner_hash = digest(p_secret::text, 'sha256')) then return false; end if;
+  delete from annonce_photos where annonce_id = p_id and idx >= greatest(p_n, 1);
+  update annonces set nb_photos = (select count(*) from annonce_photos where annonce_id = p_id) where id = p_id;
+  return true;
+end $$;
+
 -- =====================================================================
 -- 2. CLÉ NUMÉRIQUE
 --  Remise : l'agent, au logement, obtient un code à usage unique (20 min) ; le locataire, au logement aussi,
@@ -518,6 +561,7 @@ begin
     'cle_preparer(uuid, uuid, double precision, double precision, real)', 'cle_reemettre(uuid, uuid, double precision, double precision, real)',
     'cle_restitution_preparer(uuid, uuid, double precision, double precision, real)', 'cle_apercu(uuid, text)',
     'cle_valider(uuid, text, double precision, double precision, real, text, text, text)', 'cle_secours(uuid, text, text)',
+    'annonce_detail(uuid, uuid)', 'annonce_modifier(uuid, uuid, jsonb)', 'annonce_photos_garder(uuid, uuid, int)',
     'cle_prolonger(uuid, uuid, int)', 'cle_reprise(uuid, uuid)', 'cle_contester(uuid, uuid)', 'cle_annuler(uuid, uuid)', 'mes_cles(uuid)']
   loop
     execute format('revoke all on function public.%s from public', f);

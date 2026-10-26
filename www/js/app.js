@@ -987,6 +987,7 @@
   });
   function renderLoc() {
     const el = $('loc-chip');
+    el.hidden = false; if ($('wx-loc')) $('wx-loc').hidden = true;
     el.classList.remove('at-stop', 'near-stop'); el.style.removeProperty('--near');
     const actions = `<span class="loc-actions"><button class="link" data-geo="retry">Réessayer</button><button class="link" data-geo="stop">Choisir un arrêt</button><button class="link" data-geo="help">Aide GPS</button></span>`;
     if (!state.pos) {
@@ -1021,8 +1022,14 @@
       ? `<br><small class="warn-txt">Position approximative : le navigateur n'a pas accès à la « position exacte ».</small>`
       : (!state.posStale && acc > 150 ? `<br><small class="warn-txt">Précision faible : vérifiez votre position ou corrigez-la.</small>` : '');
     el.className = 'loc-chip' + (state.approx || acc > 150 ? ' warn' : !nearTxt && !state.posStale ? ' ok' : '');
+    // position correcte : pas de cadre, le lieu s'affiche en petit sous la météo (toucher = corriger)
+    const good = el.classList.contains('ok');
+    el.hidden = good;
+    const wl = $('wx-loc');
+    if (wl) { wl.hidden = !good; wl.innerHTML = good ? `${ic('pin')}<span>${esc(state.placeName ? state.placeName.split(', ').reverse().join(' · ') : 'Position trouvée')}</span>` : ''; } // le quartier d'abord
     el.innerHTML = `${ic('pin')}<span>${where}${state.posStale ? ' <small>(mise à jour…)</small>' : quality}${nearTxt ? `<br><small>${nearTxt}</small>` : ''}${warn}<span class="loc-actions"><button class="link" data-geo="fix">${acc > 50 || state.posStale ? 'Position inexacte ? Corriger' : 'Corriger'}</button>${state.approx || acc > 150 ? '<button class="link" data-geo="help">Améliorer le GPS</button>' : ''}</span></span>`;
   }
+  $('wx-loc').onclick = () => openFixPos();
   $('loc-chip').addEventListener('click', e => {
     const b = e.target.closest('[data-geo]');
     if (!b) return;
@@ -1426,6 +1433,20 @@
     if (!originInput.value && !destInput.value && document.activeElement !== destInput && document.activeElement !== originInput) foldSearch(false);
   }
 
+  // Tableau des favoris façon panneau à LED : calculs étalés (l'écran reste fluide), résultats mis en cache
+  const boardCache = new Map();
+  let boardJob = 0;
+  const ledClock = () => { const d = new Date(); return `${String(d.getHours()).padStart(2, '0')}<i>:</i>${String(d.getMinutes()).padStart(2, '0')}`; };
+  function boardRowHtml(id, i, r, res, origin) {
+    const s = D.byId.get(id);
+    const bus = r ? r.legs.map(l => l.line.num).join(' › ') : res && res.status === 'near' ? 'À PIED' : origin ? '—' : '…';
+    const dep = r ? 'depuis ' + r.legs[0].board.name : !origin ? 'Localisation…' : !res ? 'Calcul…' : res.status === 'near' ? 'Vous y êtes presque' : 'Aucun trajet';
+    const t = r ? Math.round(r.totalMin) : null;
+    return `<button class="led-row" style="animation-delay:${i * 70}ms" data-fav="${esc(id)}" title="${esc(`Aller à ${s.label}`)}">
+      <span class="led-line">${esc(bus)}</span>
+      <span class="led-dest"><b><span class="led-mq">${esc(s.label)}</span></b><small>${esc(dep)}</small></span>
+      <span class="led-time${t != null && t <= 15 ? ' soon' : ''}">${t != null ? `${t}<small>min</small>` : ''}</span></button>`;
+  }
   function renderBoard() {
     const el = $('fav-board');
     const favs = state.profile.favorites.filter(id => D.byId.has(id));
@@ -1434,16 +1455,35 @@
       return;
     }
     const origin = state.pos ? { lat: state.pos[0], lon: state.pos[1] } : null;
-    const rows = favs.map((id, i) => {
-      const s = D.byId.get(id);
-      const res = origin ? Core.findRoutes(D, origin, id) : null;
-      const r = res && res.routes[0];
-      const bus = r ? r.legs.map(l => l.line.num).join('›') : res && res.status === 'near' ? 'À pied' : '—';
-      const dep = r ? r.legs[0].board.name : !origin ? 'Localisation…' : res.status === 'near' ? 'Vous y êtes presque' : 'Aucun trajet';
-      return `<button class="board-row" style="animation-delay:${i * 90}ms" data-fav="${esc(id)}" title="${esc(`Aller à ${s.label}`)}"><span class="b-bus">${esc(bus)}</span><span>${esc(dep)}</span><span>${esc(s.label)}</span><span class="b-time">${r ? fmtMin(r.totalMin) : ''}</span></button>`;
-    });
-    el.innerHTML = `<div class="board"><div class="board-row head"><span>Ligne</span><span>Départ</span><span>Vers</span><span class="b-time">Durée</span></div>${rows.join('')}</div>`;
+    const pk = origin ? `${origin.lat.toFixed(3)},${origin.lon.toFixed(3)}` : '';
+    const cached = id => boardCache.get(id + '|' + pk);
+    el.innerHTML = `<div class="led"><div class="led-top"><span>Mes destinations</span><span class="led-clock" id="led-clock">${ledClock()}</span></div>
+      ${favs.map((id, i) => { const c = cached(id); return boardRowHtml(id, i, c && c.r, c && c.res, origin); }).join('')}</div>`;
+    ledMarquee(el);
+    if (!origin) return;
+    // un favori à la fois, entre deux images : jamais de saccade pendant un défilement
+    const job = ++boardJob;
+    const todo = favs.filter(id => !cached(id));
+    const step = () => {
+      if (job !== boardJob || !todo.length) return;
+      const id = todo.shift(), res = Core.findRoutes(D, origin, id), r = res && res.routes[0];
+      boardCache.set(id + '|' + pk, { res, r }); if (boardCache.size > 60) boardCache.delete(boardCache.keys().next().value);
+      const row = el.querySelector(`[data-fav="${CSS.escape(id)}"]`);
+      if (row) { const tmp = document.createElement('div'); tmp.innerHTML = boardRowHtml(id, 0, r, res, origin); tmp.firstElementChild.style.animation = 'none'; row.replaceWith(tmp.firstElementChild); ledMarquee(el); }
+      (window.requestIdleCallback || (f => setTimeout(f, 16)))(step);
+    };
+    setTimeout(step, 30);
   }
+  // nom trop long pour le panneau : il défile, comme sur un vrai afficheur
+  function ledMarquee(root) {
+    requestAnimationFrame(() => root.querySelectorAll('.led-dest b').forEach(b => {
+      const inner = b.firstElementChild; if (!inner) return;
+      const over = inner.scrollWidth - b.clientWidth;
+      b.classList.toggle('scroll', over > 4);
+      if (over > 4) { inner.style.setProperty('--mq', `-${over + 12}px`); inner.style.animationDuration = `${Math.max(5, over / 22)}s`; }
+    }));
+  }
+  setInterval(() => { const c = $('led-clock'); if (c && current === 'screen-home') c.innerHTML = ledClock(); }, 15000);
   $('fav-board').addEventListener('click', e => {
     const row = e.target.closest('[data-fav]');
     if (!row) return;
@@ -4164,10 +4204,11 @@
     if (m.statut === 'occupee') { openCles(); return; }
     openActions({ title: `${IMO_SHORT[m.type]} · ${m.quartier}`, sub: `${money(m.loyer)} F/mois`, actions: [
       { icon: 'key', label: 'Remettre les clés au locataire', hint: 'Au logement : le locataire saisit un code dans ZUPA. L’annonce est alors retirée.', fn: () => cleDonner(m) },
+      { icon: 'edit', label: 'Modifier l’annonce', hint: 'Loyer, conditions, photos, description, contact', fn: () => imoEdit(m) },
       ...(imoById(m.id) ? [{ icon: 'home', label: 'Voir l’annonce', fn: () => followPlace('imo', m.id) }] : []),
       { icon: 'refresh', label: 'Toujours disponible', hint: 'Reste en ligne 45 jours de plus', fn: () => act('renouveler', 'Annonce prolongée de 45 jours.') },
       { icon: 'check', label: 'Loué sans clé numérique', hint: 'L’annonce n’apparaît plus (la remise de clés protège mieux les deux parties)', fn: () => act('louee', 'Annonce marquée louée.') },
-      { icon: 'trash', label: 'Supprimer l’annonce', danger: true, fn: () => { if (confirm('Supprimer définitivement cette annonce et ses photos ?')) act('retirer', 'Annonce supprimée.'); } }] });
+      { icon: 'trash', label: 'Supprimer l’annonce', danger: true, fn: () => imoDelete(m) }] });
   });
   $('imo-more').onclick = () => { imo.shown += 30; renderImo(); };
   $('imo-refresh').onclick = () => { fetchImo(true); fetchMine(); };
@@ -4202,8 +4243,8 @@
     const out = []; // [icône, titre, distance km, détail (HTML)]
     const st = Core.nearbyStops(D, a.lat, a.lon, 3, 1)[0];
     if (st) out.push(['bus', 'Arrêt de bus', st.d, '', st.stop.label, st.stop.lines && st.stop.lines.length ? `<span class="imc-lines">${st.stop.lines.slice(0, 5).map(n => lineBadge(n, true)).join('')}${st.stop.lines.length > 5 ? `<small>+${st.stop.lines.length - 5}</small>` : ''}</span>` : '']);
-    const ep = nearestEcole(a.lat, a.lon, 'p'); if (ep) out.push(['school', 'École primaire', ep.d, '', ep.name]);
-    const co = nearestEcole(a.lat, a.lon, 'c'); if (co) out.push(['school', 'Collège', co.d, '', co.name]);
+    const ep = nearestEcole(a.lat, a.lon, 'p'); if (ep) out.push(['school', 'École (maternelle, CP1 – CM2)', ep.d, '', ep.name]);
+    const co = nearestEcole(a.lat, a.lon, 'c'); if (co) out.push(['school', 'Collège / lycée (6e – Tle)', co.d, '', co.name]);
     let mk = null; for (const p of placesBase()) if (p.cat === 'marche') { const k = Core.haversine(a.lat, a.lon, p.lat, p.lon); if (!mk || k < mk.d) mk = { d: k, name: p.name }; }
     if (mk && mk.d < 15) out.push(['market', 'Marché', mk.d, '', mk.name && !/^march[ée]$/i.test(mk.name) ? mk.name : '']);
     return out;
@@ -4291,8 +4332,10 @@
       <b class="imc-name">${esc(a.contact_nom || (a.role === 'agent' ? 'Agent immobilier' : 'Propriétaire'))}</b>
       <small>${a.role === 'agent' ? 'Agent immobilier' : 'Propriétaire'} · ${esc(telFmt)}</small>
       ${a.remises > 0 ? `<p class="ic-trust">${ic('key')}${a.remises} remise${a.remises > 1 ? 's' : ''} de clés réussie${a.remises > 1 ? 's' : ''} avec ZUPA</p>` : ''}
-      <div class="imc-btns">${a.whatsapp ? `<button type="button" class="ic-wa" data-ic="wa">${ic('chat')}WhatsApp</button>` : ''}<button type="button" class="ic-call" data-ic="call">${ic('phone')}Appeler</button></div>
-      <div class="imc-links"><button type="button" class="link" data-ic="route">${ic('route')}Itinéraire</button><button type="button" class="link" data-ic="report">${ic('flag')}Signaler</button></div></div>`);
+      ${imo.mine.some(m => m.id === a.id) ? `<p class="imc-mine">${ic('user')}C’est votre annonce</p>
+      <div class="imc-btns"><button type="button" class="ic-wa" data-ic="edit">${ic('edit')}Modifier</button><button type="button" class="ic-call" data-ic="del">${ic('trash')}Supprimer</button></div>`
+      : `<div class="imc-btns">${a.whatsapp ? `<button type="button" class="ic-wa" data-ic="wa">${ic('chat')}WhatsApp</button>` : ''}<button type="button" class="ic-call" data-ic="call">${ic('phone')}Appeler</button></div>
+      <div class="imc-links"><button type="button" class="link" data-ic="route">${ic('route')}Itinéraire</button><button type="button" class="link" data-ic="report">${ic('flag')}Signaler</button></div>`}</div>`);
     if (a.description) cards.splice(2, 0, `<div class="imc imc-desc"><p class="imc-h">${ic('edit')}Description</p><p>${esc(a.description)}</p></div>`);
     return cards;
   }
@@ -4301,7 +4344,7 @@
     const box = $('live-imo');
     if (!tg || tg.kind !== 'imo') { box.innerHTML = ''; live.imoId = null; clearInterval(imc.timer); imc.timer = null; return; }
     const a = tg.a;
-    const key = a.id + '|' + (imo.photos.get(a.id) || []).length + '|' + (imo.thumbs.has(a.id) ? 1 : 0);
+    const key = a.id + '|' + (imo.photos.get(a.id) || []).length + '|' + (imo.thumbs.has(a.id) ? 1 : 0) + '|' + imo.mine.some(m => m.id === a.id);
     if (live.imoKey === key) return;
     if (live.imoId !== a.id) imc.i = 0;
     live.imoKey = key; live.imoId = a.id;
@@ -4335,6 +4378,7 @@
     if (b.dataset.ph != null) { openViewer(imo.photos.get(a.id) || [imo.thumbs.get(a.id)].filter(Boolean), +b.dataset.ph); return; }
     const k = b.dataset.ic, tel = String(a.tel || '');
     if (k === 'more' || k === 'less') { live.imoFull = k === 'more'; live.imoKey = ''; renderLiveImo(live.tg); if (k === 'less') $('screen-imo').scrollTo({ top: 0, behavior: 'smooth' }); return; }
+    if (k === 'edit' || k === 'del') { const m = imo.mine.find(x => x.id === a.id) || a; if (k === 'edit') imoEdit(m); else imoDelete(m); return; }
     if (k === 'route') imoRoute(a);
     else if (k === 'call') openExternal('tel:' + tel);
     else if (k === 'wa') openExternal(`https://wa.me/225${tel}?text=${encodeURIComponent(`Bonjour, je vous contacte depuis ZUPA pour votre annonce : ${imoTitle(a)} à ${a.quartier}, ${money(a.loyer)} FCFA/mois. Est-il toujours disponible ?`)}`);
@@ -4437,11 +4481,14 @@
       ok: [ic('check'), `Logement localisé par GPS (${acc}). Vous pouvez ajuster le repère de ${IMO_PIN_MAX} m au plus.`, 'ok'],
       old: [ic('info'), 'Mesure GPS de plus de 2 h : localisez à nouveau le logement.', 'warn']
     }[ip.st];
-    $('ip-state').className = 'ap-state ' + T[2];
-    $('ip-state').innerHTML = `${T[0]}<span>${T[1]}</span>`;
+    $('ip-state').className = 'ap-state ' + (ip.edit ? 'ok' : T[2]);
+    $('ip-state').innerHTML = ip.edit ? `${ic('check')}<span>Position GPS vérifiée sur place le ${new Date(ip.edit.created_at).toLocaleDateString('fr-FR')} (± ${Math.round(ip.edit.gps_acc || 0)} m). Elle ne se modifie pas : pour un autre emplacement, supprimez l’annonce et republiez-la sur place.</span>` : `${T[0]}<span>${T[1]}</span>`;
+    $('ip-locate').hidden = !!ip.edit;
+    document.querySelector('#screen-imo-pub .topbar .title').textContent = ip.edit ? 'Modifier l’annonce' : 'Publier un logement';
+    $('ip-save').textContent = ip.edit ? 'Enregistrer les modifications' : 'Publier l’annonce';
     $('ip-locate').disabled = ip.st === 'locating';
     $('ip-locate').lastChild.textContent = ip.st === 'ok' ? 'Mesurer à nouveau' : 'Je suis au logement : localiser';
-    $('ip-map-wrap').hidden = !ip.gps;
+    $('ip-map-wrap').hidden = !ip.gps || !!ip.edit;
     $('ip-quartier').innerHTML = ip.zones.length ? ip.zones.map(z => `<button type="button" role="radio" aria-checked="${ip.zone === z.name}" class="${ip.zone === z.name ? 'on' : ''}" data-z="${esc(z.name)}">${esc(z.name)}</button>`).join('') : '<span class="ip-wait">Localisez d’abord le logement.</span>';
     $('ip-type').innerHTML = IMO_TYPES.map(([k, l]) => `<button type="button" role="radio" aria-checked="${ip.type === k}" class="${ip.type === k ? 'on' : ''}" data-v="${k}">${esc(k === '2p' ? '2 pièces (chambre salon)' : l)}</button>`).join('');
     $('ip-eq').querySelectorAll('button').forEach(b => { const on = !!ip.eq[b.dataset.k]; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
@@ -4451,10 +4498,12 @@
     checkImoPub();
   }
   function imoPubProblem() {
-    if (ip.st !== 'ok' || !ip.gps || !ip.pin) return 'Localisez le logement par GPS, sur place (obligatoire).';
-    if (Date.now() - ip.gps.t > IMO_GPS_TTL) return 'Mesure GPS trop ancienne : localisez à nouveau le logement.';
-    if (Core.haversine(ip.pin[0], ip.pin[1], ip.gps.lat, ip.gps.lon) * 1000 > IMO_PIN_MAX + 1) return `Le repère doit rester à ${IMO_PIN_MAX} m au plus de la mesure GPS.`;
-    if (!ip.zone) return 'Choisissez le quartier.';
+    if (!ip.edit) {
+      if (ip.st !== 'ok' || !ip.gps || !ip.pin) return 'Localisez le logement par GPS, sur place (obligatoire).';
+      if (Date.now() - ip.gps.t > IMO_GPS_TTL) return 'Mesure GPS trop ancienne : localisez à nouveau le logement.';
+      if (Core.haversine(ip.pin[0], ip.pin[1], ip.gps.lat, ip.gps.lon) * 1000 > IMO_PIN_MAX + 1) return `Le repère doit rester à ${IMO_PIN_MAX} m au plus de la mesure GPS.`;
+      if (!ip.zone) return 'Choisissez le quartier.';
+    }
     const loyer = intOf($('ip-loyer').value);
     if (!loyer || loyer < 5000) return 'Indiquez le loyer mensuel (5 000 FCFA au moins).';
     const ch = intOf($('ip-ch').value), sdb = intOf($('ip-sdb').value);
@@ -4570,6 +4619,7 @@
     e.preventDefault();
     const pb = imoPubProblem();
     if (pb) { toast(pb, 'error'); if (/GPS|Localisez|repère/.test(pb)) $('screen-imo-pub').scrollTo({ top: 0, behavior: 'smooth' }); return; }
+    if (ip.edit) { await saveImoEdit(); return; }
     if (ip.photos[0] && ip.photos[0].thumb && ip.photos[0].thumb.length > 38000) ip.photos[0].thumb = null;
     const n = v => intOf(v);
     const body = {
@@ -4600,9 +4650,68 @@
       show('screen-imo', { force: true });
     } finally { ip.sending = false; $('ip-save').classList.remove('loading'); checkImoPub(); }
   });
+  // ---- modifier une annonce : mêmes champs que la publication, position GPS figée
+  const imoFields = () => { const n = v => intOf(v); return {
+    role: ip.role, type: ip.type, chambres: n($('ip-ch').value), sdb: n($('ip-sdb').value), cuisine: ip.eq.cuisine, douche_int: ip.eq.douche, meuble: ip.eq.meuble,
+    surface: n($('ip-surf').value), etage: n($('ip-etage').value), loyer: n($('ip-loyer').value), avance: n($('ip-avance').value), caution: n($('ip-caution').value),
+    frais_visite: n($('ip-visite').value), bail_mois: n($('ip-bail').value), description: $('ip-desc').value.trim(), adresse: $('ip-adresse').value.trim(), porte: $('ip-porte').value.trim(),
+    contact_nom: $('ip-nom').value.trim(), tel: phoneDigits($('ip-tel').value), whatsapp: $('ip-wa').checked }; };
+  async function imoEdit(m) {
+    toast('Chargement de l’annonce…', 'info', 2000);
+    const r = await rpc('annonce_detail', { p_id: m.id });
+    if (!r.ok || !r.data) { toast(r.net ? 'Pas de connexion internet.' : 'Annonce introuvable : ' + sbErr(r), 'error'); return; }
+    const a = r.data;
+    resetImoPub();
+    ip.edit = a; ip.type = a.type; ip.role = a.role; ip.zone = a.quartier; ip.zones = [{ name: a.quartier }];
+    ip.eq = { cuisine: a.cuisine !== false, douche: a.douche_int !== false, meuble: !!a.meuble };
+    ip.photos = (a.photos || []).map((d, i) => ({ data: d, thumb: i === 0 ? a.thumb || null : null, old: true }));
+    ip.photosOrig = ip.photos.length;
+    const set = (id, v) => { $(id).value = v == null ? '' : v; };
+    set('ip-ch', a.chambres); set('ip-sdb', a.sdb); set('ip-surf', a.surface); set('ip-etage', a.etage); set('ip-loyer', a.loyer ? money(a.loyer) : '');
+    set('ip-avance', a.avance); set('ip-caution', a.caution); set('ip-visite', a.frais_visite); set('ip-bail', a.bail_mois); set('ip-desc', a.description);
+    set('ip-adresse', a.adresse); set('ip-porte', a.porte); set('ip-nom', a.contact_nom); set('ip-tel', a.tel); $('ip-wa').checked = a.whatsapp !== false;
+    renderImoPub(); show('screen-imo-pub');
+  }
+  async function saveImoEdit() {
+    const a = ip.edit, body = imoFields();
+    const changedPhotos = ip.photos.length !== ip.photosOrig || ip.photos.some(p => !p.old) || ip.photos.some((p, i) => p.data !== (a.photos || [])[i]);
+    ip.sending = true; $('ip-save').classList.add('loading'); checkImoPub();
+    try {
+      if (changedPhotos && ip.photos[0]) {
+        if (!ip.photos[0].thumb || ip.photos[0].thumb.length > 38000) { try { ip.photos[0].thumb = await shrink(await (await fetch(ip.photos[0].data)).blob(), 220, 0.6); } catch (_) { ip.photos[0].thumb = null; } }
+        body.thumb = ip.photos[0].thumb || null;
+      }
+      const r = await rpc('annonce_modifier', { p_id: a.id, p: body });
+      if (!r.ok) { toast(r.net ? 'Pas de connexion internet. Réessayez.' : 'Modification refusée : ' + sbErr(r), 'error', 7000); return; }
+      let bad = 0;
+      if (changedPhotos) {
+        for (let i = 0; i < ip.photos.length; i++) {
+          if (ip.photos[i].old && ip.photos[i].data === (a.photos || [])[i]) continue; // photo inchangée à cette place
+          $('ip-why').textContent = `Envoi des photos… ${i + 1}/${ip.photos.length}`;
+          const pr = await sb('/rest/v1/rpc/annonce_photo', { method: 'POST', body: { p_secret: mySecret, p_id: a.id, p_idx: i, p_data: ip.photos[i].data }, timeout: 40000 });
+          if (!pr.ok) bad++;
+        }
+        await rpc('annonce_photos_garder', { p_id: a.id, p_n: ip.photos.length });
+        if (body.thumb) imo.thumbs.set(a.id, body.thumb);
+        imo.photos.delete(a.id);
+      }
+      toast(bad ? `Annonce modifiée, mais ${bad} photo(s) n’ont pas pu être envoyées.` : 'Annonce modifiée.', bad ? 'error' : 'success', 6000);
+      live.imoKey = '';
+      resetImoPub();
+      await fetchImo(true); fetchMine();
+      show('screen-imo', { force: true });
+    } finally { ip.sending = false; $('ip-save').classList.remove('loading'); checkImoPub(); }
+  }
+  async function imoDelete(m) {
+    if (!confirm(`Supprimer définitivement l’annonce « ${IMO_SHORT[m.type] || m.type} · ${m.quartier} » et ses photos ?`)) return;
+    const r = await rpc('annonce_statut', { p_id: m.id, p_action: 'retirer' });
+    if (!r.ok) { toast(r.net ? 'Pas de connexion internet.' : 'Suppression impossible : ' + sbErr(r), 'error', 6000); return; }
+    if (live.dest && live.dest.id === m.id) { live.dest = null; store.set('liveDest', null); }
+    toast('Annonce supprimée.', 'success'); live.imoKey = ''; await fetchImo(true); fetchMine();
+  }
   function resetImoPub() {
     clearTimeout(ip.timer);
-    Object.assign(ip, { st: 'none', gps: null, pin: null, zone: null, zones: [], photos: [] });
+    Object.assign(ip, { st: 'none', gps: null, pin: null, zone: null, zones: [], photos: [], edit: null, photosOrig: 0 });
     $('ip-form').reset();
     const last = store.get('imoPubLast', null);
     if (last) { $('ip-tel').value = last.tel || ''; $('ip-nom').value = last.contact_nom || ''; ip.role = last.role || 'proprietaire'; $('ip-wa').checked = last.whatsapp !== false; }
@@ -4893,7 +5002,8 @@
   // palettes du ciel selon la hauteur du soleil (degrés) : haut, milieu, bas
   const SKY = [
     [-18, ['#02040d', '#071230', '#13275e']],
-    [-10, ['#070d2b', '#1b2357', '#3d3f86']],
+    [-12, ['#050a22', '#121a45', '#2b2f6b']],
+    [-7, ['#0f1748', '#3a2f6e', '#8c4f7d']],
     [-4, ['#1d2463', '#5b3a7a', '#c0657a']],
     [0, ['#2b3f8f', '#c86a7c', '#f6a35e']],
     [5, ['#2c64b8', '#7aa9de', '#f3cd92']],
@@ -4969,8 +5079,11 @@
     if (first && el.clientWidth) { void sun.offsetWidth; sun.dataset.p = '1'; sun.style.transition = ''; }
     sun.classList.toggle('moon', !day);
     sun.style.opacity = (Math.max(0, 1 - w.cover / 95) * (day ? 1 : 0.85)).toFixed(2);
-    glow.style.setProperty('--gx', x.toFixed(1) + '%');
-    glow.style.opacity = day ? (Math.max(0, 1 - Math.abs(e) / 14) * (1 - grey)).toFixed(2) : '0';
+    // aube (vers 5 h – 6 h 30) et crépuscule (vers 18 h – 19 h) : lueur rose-orangée à l'horizon, côté soleil
+    const morning = hrs < 12;
+    glow.style.setProperty('--gx', (e < 2 ? (morning ? 12 : 88) : x).toFixed(1) + '%');
+    glow.style.opacity = (e > -13 && e < 12 ? Math.max(0, 1 - Math.abs(e + 1.5) / 11) * (1 - grey * 0.8) : 0).toFixed(2);
+    glow.classList.toggle('dawn', morning);
     el.style.setProperty('--stars', e < -6 ? (Math.min(1, (-e - 6) / 6) * Math.max(0, 1 - w.cover / 80)).toFixed(2) : '0');
     // nuages : quantité et teinte selon la couverture mesurée
     const cov = w.cover / 100;

@@ -1627,3 +1627,61 @@ body.dark .live,body.dark .live.t-bus,body.dark .live.t-py,body.dark .live.t-imo
 .imc-dots{display:flex;justify-content:center;gap:6px;margin-top:10px}
 .imc-dots i{width:7px;height:7px;border-radius:4px;background:rgba(0,0,0,.25);transition:width .3s,background-color .3s}
 .imc-dots i.on{width:22px;background:#111}
+
+/* lieu de l'utilisateur, en petit sous la météo */
+.hero-right{display:flex;flex-direction:column;align-items:flex-end;gap:0;max-width:48%;min-width:0}
+.wx-loc{display:flex;align-items:center;gap:3px;max-width:100%;margin-top:-4px;padding:0;background:none;border:0;color:rgba(255,255,255,.88);font:inherit;font-size:.74rem;font-weight:300;letter-spacing:.2px;text-align:right;text-shadow:0 1px 6px rgba(0,20,60,.3);cursor:pointer}
+.wx-loc span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wx-loc .ic{width:12px;height:12px;flex:none;opacity:.85}
+
+/* aube et crépuscule : lueur plus rose le matin */
+.sky-glow.dawn{background:radial-gradient(70% 90% at var(--gx,12%) 100%,rgba(255,150,120,.6),rgba(255,110,140,.22) 45%,transparent 70%)}
+
+/* =====================================================================
+   PANNEAU À LED — destinations favorites
+   ===================================================================== */
+.led{position:relative;overflow:hidden;border-radius:18px;padding:6px 12px 8px;background:#0b0b0c;
+  box-shadow:inset 0 0 0 2px #1d1d20,inset 0 0 24px rgba(0,0,0,.9),0 8px 22px rgba(0,0,0,.25);
+  font-family:ui-monospace,'SFMono-Regular',Menlo,Consolas,'Courier New',monospace;color:#ffb21e;text-transform:uppercase}
+/* trame de points : l'effet « matrice de diodes » */
+.led::after{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle,transparent 0 .55px,rgba(11,11,12,.55) .9px);background-size:3px 3px;mix-blend-mode:multiply}
+.led-top{display:flex;justify-content:space-between;align-items:center;padding:4px 2px 6px;border-bottom:1px solid #26262a;font-size:.68rem;letter-spacing:2px;color:#ff9d00;opacity:.85}
+.led-clock{font-size:.9rem;letter-spacing:1px;color:#ffc24a;text-shadow:0 0 6px rgba(255,170,30,.7)}
+.led-clock i{font-style:normal;animation:led-blink 1s steps(1) infinite}
+@keyframes led-blink{50%{opacity:.15}}
+.led-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;padding:9px 2px;background:none;border:0;border-bottom:1px dashed #26262a;color:inherit;font:inherit;text-align:left;animation:led-in .5s steps(6) both;-webkit-tap-highlight-color:transparent}
+.led-row:last-child{border-bottom:0}
+.led-row:active{background:rgba(255,170,30,.06)}
+@keyframes led-in{from{opacity:0;clip-path:inset(0 100% 0 0)}to{opacity:1;clip-path:inset(0 0 0 0)}}
+.led-line{min-width:44px;padding:3px 7px;border-radius:6px;border:1px solid #5a3d07;background:#1a1203;color:#ffcf5a;font-weight:800;font-size:.86rem;text-align:center;white-space:nowrap;text-shadow:0 0 7px rgba(255,190,60,.85)}
+.led-dest{min-width:0;display:flex;flex-direction:column;gap:1px}
+.led-dest b{display:block;overflow:hidden;white-space:nowrap;font-size:1rem;font-weight:800;letter-spacing:.8px;color:#ffb21e;text-shadow:0 0 8px rgba(255,160,20,.75)}
+.led-dest b:not(.scroll){text-overflow:ellipsis}
+.led-mq{display:inline-block}
+.led-dest b.scroll .led-mq{animation:led-mq linear infinite alternate;animation-delay:1.5s}
+@keyframes led-mq{0%,15%{transform:translateX(0)}85%,100%{transform:translateX(var(--mq))}}
+.led-dest small{font-size:.66rem;letter-spacing:.6px;color:#c98a14;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-transform:none}
+.led-time{font-size:1.25rem;font-weight:800;color:#ffb21e;text-shadow:0 0 8px rgba(255,160,20,.75);white-space:nowrap;text-align:right}
+.led-time small{font-size:.6rem;margin-left:2px;letter-spacing:1px}
+.led-time.soon{color:#5dff7a;text-shadow:0 0 8px rgba(80,255,120,.7)}
+@media (prefers-reduced-motion:reduce){.led-row{animation:none}.led-clock i,.led-dest b.scroll .led-mq{animation:none}}
+
+/* =====================================================================
+   FLUIDITÉ : moins de travail de rendu
+   ===================================================================== */
+html{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.home-sky{contain:strict}
+.sky-layer{backface-visibility:hidden}
+/* les lignes hors de l'écran ne sont pas dessinées tant qu'on ne les approche pas */
+.py-row,.ph-card,.route-card,.imo-row,.cle-card{content-visibility:auto;contain-intrinsic-size:auto 76px}
+.route-card{contain-intrinsic-size:auto 170px}
+.screen:not(.active){content-visibility:hidden}
+.imc-rail,.lads-rail,.trk-ad-rail{overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+.led::after{background:radial-gradient(circle,transparent 0 .7px,rgba(11,11,12,.32) 1.05px);background-size:3px 3px;mix-blend-mode:normal}
+.led-row,.led-row *{text-transform:uppercase}
+.led-dest small{text-transform:none!important}
+.led-dest b{color:#ffbb2e;text-shadow:0 0 6px rgba(255,170,30,.9),0 0 14px rgba(255,140,0,.35)}
+/* lueur d'aube / de crépuscule plus haute : visible au-dessus de la bulle */
+.sky-glow{inset:auto 0 30% 0;height:62%}
+.sky-glow.dawn{background:radial-gradient(80% 95% at var(--gx,12%) 100%,rgba(255,150,110,.75),rgba(255,105,140,.3) 45%,transparent 72%)}
+.sky-glow:not(.dawn){background:radial-gradient(80% 95% at var(--gx,88%) 100%,rgba(255,150,70,.7),rgba(255,95,90,.28) 45%,transparent 72%)}

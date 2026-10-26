@@ -67,12 +67,16 @@ window.ZUPA_PAIYA = ${JSON.stringify({ updated: new Date().toISOString(), list: 
 // Écoles du Grand Abidjan : primaires et collèges (distances pratiques des annonces Imo)
 {
   const B = PY.BBOX; // [sud, ouest, nord, est]
-  const ej = await overpass(`[out:json][timeout:180];nwr["amenity"~"^(school|college)$"](${B.join(',')});out center tags;`);
+  const ej = await overpass(`[out:json][timeout:180];nwr["amenity"~"^(school|kindergarten)$"](${B.join(',')});out center tags;`);
+  // p = préscolaire et primaire (maternelle, CP1 à CM2) ; c = collège et lycée (6e à la terminale)
+  // écoles professionnelles, techniques supérieures, de formation… : ni l'un ni l'autre
+  const HORS = /m[ée]tier|professionn|formation|sup[ée]rieur|universit|institut|bijouterie|beaux[- ]arts|conduite|couture|coiffure|informatique|police|gendarmerie|infirmi|sant[ée]|commerce|gestion|hôtel|hotel|musique|danse|langue|anglais|coran|bible|th[ée]olog|s[ée]minaire|enseignement technique|\bcet\b|\bceti\b|\blet\b|\bbts\b/;
   const kindOf = t => {
     const n = (t.name || t['name:fr'] || '').toLowerCase(), sc = (t.school || t['school:type'] || '').toLowerCase(), isced = String(t['isced:level'] || '');
-    if (/coll[eè]ge|lyc[ée]e|\bceg\b|\bcepg\b|secondaire/.test(n) || /secondary/.test(sc) || /(^|[;,\s])[23]/.test(isced)) return 'c';
-    if (t.amenity === 'college') return null; // enseignement supérieur
-    if (/\bepp\b|e\.p\.p|primaire|groupe scolaire|\bg\.?s\.?\b|ecole|école|cours|maternelle/.test(n) || /primary/.test(sc) || /(^|[;,\s])1/.test(isced)) return 'p';
+    if (HORS.test(n)) return null;
+    if (/coll[eè]ge|lyc[ée]e|\bceg\b|\bcepg\b|secondaire/.test(n) || /secondary/.test(sc) || /(^|[;,\s-])[23]/.test(isced)) return 'c';
+    if (t.amenity === 'kindergarten' || /\bepp\b|e\.p\.p|primaire|maternelle|pr[ée]scolaire|jardin d.enfant|groupe scolaire|\bg\.?s\.?\b|\bepv\b|[ée]cole (catholique|m[ée]thodiste|islamique|confessionnelle|priv[ée]e)/.test(n) || /primary|kindergarten|preschool/.test(sc) || /(^|[;,\s-])[01]/.test(isced)) return 'p';
+    if (!sc && /(^|\s)([ée]cole|ecole|cours)\b/.test(n)) return 'p'; // « École Les Lauriers » : école privée de quartier, le plus souvent primaire
     return null;
   };
   const ecoles = ej ? ej.elements.map(e => {
