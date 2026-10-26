@@ -1511,3 +1511,8 @@ body.dark .home-sky{filter:none}
 @keyframes sky-bolt{0%{opacity:0}6%{opacity:.95}12%{opacity:.15}20%{opacity:.75}60%,100%{opacity:0}}
 @media (prefers-reduced-motion:reduce){.sky-layer{animation:none}.sky-sun{transition:opacity 3s}}
 .hero .greet,.hero .brand,.hero .slogan,.wx b{text-shadow:0 1px 3px rgba(0,20,60,.28),0 2px 16px rgba(0,20,60,.22)}
+/* nuages plus discrets : 35 % d'opacité au plus */
+.home-sky .sky-layer.l1{opacity:calc(var(--c1,.4) * .35)}
+.home-sky .sky-layer.l2{opacity:calc(var(--c2,0) * .35)}
+.home-sky .sky-layer.l3{opacity:calc(var(--c3,0) * .35)}
+.home-sky .sky-layer.l1 .sky-cl{opacity:1}
