@@ -1516,3 +1516,32 @@ body.dark .home-sky{filter:none}
 .home-sky .sky-layer.l2{opacity:calc(var(--c2,0) * .35)}
 .home-sky .sky-layer.l3{opacity:calc(var(--c3,0) * .35)}
 .home-sky .sky-layer.l1 .sky-cl{opacity:1}
+/* bulles « en direct » : aucun contour, seulement une ombre douce */
+.live,.live.t-bus,.live.t-py,.live.t-imo,.live.med,.live.on-map,.live.near,.live.at,
+body.dark .live,body.dark .live.t-bus,body.dark .live.t-py,body.dark .live.t-imo,body.dark .live.med{box-shadow:0 10px 26px rgba(0,0,0,.24)!important;border:0!important;outline:0!important}
+.live.at,.live.med.at,.live.t-bus.at,.live.t-py.at,.live.t-imo.at{animation:none!important}
+/* Imo : aperçu compact dans la bulle */
+.imo-prev{margin-top:12px;background:var(--surface);color:var(--text);border-radius:20px;padding:10px;display:grid;grid-template-columns:76px 1fr auto;grid-template-rows:auto auto;gap:8px 12px;align-items:center;box-shadow:0 6px 16px rgba(0,0,0,.14);text-align:left;white-space:normal}
+.ip-th{grid-row:1 / 3;width:76px;height:76px;border-radius:14px;overflow:hidden;position:relative;display:grid;place-items:center;background:var(--imo-50);color:var(--imo-t);padding:0;border:0}
+.ip-th img{width:100%;height:100%;object-fit:cover;display:block}
+.ip-th .ic{width:30px;height:30px}
+.ip-th em{position:absolute;right:4px;bottom:4px;font-style:normal;font-size:.62rem;font-weight:800;background:rgba(0,0,0,.6);color:#fff;padding:1px 6px;border-radius:6px}
+.ip-main{min-width:0;display:flex;flex-direction:column;gap:2px;line-height:1.25}
+.ip-price{font-family:var(--font-title);font-size:1.15rem;font-weight:700;color:var(--imo-t);white-space:nowrap}
+.ip-price small{font-family:var(--font);font-size:.72rem;font-weight:600;color:var(--text-3)}
+.ip-main>span{font-size:.8rem;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ip-main>small{display:flex;align-items:center;gap:4px;font-size:.74rem;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ip-main>small .ic{width:13px;height:13px;flex:none}
+.ip-main>small b{color:var(--text)}
+.ip-acts{display:flex;gap:6px}
+.ip-acts button{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;padding:0}
+.ip-acts .ic{width:20px;height:20px}
+.ip-more{grid-column:2 / 4;justify-self:end;display:inline-flex;align-items:center;gap:2px;font-size:.8rem;font-weight:700;color:var(--imo-t);background:none;border:0;padding:2px 0}
+.ip-more .ic{width:16px;height:16px}
+.ip-less{display:flex;align-items:center;gap:6px;margin:12px 0 -4px auto;font-size:.8rem;font-weight:700;color:#111;background:rgba(255,255,255,.55);border:0;border-radius:999px;padding:6px 12px}
+.ip-less .ic{width:14px;height:14px}
+.imo-prev{grid-template-columns:76px 1fr;grid-template-rows:auto auto}
+.ip-th{grid-row:1 / 3}
+.ip-main{grid-column:2;grid-row:1}
+.ip-acts{grid-column:2;grid-row:2;justify-self:start}
+.ip-more{grid-column:2;grid-row:2;justify-self:end;align-self:center}

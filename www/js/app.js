@@ -4188,7 +4188,7 @@
       a = x.a; kicker = imo.q ? 'Le mieux placé pour vous' : 'Le plus proche de vous';
     }
     return { kind: 'imo', p: { ...a, name: imoName(a) }, a, icon: 'home', dest: !!d, far: FAR_KM, at: 0.04, kicker,
-      tags: `<span class="live-sub imo-live-price">${money(a.loyer)} F/mois</span>` };
+      tags: '' }; // le prix n'apparaît qu'une fois, dans l'aperçu
   }
   function imoDistances(a) {
     const out = [], here = [a.lat, a.lon];
@@ -4243,14 +4243,28 @@
       <button type="button" class="ic-report link" data-ic="report">${ic('flag')}Signaler cette annonce</button>
     </article>`;
   }
+  // aperçu compact dans la bulle ; la fiche complète seulement si on la demande (« Voir tout »)
+  function imoPreviewHtml(a) {
+    const th = (imo.photos.get(a.id) || [])[0] || imo.thumbs.get(a.id);
+    const facts = [a.chambres != null ? `${a.chambres} ch.` : '', a.sdb != null ? `${a.sdb} sdb` : '', a.surface ? `${a.surface} m²` : '', a.etage == null ? '' : a.etage === 0 ? 'RDC' : `${a.etage}e ét.`].filter(Boolean).join(' · ');
+    const d = imoDistances(a)[0];
+    return `<article class="imo-prev" data-id="${esc(a.id)}">
+      <button type="button" class="ip-th" data-ph="0" aria-label="Voir les photos"${th ? '' : ' disabled'}>${th ? `<img src="${th}" alt="">` : ic('home')}${a.nb_photos > 1 ? `<em>${a.nb_photos}</em>` : ''}</button>
+      <div class="ip-main"><b class="ip-price">${money(a.loyer)} FCFA<small> / mois</small></b><span>${esc(facts)}</span>${d ? `<small>${ic(d[0])}${esc(d[1])} : <b>${fmtDist(d[2])}</b></small>` : ''}</div>
+      <div class="ip-acts">${a.whatsapp ? `<button type="button" class="ic-wa" data-ic="wa" aria-label="WhatsApp">${ic('chat')}</button>` : ''}<button type="button" class="ic-call" data-ic="call" aria-label="Appeler">${ic('phone')}</button></div>
+      <button type="button" class="ip-more" data-ic="more">Voir tout ${ic('chevron')}</button>
+    </article>`;
+  }
   function renderLiveImo(tg) {
     const box = $('live-imo');
-    if (!tg || tg.kind !== 'imo') { box.innerHTML = ''; live.imoId = null; return; }
-    const a = tg.a, key = a.id + '|' + (imo.photos.get(a.id) || []).length + '|' + (privOf('work') ? 1 : 0);
+    if (!tg || tg.kind !== 'imo') { box.innerHTML = ''; live.imoId = null; live.imoFull = false; return; }
+    const a = tg.a;
+    if (live.imoId !== a.id) live.imoFull = false;
+    const key = a.id + '|' + (imo.photos.get(a.id) || []).length + '|' + (privOf('work') ? 1 : 0) + '|' + !!live.imoFull;
     if (live.imoKey === key) return;
     live.imoKey = key; live.imoId = a.id;
-    box.innerHTML = imoCardHtml(a);
-    if (a.nb_photos && !imo.photos.has(a.id)) loadImoPhotos(a.id);
+    box.innerHTML = live.imoFull ? `<button type="button" class="ip-less" data-ic="less">${ic('close')}Réduire</button>${imoCardHtml(a)}` : imoPreviewHtml(a);
+    if (a.nb_photos && !imo.photos.has(a.id) && (live.imoFull || !imo.thumbs.get(a.id))) loadImoPhotos(a.id);
   }
   async function loadImoPhotos(id) {
     if (imo.photos.has(id) || !sbOn()) return;
@@ -4270,6 +4284,7 @@
     e.stopPropagation();
     if (b.dataset.ph != null) { openViewer(imo.photos.get(a.id) || [imo.thumbs.get(a.id)].filter(Boolean), +b.dataset.ph); return; }
     const k = b.dataset.ic, tel = String(a.tel || '');
+    if (k === 'more' || k === 'less') { live.imoFull = k === 'more'; live.imoKey = ''; renderLiveImo(live.tg); if (k === 'less') $('screen-imo').scrollTo({ top: 0, behavior: 'smooth' }); return; }
     if (k === 'route') imoRoute(a);
     else if (k === 'call') openExternal('tel:' + tel);
     else if (k === 'wa') openExternal(`https://wa.me/225${tel}?text=${encodeURIComponent(`Bonjour, je vous contacte depuis ZUPA pour votre annonce : ${imoTitle(a)} à ${a.quartier}, ${money(a.loyer)} FCFA/mois. Est-il toujours disponible ?`)}`);
