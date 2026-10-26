@@ -1685,3 +1685,6 @@ html{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .sky-glow{inset:auto 0 30% 0;height:62%}
 .sky-glow.dawn{background:radial-gradient(80% 95% at var(--gx,12%) 100%,rgba(255,150,110,.75),rgba(255,105,140,.3) 45%,transparent 72%)}
 .sky-glow:not(.dawn){background:radial-gradient(80% 95% at var(--gx,88%) 100%,rgba(255,150,70,.7),rgba(255,95,90,.28) 45%,transparent 72%)}
+/* une carte à la fois, même avec un glissement rapide */
+.imc{scroll-snap-stop:always}
+.zad{scroll-snap-stop:always}

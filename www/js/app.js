@@ -4064,7 +4064,7 @@
   const IMO_COLS = 'id,role,type,chambres,sdb,cuisine,douche_int,meuble,surface,etage,loyer,avance,caution,frais_visite,bail_mois,description,quartier,adresse,lat,lon,gps_acc,contact_nom,tel,whatsapp,thumb,nb_photos,created_at,porte,remises';
   const IMO_GPS_MAX = 50, IMO_PIN_MAX = 60, IMO_GPS_TTL = 2 * 3600e3;
   const imo = { list: store.get('imoList', null), thumbs: new Map(), lastFetch: 0, loading: false, err: null, shown: 30,
-    q: store.get('imoQ', null), mine: store.get('imoMine', []), photos: new Map(), reported: store.get('imoReported', []) };
+    q: store.get('imoQ', null), mine: store.get('imoMine', []), photos: new Map(), photoFail: new Map(), reported: store.get('imoReported', []) };
   if (!Array.isArray(imo.mine)) imo.mine = [];
   const money = n => (Number(n) || 0).toLocaleString('fr-FR').replace(/ | /g, ' ');
   const intOf = v => { const d = String(v || '').replace(/\D/g, ''); return d ? parseInt(d, 10) : null; };
@@ -4346,16 +4346,24 @@
     const a = tg.a;
     const key = a.id + '|' + (imo.photos.get(a.id) || []).length + '|' + (imo.thumbs.has(a.id) ? 1 : 0) + '|' + imo.mine.some(m => m.id === a.id);
     if (live.imoKey === key) return;
+    // le doigt est sur les cartes : on ne reconstruit rien maintenant (sinon retour à la première carte)
+    if (imc.touch && live.imoId === a.id) { clearTimeout(imc.later); imc.later = setTimeout(() => renderLiveImo(live.tg), 600); return; }
+    const old = $('imc-rail');
     if (live.imoId !== a.id) imc.i = 0;
+    else if (old && old.clientWidth) imc.i = Math.round(old.scrollLeft / old.clientWidth); // position réelle, même en plein défilement
     live.imoKey = key; live.imoId = a.id;
-    const cards = imoCards(a); imc.n = cards.length; imc.i = Math.min(imc.i, cards.length - 1);
+    const cards = imoCards(a); imc.n = cards.length; imc.i = Math.max(0, Math.min(imc.i, cards.length - 1));
     box.innerHTML = `<div class="imc-rail" id="imc-rail">${cards.join('')}</div><div class="imc-dots" id="imc-dots">${cards.map((_, k) => `<i class="${k === imc.i ? 'on' : ''}"></i>`).join('')}</div>`;
     const rail = $('imc-rail');
     if (imc.i) rail.scrollLeft = rail.clientWidth * imc.i;
     rail.addEventListener('scroll', debounce(() => { const k = Math.round(rail.scrollLeft / Math.max(1, rail.clientWidth)); if (k !== imc.i) { imc.i = k; imcMark(); } }, 80), { passive: true });
-    rail.addEventListener('pointerdown', () => { imc.hold = true; clearTimeout(imc.holdT); imc.holdT = setTimeout(() => { imc.hold = false; }, 10000); }, { passive: true });
-    if (!imc.timer) imc.timer = setInterval(() => { if (current === 'screen-imo' && live.open && !imc.hold && document.visibilityState === 'visible' && $('imc-rail')) imcGo(imc.i + 1); }, 5000);
-    if (a.nb_photos && !imo.photos.has(a.id)) loadImoPhotos(a.id);
+    const hold = () => { imc.hold = true; imc.touch = true; clearTimeout(imc.holdT); imc.holdT = setTimeout(() => { imc.hold = false; }, 10000); };
+    const free = () => { setTimeout(() => { imc.touch = false; }, 400); };
+    rail.addEventListener('pointerdown', hold, { passive: true });
+    rail.addEventListener('touchstart', hold, { passive: true });
+    ['pointerup', 'pointercancel', 'touchend', 'touchcancel'].forEach(ev => rail.addEventListener(ev, free, { passive: true }));
+    if (!imc.timer) imc.timer = setInterval(() => { if (current === 'screen-imo' && live.open && !imc.hold && !imc.touch && document.visibilityState === 'visible' && $('imc-rail')) { const r = $('imc-rail'); imc.i = Math.round(r.scrollLeft / Math.max(1, r.clientWidth)); imcGo(imc.i + 1); } }, 5000);
+    if (a.nb_photos && !imo.photos.has(a.id) && Date.now() - (imo.photoFail.get(a.id) || 0) > 60e3) loadImoPhotos(a.id);
   }
   function imcMark() { const d = $('imc-dots'); if (d) d.querySelectorAll('i').forEach((x, k) => x.classList.toggle('on', k === imc.i)); }
   function imcGo(i) { const rail = $('imc-rail'); if (!rail || !imc.n) return; imc.i = (i + imc.n) % imc.n; rail.scrollTo({ left: rail.clientWidth * imc.i, behavior: 'smooth' }); imcMark(); }
@@ -4363,7 +4371,8 @@
     if (imo.photos.has(id) || !sbOn()) return;
     imo.photos.set(id, null);
     const r = await sb(`/rest/v1/annonce_photos?select=idx,data&annonce_id=eq.${id}&order=idx`, { timeout: 20000 });
-    if (r.ok && Array.isArray(r.data)) imo.photos.set(id, r.data.map(x => x.data)); else imo.photos.delete(id);
+    if (r.ok && Array.isArray(r.data)) imo.photos.set(id, r.data.map(x => x.data));
+    else { imo.photos.delete(id); imo.photoFail.set(id, Date.now()); return; } // échec : pas de nouvel essai avant 1 min (évite une boucle de rafraîchissements)
     live.imoKey = ''; if (current === 'screen-imo') renderLive();
   }
   function imoRoute(a) {
