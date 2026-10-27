@@ -1712,3 +1712,4 @@ html{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .as-ext>small{color:var(--text-3);font-size:.76rem}
 .as-num-row{display:flex;gap:8px;margin-top:10px}
 .as-num-row .input{flex:1;text-transform:uppercase}
+.as-num-row .input::placeholder{text-transform:none}
