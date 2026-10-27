@@ -1866,3 +1866,9 @@ html{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .acct-pend small { color: var(--text-2); font-size: 12px; }
 .acct-pend p { margin: 8px 0 12px; font-size: 14px; line-height: 1.4; }
 .acct-pend .btn + .btn { margin-top: 8px; }
+
+/* Bandeau de garde : dates et mise à jour toujours lisibles (retour à la ligne, pas de « … ») */
+.gb-title{white-space:normal;overflow:visible;text-overflow:clip}
+.gb-title .gb-dates{display:block;font-size:.84rem;font-weight:600;color:var(--text);margin-top:1px}
+.gb-title .gb-maj{white-space:normal}
+.gb-head .fresh{flex:none;align-self:center;font-size:.72rem;padding:4px 9px}

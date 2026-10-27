@@ -2461,6 +2461,13 @@
     return { du: off ? off.du : t, au: off ? off.au : t, source: off ? off.source : 'ZUPA', pharmacies: [...(off ? off.pharmacies : []), ...man] };
   }
   const week = () => PC.pickWeek(ph.gardes);
+  // « du 24 au 30 oct. » (mois répété seulement s'il change)
+  const fmtRange = (a, b) => { const d1 = new Date(a + 'T12:00:00'), d2 = new Date(b + 'T12:00:00');
+    if (isNaN(d1) || isNaN(d2)) return `du ${a} au ${b}`;
+    const same = d1.getMonth() === d2.getMonth();
+    const o = { day: 'numeric', month: 'short' };
+    const l = same ? String(d1.getDate()) : d1.toLocaleDateString('fr-FR', o);
+    return `du ${l} au ${d2.toLocaleDateString('fr-FR', o)}`; };
   const fmtDay = s => { const d = new Date(s + 'T12:00:00'); return isNaN(d) ? s : d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }); };
 
   // pharmacies ajoutées par les utilisateurs (base partagée) et cliniques (OpenStreetMap + ajouts)
@@ -2612,7 +2619,7 @@
       const detail = (nInt ? `${g.pharmacies.length - nInt} à Abidjan · ${nInt} dans ${villes} villes de l'intérieur` : `${g.pharmacies.length} pharmacies`) + (nMan ? ` · ${nMan} ajoutée${nMan > 1 ? 's' : ''} par ZUPA` : '');
       const open = !!store.get('gardeOpen', false);
       el.className = 'garde-banner fold' + (open ? ' open' : '');
-      el.innerHTML = `<button type="button" class="gb-head" aria-expanded="${open}">${ic('cross')}<span class="gb-title"><b>De garde</b> du ${esc(fmtDay(g.du))} au ${esc(fmtDay(g.au))}<small class="gb-maj">${(ph.gardes && ph.gardes.maj) || g.maj ? `Liste mise à jour le ${esc(fmtDay((ph.gardes && ph.gardes.maj) || g.maj))}` : 'Liste UNPPCI de la semaine'}${ph.checking ? ' · vérification…' : ph.checkedAt && !ph.checkFailed ? ` · vérifiée ${fmtAgo(ph.checkedAt)}` : ph.checkedAt ? ` · hors ligne` : ''}</small></span><span class="fresh ok${ph.checking ? ' checking' : ''}"><i></i>À jour</span>${ic('chevron')}</button><div class="gb-body"><div><small>${detail} · source : UNPPCI</small>${freshLine(stt)}</div></div>`;
+      el.innerHTML = `<button type="button" class="gb-head" aria-expanded="${open}">${ic('cross')}<span class="gb-title"><b>De garde</b><span class="gb-dates">${esc(fmtRange(g.du, g.au))}</span><small class="gb-maj">${(ph.gardes && ph.gardes.maj) || g.maj ? `Mise à jour le ${esc(fmtDay((ph.gardes && ph.gardes.maj) || g.maj))}` : 'Liste UNPPCI de la semaine'}${ph.checking ? ' · vérification…' : ph.checkedAt && !ph.checkFailed ? ` · vérifiée ${fmtAgo(ph.checkedAt)}` : ph.checkedAt ? ` · hors ligne` : ''}</small></span><span class="fresh ok${ph.checking ? ' checking' : ''}"><i></i>À jour</span>${ic('chevron')}</button><div class="gb-body"><div><small>${detail} · source : UNPPCI</small>${freshLine(stt)}</div></div>`;
     } else {
       el.className = 'garde-banner warn';
       el.innerHTML = `${ic('info')}<span><b>Liste de garde ${stt === 'expired' ? 'expirée' : stt === 'future' ? 'pas encore en vigueur' : 'indisponible'}</b><small>${stt === 'expired' ? `Dernière liste : semaine du ${esc(fmtDay(g.du))}. ` : ''}Connectez-vous à internet pour recevoir la liste de la semaine. En attendant, les pharmacies ouvertes sont indiquées selon leurs horaires.</small>${freshLine(stt)}</span>`;
