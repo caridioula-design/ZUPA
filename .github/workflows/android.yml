@@ -108,7 +108,7 @@ jobs:
           mkdir -p ../dist
           cp app/build/outputs/apk/debug/app-debug.apk "../dist/ZUPA-${VERSION}-build${ZUPA_BUILD}.apk"
 
-      - name: Compiler la version signée (clé stable : les mises à jour gardent les données)
+      - name: "Compiler la version signée (clé stable, les mises à jour gardent les données)"
         if: env.ZUPA_CLE != ''
         working-directory: android
         run: |
@@ -123,7 +123,8 @@ jobs:
 
       - name: Avertissement signature
         if: env.ZUPA_CLE == ''
-        run: echo "::warning title=Signature::Secret ZUPA_CLE absent — APK signé avec une clé de test qui change à chaque compilation (désinstallation obligatoire, données perdues)."
+        run: |
+          echo "::warning title=Signature::Secret ZUPA_CLE absent — APK signé avec une clé de test qui change à chaque compilation (désinstallation obligatoire, données perdues)."
 
       - name: Vérification de l'APK
         run: |
