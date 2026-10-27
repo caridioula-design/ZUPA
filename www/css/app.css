@@ -1713,3 +1713,74 @@ html{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .as-num-row{display:flex;gap:8px;margin-top:10px}
 .as-num-row .input{flex:1;text-transform:uppercase}
 .as-num-row .input::placeholder{text-transform:none}
+
+/* =====================================================================
+   RÉGIE — modèles de publicité (rendu identique dans l'app et dans l'aperçu commercial)
+   ===================================================================== */
+.zad-btn{flex:0 0 100%;scroll-snap-align:start;scroll-snap-stop:always;padding:0;border:0;background:none;display:block}
+.zad-btn .zad{width:100%}
+.cz{background:linear-gradient(140deg,var(--z1),var(--z2));color:var(--zi);cursor:pointer}
+.cz .zad-tag{background:rgba(0,0,0,.35);color:#fff}
+.cz-art{flex:0 0 40%;align-self:stretch;display:grid;place-items:center;border-radius:16px;background:rgba(255,255,255,.18)}
+.cz-art .ic{width:62%;height:auto;max-width:96px;color:var(--zi);opacity:.85}
+.cz-art.photo{background:#0003;overflow:hidden;padding:0}
+.cz-art.photo img{width:100%;height:100%;object-fit:cover;display:block}
+.cz-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;line-height:1.02;font-family:var(--font-title)}
+.cz-kick{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;opacity:.85}
+.cz-t{font-size:clamp(1.35rem,7vw,2.1rem);font-weight:900;letter-spacing:-.4px;overflow-wrap:anywhere}
+.cz-acc{font-size:clamp(2rem,11vw,3.2rem);font-weight:900;letter-spacing:-1px;color:var(--za)}
+.cz-sub{font-size:.82rem;font-weight:700;line-height:1.2;opacity:.92}
+.cz-cta{align-self:flex-start;margin-top:6px;padding:6px 12px;border-radius:8px;font-size:.84rem;font-weight:800;background:var(--zi);color:var(--z2)}
+.cz-produit .cz-art{flex-basis:46%}
+.cz-resto .cz-art{border-radius:50%;aspect-ratio:1;align-self:center;flex:0 0 42%}
+.cz-resto .cz-acc{align-self:flex-start;background:var(--za);color:#111;padding:1px 10px;border-radius:10px;transform:rotate(-3deg);font-size:clamp(1.4rem,7vw,2rem)}
+.cz-service .cz-art{flex-basis:30%;background:none}
+.live-ads.zone .lads-cap{color:#fff}
+
+/* =====================================================================
+   RÉGIE — espace commercial
+   ===================================================================== */
+.rg-open{margin:6px 0 14px;font-size:.88rem}
+.rg-open .ic{width:18px;height:18px}
+.rg-top{display:flex;gap:8px;margin-bottom:12px}
+.rg-top .btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px}
+.rg-top .ic{width:18px;height:18px}
+.rg-filt{margin-bottom:12px}
+.rg-filt small{opacity:.7;margin-left:2px}
+.rg-card{display:flex;gap:12px;padding:12px;margin-bottom:10px;border-radius:18px;background:var(--surface);box-shadow:var(--shadow);cursor:pointer}
+.rg-sw{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;color:#fff;flex:none}
+.rg-sw .ic{width:26px;height:26px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.3))}
+.rg-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;line-height:1.25}
+.rg-main>b{font-size:.98rem}
+.rg-main>small{font-size:.76rem;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rg-main .rg-st{display:flex;align-items:center;gap:3px;color:var(--text-3)}
+.rg-main .rg-st .ic{width:13px;height:13px;flex:none}
+.rg-main .rg-st b{color:var(--text)}
+.rg-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.rg-tags .py-tag{margin:0}
+.rg-ref{color:var(--err)!important}
+.rg-out{display:block;margin:16px auto;color:var(--text-3)}
+.rg-prev{position:sticky;top:calc(4px + var(--sat));z-index:5;margin-bottom:12px;filter:drop-shadow(0 8px 18px rgba(0,0,0,.18))}
+.rg-prev .zad{width:100%;aspect-ratio:5/4}
+.rg-form .card h3 em{font-style:normal;font-size:.72rem;font-weight:700;color:var(--brand);margin-left:6px}
+.rg-form .ap-chips button small{display:block;font-size:.68rem;opacity:.75}
+.rg-cols{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 4px}
+.rg-cols button{width:38px;height:38px;border-radius:50%;border:3px solid transparent;box-shadow:0 0 0 1px var(--border)}
+.rg-cols button.on{border-color:var(--surface);box-shadow:0 0 0 3px var(--text)}
+.rg-price{margin:12px 0 0;font-size:.95rem}
+.rg-price b{font-size:1.15rem}
+.rg-kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px}
+.rg-kpis div{background:var(--surface-2,rgba(0,0,0,.04));border-radius:14px;padding:10px;display:flex;flex-direction:column}
+.rg-kpis div b{font-size:1.35rem;font-family:var(--font-title)}
+.rg-kpis div small{font-size:.74rem;color:var(--text-2)}
+.rg-kpis p{grid-column:1 / -1;margin:0;font-size:.8rem}
+.rg-day{display:grid;grid-template-columns:62px 1fr 44px 74px;align-items:center;gap:8px;font-size:.8rem;padding:4px 0}
+.rg-day i{display:block;height:10px;border-radius:5px;background:linear-gradient(90deg,var(--brand),color-mix(in srgb,var(--brand) 60%,#fff));width:var(--w);min-width:3px}
+.rg-day b{text-align:right}
+.rg-day small{color:var(--text-3)}
+.rg-mem{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.rg-mem span{display:flex;flex-direction:column}
+.rg-mem small{color:var(--text-3);font-size:.76rem}
+.rg-mem.off{opacity:.55}
+#screen-regie .ap-chips button.on{background:var(--brand);border-color:var(--brand);color:#fff}
+#screen-regie .py-empty{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}

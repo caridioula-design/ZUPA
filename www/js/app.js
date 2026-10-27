@@ -195,7 +195,7 @@
       s.classList.toggle('active', a);
       s.setAttribute('aria-hidden', String(!a));
     });
-    const tab = { 'screen-results': 'screen-home', 'screen-addstop': 'screen-home', 'screen-fixpos': 'screen-home', 'screen-addplace': 'screen-paiya', 'screen-addline': 'screen-home', 'screen-imo-search': 'screen-imo', 'screen-imo-pub': 'screen-imo', 'screen-cle': 'screen-imo', 'screen-pharma-detail': (typeof ph !== 'undefined' && ph.kind === 'paiya') ? 'screen-paiya' : 'screen-pharma' }[id] || id;
+    const tab = { 'screen-results': 'screen-home', 'screen-addstop': 'screen-home', 'screen-fixpos': 'screen-home', 'screen-addplace': 'screen-paiya', 'screen-addline': 'screen-home', 'screen-imo-search': 'screen-imo', 'screen-imo-pub': 'screen-imo', 'screen-cle': 'screen-imo', 'screen-regie': 'screen-profile', 'screen-pharma-detail': (typeof ph !== 'undefined' && ph.kind === 'paiya') ? 'screen-paiya' : 'screen-pharma' }[id] || id;
     document.querySelectorAll('[data-nav]').forEach(b => b.classList.toggle('active', b.dataset.nav === tab));
     $(id).scrollTop = 0;
     if (prev !== id) document.querySelectorAll('#toasts .toast.error').forEach(t => t.remove()); // une erreur ne suit pas l'utilisateur sur un autre écran
@@ -1948,6 +1948,11 @@
     const slides = [];
     const pubs = await fetchPubs(d.lat, d.lon);
     pubs.forEach(x => slides.push({ kind: 'pub', x }));
+    // campagnes de la régie autour de l'arrivée (panneaux virtuels du quartier de destination)
+    const tday = new Date().toISOString().slice(0, 10);
+    (regie.data.rows || []).filter(c => String(c.debut).slice(0, 10) <= tday && String(c.fin).slice(0, 10) >= tday && Core.haversine(d.lat, d.lon, c.lat, c.lon) * 1000 <= Math.max(c.rayon_m, 1000))
+      .sort((a, b) => Core.haversine(d.lat, d.lon, a.lat, a.lon) - Core.haversine(d.lat, d.lon, b.lat, b.lon)).slice(0, 3)
+      .forEach(c => slides.unshift({ kind: 'camp', c }));
     const destPlace = t.destObj && t.destObj.place ? placesBase().find(p => Core.haversine(p.lat, p.lon, d.lat, d.lon) < 0.03 && p.name === t.destObj.label) : null;
     if (destPlace) slides.push({ kind: 'dest', p: withStatus(destPlace) });
     const popIds = new Set(((pop.list && pop.list.rows) || []).map(r => r.place_id));
@@ -1960,6 +1965,8 @@
     if (!slides.length) { box.hidden = true; return; }
     box.hidden = false;
     $('trk-ad-rail').innerHTML = slides.map((sl, i) => {
+      if (sl.kind === 'camp') { const c = sl.c, col = (CAMP_COL[c.couleur] || CAMP_COL.jaune)[1];
+        return `<article class="ad-slide pub" data-ad="${i}" style="--c:${col}"><span class="ad-ic">${ic(CAMP_CAT_IC[c.cat] || 'explore')}</span><span class="ad-main"><small class="ad-tag">Publicité · ${esc(c.commerce)}</small><b>${esc(c.titre)}${c.accroche ? ' · ' + esc(c.accroche) : ''}</b>${c.sous_titre ? `<small>${esc(c.sous_titre)}</small>` : ''}</span></article>`; }
       if (sl.kind === 'pub') { const x = sl.x, c = PY_COLOR[x.cat] || 'var(--brand)';
         return `<article class="ad-slide pub" data-ad="${i}" style="--c:${c}"><span class="ad-ic">${ic(PY_ICON[x.cat] || (x.cat === 'pharma' ? 'cross' : 'explore'))}</span><span class="ad-main"><small class="ad-tag">Sponsorisé · ${esc(x.nom)}</small><b>${esc(x.titre)}</b>${x.texte ? `<small>${esc(x.texte)}</small>` : ''}</span>${x.tel ? `<a class="ad-call" href="${esc(telHref(x.tel))}" data-ph-call aria-label="Appeler ${esc(x.nom)}">${ic('phone')}</a>` : ''}</article>`; }
       if (sl.kind === 'dest') { const p = sl.p;
@@ -1984,6 +1991,7 @@
     if (e.target.closest('[data-ph-call]')) return;
     const el = e.target.closest('[data-ad]'); if (!el) return;
     const sl = ads.list[+el.dataset.ad]; if (!sl) return;
+    if (sl.kind === 'camp') { campOpen(sl.c); return; }
     if (sl.kind === 'pub') { const x = sl.x, b = x.place_id && placesBase().find(p => p.id === x.place_id); openDetail(withStatus(b || { id: 'ad' + x.id, cat: PYC.CATS[x.cat] ? x.cat : 'shop', name: x.nom, sub: x.titre, lat: x.lat, lon: x.lon, phone: x.tel || undefined, note: x.texte || '' }), 'screen-track', 'paiya'); }
     else if (sl.kind === 'dest' || sl.kind === 'near') openDetail(sl.p, 'screen-track', 'paiya');
     else if (sl.kind === 'house' && CONFIG.adsContact) openExternal(CONFIG.adsContact);
@@ -5249,41 +5257,156 @@
       html: `<div class="zad-art"><svg viewBox="0 0 120 120" aria-hidden="true"><path d="M30 34l18-12h24l18 12-8 14-8-4v52H46V44l-8 4z" fill="#fff"/><path d="M48 22c3 8 21 8 24 0" fill="none" stroke="#93c5fd" stroke-width="3"/>${[[24,84],[96,40],[100,90]].map(([x,y]) => `<circle cx="${x}" cy="${y}" r="7" fill="none" stroke="#bfdbfe" stroke-width="2.5"/>`).join('')}</svg></div>
         <div class="zad-txt"><small class="zad-kick">Le lundi seulement</small><b class="zad-pct">-20%</b><b class="zad-big">sur tout le linge</b><small>Repassage inclus · prêt en 24 h</small><span class="zad-cta">Voir l'adresse ›</span></div>` }
   ];
-  var lads = { i: 0, key: '', timer: null, hold: false, holdT: null, pts: [] };
+  /* =====================================================================
+     RÉGIE — panneaux publicitaires virtuels
+     À moins de rayon_m d'un point de vente : uniquement ses pubs (l'exclusivité passe avant tout).
+     Ailleurs : campagnes « toute la ville » et celles proches (3 km), au plus 3 vues par jour et par campagne.
+     Aucune position n'est envoyée : les campagnes actives sont téléchargées, le choix se fait sur le téléphone.
+     ===================================================================== */
+  var regie = { data: store.get('regie', { t: 0, rows: [] }), ctr: store.get('pubCtr', {}), seen: store.get('pubSeen', {}), day: store.get('pubDay', { d: '', v: {}, p: {} }), busy: false };
+  const todayStr = () => new Date().toISOString().slice(0, 10);
+  var CAMP_COL = { jaune: ['#ffe500', '#ffd000', '#111', '#e10e1e'], orange: ['#fb923c', '#c2410c', '#fff', '#fde047'], rouge: ['#ef4444', '#991b1b', '#fff', '#fde047'],
+    vert: ['#22c55e', '#166534', '#fff', '#fde047'], bleu: ['#38bdf8', '#075985', '#fff', '#fde68a'], violet: ['#a855f7', '#4c1d95', '#fff', '#fde047'], noir: ['#262626', '#0a0a0a', '#fff', '#ffd000'] };
+  var CAMP_CAT_IC = { resto: 'resto', maquis: 'bar', shop: 'shop', supermarche: 'cart', marche: 'market', hotel: 'hotel', station: 'fuel', pharma: 'cross', sante: 'clinic', service: 'star', autre: 'explore' };
+  var CTA_TXT = { appel: 'Appeler', whatsapp: 'WhatsApp', itineraire: 'J’y vais' };
+  // dessin d'une campagne à partir de son modèle (le même rendu sert à l'aperçu de l'espace commercial)
+  function campHtml(c, tag) {
+    const [c1, c2, ink, acc] = CAMP_COL[c.couleur] || CAMP_COL.jaune;
+    const art = c.image ? `<div class="cz-art photo"><img src="${c.image}" alt=""></div>` : `<div class="cz-art">${ic(CAMP_CAT_IC[c.cat] || 'explore')}</div>`;
+    const txt = `<div class="cz-txt">${c.modele === 'service' ? `<small class="cz-kick">${esc(c.commerce)}</small>` : ''}<b class="cz-t">${esc(c.titre || 'Votre titre')}</b>${c.accroche ? `<b class="cz-acc">${esc(c.accroche)}</b>` : ''}${c.sous_titre ? `<small class="cz-sub">${esc(c.sous_titre)}</small>` : ''}<span class="cz-cta">${CTA_TXT[c.cta] || 'Appeler'} ›</span></div>`;
+    return `<div class="zad cz cz-${c.modele || 'promo'}" style="--z1:${c1};--z2:${c2};--zi:${ink};--za:${acc}"><span class="zad-tag">${tag || 'Publicité'}</span>${c.modele === 'produit' ? art + txt : c.modele === 'resto' ? txt + art : art + txt}</div>`;
+  }
+  async function fetchRegie(force) {
+    if (!sbOn() || regie.busy || (!force && Date.now() - regie.data.t < 30 * 60e3)) return;
+    regie.busy = true;
+    const r = await sb('/rest/v1/campagnes?select=id,commerce,cat,tel,whatsapp,lat,lon,rayon_m,exclusif,formule,debut,fin,modele,titre,sous_titre,accroche,cta,couleur,image&limit=400', { timeout: 20000 });
+    regie.busy = false;
+    if (r.ok && Array.isArray(r.data)) { regie.data = { t: Date.now(), rows: r.data }; try { store.set('regie', regie.data); } catch (_) {} lads.key = ''; if (current === 'screen-home') renderLive(); }
+  }
+  function regieDay() { if (regie.day.d !== todayStr()) regie.day = { d: todayStr(), v: {}, p: {} }; return regie.day; }
+  function campsFor(pos) {
+    const t = todayStr();
+    const rows = (regie.data.rows || []).filter(c => String(c.debut).slice(0, 10) <= t && String(c.fin).slice(0, 10) >= t);
+    if (!rows.length || !pos) return { list: rows.length ? rows.filter(c => /^ville/.test(c.formule)).slice(0, 5) : [], zone: false };
+    const withD = rows.map(c => ({ c, d: Core.haversine(pos[0], pos[1], c.lat, c.lon) }));
+    const inZone = withD.filter(x => x.d * 1000 <= x.c.rayon_m).sort((a, b) => a.d - b.d);
+    if (inZone.length) {
+      const ex = inZone.filter(x => x.c.exclusif);
+      return { list: (ex.length ? [ex[0]] : inZone).map(x => x.c), zone: true };
+    }
+    const day = regieDay(), dest = state.tracking && state.tracking.destObj;
+    const out = withD.filter(x => (regie.day.v[x.c.id] || 0) < 3 && (/^ville/.test(x.c.formule) || x.d <= 3 || (dest && Number.isFinite(dest.lat) && Core.haversine(dest.lat, dest.lon, x.c.lat, x.c.lon) <= 1)))
+      .sort((a, b) => (/^ville/.test(b.c.formule) - /^ville/.test(a.c.formule)) || a.d - b.d).slice(0, 6);
+    void day;
+    return { list: out.map(x => x.c), zone: false };
+  }
+  // compteurs anonymes, envoyés additionnés toutes les 2 minutes
+  function pubCount(id, k) {
+    if (!id || String(id).startsWith('demo')) return;
+    const e = regie.ctr[id] || (regie.ctr[id] = { v: 0, t: 0, a: 0, i: 0, p: 0 });
+    e[k]++; store.set('pubCtr', regie.ctr);
+  }
+  async function pubFlush() {
+    const arr = Object.entries(regie.ctr).filter(([, e]) => e.v + e.t + e.a + e.i + e.p).map(([id, e]) => ({ id, ...e }));
+    if (!arr.length || !sbOn() || !navigator.onLine) return;
+    const r = await sb('/rest/v1/rpc/pub_compter', { method: 'POST', body: { p: arr.slice(0, 40) } });
+    if (r.ok) { arr.slice(0, 40).forEach(x => delete regie.ctr[x.id]); store.set('pubCtr', regie.ctr); }
+  }
+  setInterval(pubFlush, 120e3);
+  // une vue = la pub affichée 1,5 s, bulle ouverte ; au plus une par 10 min et par campagne
+  let viewT = null;
+  function pubViewSoon(it) {
+    clearTimeout(viewT);
+    if (!it || it.demo || it.house) return;
+    viewT = setTimeout(() => {
+      if (current !== 'screen-home' || !live.open || document.visibilityState !== 'visible' || lads.items[lads.i] !== it) return;
+      const last = regie.seen[it.id] || 0;
+      if (Date.now() - last < 10 * 60e3) return;
+      regie.seen[it.id] = Date.now(); store.set('pubSeen', regie.seen);
+      const d = regieDay(); d.v[it.id] = (d.v[it.id] || 0) + 1; store.set('pubDay', d);
+      pubCount(it.id, 'v');
+    }, 1500);
+  }
+  // une visite = passer à moins de 60 m du point de vente dans les 2 h qui suivent une vue (une par jour)
+  function pubVisits() {
+    if (!state.pos || state.posStale) return;
+    const d = regieDay(), now = Date.now();
+    for (const c of regie.data.rows || []) {
+      const seen = regie.seen[c.id];
+      if (!seen || now - seen > 2 * 3600e3 || d.p[c.id]) continue;
+      if (Core.haversine(state.pos[0], state.pos[1], c.lat, c.lon) <= 0.06) { d.p[c.id] = 1; store.set('pubDay', d); pubCount(c.id, 'p'); }
+    }
+  }
+
+  var lads = { i: 0, key: '', timer: null, hold: false, holdT: null, items: [] };
   function renderLiveAds(tg) {
     const box = $('live-ads'); if (!box || !lads) return;
     const on = current === 'screen-home' && tg && tg.act === 'origin' && tg.stop;
     box.hidden = !on;
+    pubVisits();
     if (!on) { clearInterval(lads.timer); lads.timer = null; lads.key = ''; return; }
-    const s = tg.stop, cosL = Math.cos(s.lat * Math.PI / 180);
-    lads.pts = DEMO_ADS.map(a => ({ lat: s.lat + a.dy / 111320, lon: s.lon + a.dx / (111320 * cosL) }));
-    if (lads.key !== s.id) {
-      lads.key = s.id;
-      $('lads-rail').innerHTML = DEMO_ADS.map((a, k) => `<button type="button" class="zad ${a.cls}" data-ad="${k}" aria-label="${esc(a.brand)} — publicité fictive"><span class="zad-tag">Pub fictive</span>${a.html}</button>`).join('');
-      $('lads-dots').innerHTML = DEMO_ADS.map((_, k) => `<i class="${k === lads.i ? 'on' : ''}"></i>`).join('');
-      $('lads-rail').scrollLeft = 0; lads.i = 0;
+    const pick = campsFor(state.pos);
+    let items;
+    if (pick.list.length) items = pick.list.map(c => ({ id: c.id, c, brand: c.commerce, lat: c.lat, lon: c.lon }));
+    else if ((regie.data.rows || []).length) { // la régie a démarré : plus d'exemples fictifs, mais l'offre aux commerçants du quartier
+      const s = tg.stop;
+      items = [{ id: 'house', house: true, brand: 'ZUPA Pub', lat: s.lat, lon: s.lon, c: { commerce: 'ZUPA', cat: 'shop', modele: 'service', couleur: 'noir', titre: 'Votre panneau ici', accroche: '', sous_titre: 'Commerçants : votre pub vue par les passants du quartier', cta: 'whatsapp' } }];
+    } else { // pas encore de campagne réelle ici : exemples fictifs autour de l'arrêt
+      const s = tg.stop, cosL = Math.cos(s.lat * Math.PI / 180);
+      items = DEMO_ADS.map((a, k) => ({ id: 'demo' + k, demo: a, brand: a.brand, lat: s.lat + a.dy / 111320, lon: s.lon + a.dx / (111320 * cosL) }));
     }
+    const key = items.map(x => x.id).join('|');
+    if (lads.key !== key) {
+      const prev = lads.items[lads.i] && lads.items[lads.i].id;
+      lads.key = key; lads.items = items;
+      lads.i = Math.max(0, items.findIndex(x => x.id === prev));
+      $('lads-rail').innerHTML = items.map((it, k) => it.house ? `<button type="button" class="zad-btn" data-ad="${k}" aria-label="Votre publicité ici">${campHtml(it.c, 'ZUPA Pub')}</button>` : it.demo
+        ? `<button type="button" class="zad ${it.demo.cls}" data-ad="${k}" aria-label="${esc(it.brand)} — publicité fictive"><span class="zad-tag">Pub fictive</span>${it.demo.html}</button>`
+        : `<button type="button" class="zad-btn" data-ad="${k}" aria-label="${esc(it.brand)} — publicité">${campHtml(it.c)}</button>`).join('');
+      $('lads-dots').innerHTML = items.length > 1 ? items.map((_, k) => `<i class="${k === lads.i ? 'on' : ''}"></i>`).join('') : '';
+      requestAnimationFrame(() => { const r = $('lads-rail'); r.scrollLeft = r.clientWidth * lads.i; });
+      pubViewSoon(items[lads.i]);
+    }
+    box.classList.toggle('zone', pick.zone);
     ladsCaption();
-    if (!lads.timer) lads.timer = setInterval(() => { if (current === 'screen-home' && live.open && !lads.hold && document.visibilityState === 'visible') ladsGo(lads.i + 1); }, 5000);
+    if (!lads.timer) lads.timer = setInterval(() => { if (current === 'screen-home' && live.open && !lads.hold && document.visibilityState === 'visible' && lads.items.length > 1) ladsGo(lads.i + 1); }, 5000);
   }
   function ladsCaption() {
-    const a = DEMO_ADS[lads.i], p = lads.pts[lads.i]; if (!a || !p || !state.pos) return;
-    const m = Math.max(5, Math.round(dist(state.pos, p) * 1000 / 5) * 5);
-    $('lads-cap').innerHTML = `${ic('pin')}<span>${m < 1000 ? `${m} m` : `${(m / 1000).toFixed(1).replace('.', ',')} km`} · <b>${esc(a.brand)}</b></span>`;
+    const it = lads.items[lads.i]; if (!it || !state.pos) return;
+    const m = Math.max(5, Math.round(dist(state.pos, it) * 1000 / 5) * 5);
+    $('lads-cap').innerHTML = `${ic('pin')}<span>${m < 1000 ? `${m} m` : `${(m / 1000).toFixed(1).replace('.', ',')} km`} · <b>${esc(it.brand)}</b></span>`;
   }
   function ladsGo(i) {
-    const rail = $('lads-rail'), n = DEMO_ADS.length;
+    const rail = $('lads-rail'), n = lads.items.length; if (!n) return;
     lads.i = (i + n) % n;
     rail.scrollTo({ left: rail.clientWidth * lads.i, behavior: 'smooth' });
     ladsMark();
   }
-  function ladsMark() { $('lads-dots').querySelectorAll('i').forEach((d, k) => d.classList.toggle('on', k === lads.i)); ladsCaption(); }
+  function ladsMark() { $('lads-dots').querySelectorAll('i').forEach((d, k) => d.classList.toggle('on', k === lads.i)); ladsCaption(); pubViewSoon(lads.items[lads.i]); }
   $('lads-rail').addEventListener('scroll', debounce(() => { const r = $('lads-rail'); const k = Math.round(r.scrollLeft / Math.max(1, r.clientWidth)); if (k !== lads.i) { lads.i = k; ladsMark(); } }, 80), { passive: true });
   $('lads-rail').addEventListener('pointerdown', () => { lads.hold = true; clearTimeout(lads.holdT); lads.holdT = setTimeout(() => { lads.hold = false; }, 10000); }, { passive: true });
   $('lads-rail').addEventListener('click', e => {
     const b = e.target.closest('[data-ad]'); if (!b) return;
-    toast(`« ${DEMO_ADS[+b.dataset.ad].brand} » est une publicité fictive : les vraies offres des commerces près de vous arrivent bientôt.`, 'info', 5000);
+    const it = lads.items[+b.dataset.ad]; if (!it) return;
+    if (it.demo) { toast(`« ${it.brand} » est une publicité fictive : les vraies offres des commerces près de vous arrivent bientôt.`, 'info', 5000); return; }
+    if (it.house) { if (CONFIG.adsContact) openExternal(CONFIG.adsContact); else toast('Commerçants : contactez ZUPA pour poser votre panneau publicitaire virtuel dans votre quartier.', 'info', 6000); return; }
+    campOpen(it.c);
   });
+  // toucher une pub : les actions du commerce (chaque action est comptée, sans savoir qui l'a faite)
+  function campOpen(c) {
+    pubCount(c.id, 't');
+    const tel = String(c.tel || '');
+    const go = () => { pubCount(c.id, 'i'); setDestPlace({ name: c.commerce, lat: c.lat, lon: c.lon, icon: CAMP_CAT_IC[c.cat] || 'pin' }); show('screen-home'); runSearch(); };
+    const acts = [];
+    if (tel) acts.push({ icon: 'phone', label: `Appeler ${c.commerce}`, fn: () => { pubCount(c.id, 'a'); openExternal('tel:' + tel); } });
+    if (tel && c.whatsapp) acts.push({ icon: 'chat', label: 'Écrire sur WhatsApp', fn: () => { pubCount(c.id, 'a'); openExternal(`https://wa.me/225${tel}?text=${encodeURIComponent(`Bonjour, j'ai vu votre publicité « ${c.titre} » sur ZUPA.`)}`); } });
+    acts.push({ icon: 'route', label: 'Y aller', hint: state.pos ? `À ${fmtDist(Core.haversine(state.pos[0], state.pos[1], c.lat, c.lon))}` : '', fn: go });
+    if (c.cta === 'itineraire') acts.unshift(acts.pop());
+    if (c.cta === 'whatsapp' && acts.length > 2) acts.unshift(acts.splice(1, 1)[0]);
+    openActions({ title: c.commerce, sub: [c.titre, c.accroche].filter(Boolean).join(' · ') + ' · Publicité', actions: acts });
+  }
+  setTimeout(() => fetchRegie(false), 5000);
+  setInterval(() => { if (document.visibilityState === 'visible') fetchRegie(false); }, 10 * 60e3);
 
   // les anciens emplacements « Espace publicitaire » montrent aussi des exemples fictifs
   document.querySelectorAll('.ad-slot').forEach((el, k) => {
@@ -5292,6 +5415,270 @@
     el.innerHTML = `<button type="button" class="zad ${a.cls}" data-ad="${DEMO_ADS.indexOf(a)}" aria-label="${esc(a.brand)} — publicité fictive"><span class="zad-tag">Pub fictive</span>${a.html}</button>`;
     el.addEventListener('click', e => { const bt = e.target.closest('[data-ad]'); if (bt) toast(`« ${DEMO_ADS[+bt.dataset.ad].brand} » est une publicité fictive : les vraies offres arrivent bientôt.`, 'info', 5000); });
   });
+
+  /* =====================================================================
+     RÉGIE — espace des commerciaux (et de l'administrateur)
+     Création des campagnes au point de vente (GPS sur place), aperçu en direct, prix, paiement Mobile Money noté,
+     validation par l'administrateur, statistiques et bilan envoyé au commerçant sur WhatsApp.
+     ===================================================================== */
+  const rg = { code: store.get('regieCode', ''), role: null, nom: '', list: [], view: 'login', filter: 'a_valider', f: null, tarifs: [], opts: {}, team: [], stats: null, busy: false };
+  const RG_CATS = [['resto', 'Restaurant'], ['maquis', 'Maquis / bar'], ['shop', 'Boutique'], ['supermarche', 'Supermarché'], ['marche', 'Marché'], ['hotel', 'Hôtel'], ['station', 'Station'], ['pharma', 'Pharmacie'], ['sante', 'Santé'], ['service', 'Service'], ['autre', 'Autre']];
+  const RG_MOD = [['promo', 'Promotion'], ['produit', 'Produit + photo'], ['resto', 'Plat / menu'], ['service', 'Service']];
+  const RG_PAY = ['Wave', 'Orange Money', 'MTN MoMo', 'Moov Money', 'Espèces'];
+  const RG_ST = { a_valider: ['wait', 'à valider'], active: ['ok', 'en ligne'], pause: ['', 'en pause'], refusee: ['bad', 'refusée'] };
+  const rgCall = (fn, body) => sb('/rest/v1/rpc/' + fn, { method: 'POST', body, timeout: 25000 });
+  const rgRpc = (fn, body) => rgCall(fn, { p_code: rg.code, ...body });
+  const rgErr = r => r.net ? 'Pas de connexion internet.' : r.status === 404 ? 'La régie n’est pas encore installée (supabase/regie.sql).' : sbErr(r);
+  const dFr = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '';
+
+  async function openRegie() {
+    if (!sbOn()) { toast('Base partagée non configurée.', 'error'); return; }
+    show('screen-regie');
+    if (!rg.code) { rg.view = 'login'; renderRg(); return; }
+    rg.view = 'liste'; renderRg();
+    if (!(await rgLogin(rg.code, true))) { rg.view = 'login'; renderRg(); }
+  }
+  async function rgLogin(code, quiet) {
+    let r = await rgCall('regie_role', { p_code: code });
+    if (r.ok && !r.data && code !== code.toUpperCase()) { const r2 = await rgCall('regie_role', { p_code: code.toUpperCase() }); if (r2.ok && r2.data) { r = r2; code = code.toUpperCase(); } }
+    if (!r.ok) { if (!quiet) toast(rgErr(r), 'error'); return false; }
+    if (!r.data) { if (!quiet) toast('Code incorrect ou désactivé.', 'error'); store.set('regieCode', ''); rg.code = ''; return false; }
+    rg.code = code; rg.role = r.data.role; rg.nom = r.data.nom; store.set('regieCode', code);
+    rg.filter = rg.role === 'admin' ? 'a_valider' : 'tous';
+    await Promise.all([rgLoad(), rgTarifs()]);
+    if (rg.view === 'login') rg.view = 'liste';
+    renderRg(); return true;
+  }
+  async function rgLoad() {
+    const r = await rgRpc('campagnes_liste', {});
+    if (r.ok && Array.isArray(r.data)) rg.list = r.data;
+    if (current === 'screen-regie' && rg.view === 'liste') renderRg();
+  }
+  async function rgTarifs() {
+    const [a, b] = await Promise.all([sb('/rest/v1/regie_tarifs?select=*&order=ordre'), sb('/rest/v1/regie_options?select=*')]);
+    if (a.ok && Array.isArray(a.data)) rg.tarifs = a.data;
+    if (b.ok && Array.isArray(b.data)) rg.opts = Object.fromEntries(b.data.map(o => [o.cle, o.pourcent]));
+  }
+  function rgPrice(f) {
+    const t = rg.tarifs.find(x => x.formule === f.formule); if (!t) return 0;
+    return Math.round(t.prix * (100 + (rg.opts['rayon' + f.rayon_m] || 0) + (f.exclusif ? rg.opts.exclusif || 0 : 0)) / 100);
+  }
+  const rgStatsLine = st => st ? `${ic('explore')}<b>${money(st.vues)}</b> vues · <b>${money(st.touchers)}</b> touchers · <b>${money(st.appels)}</b> appels · <b>${money(st.itineraires)}</b> itin. · <b>${money(st.visites)}</b> visites` : '';
+
+  function renderRg() {
+    const b = $('rg-body'); if (!b) return;
+    $('rg-title').textContent = { login: 'Régie publicitaire', liste: 'Mes campagnes', form: rg.f && rg.f.id ? 'Modifier la campagne' : 'Nouvelle campagne', stats: 'Statistiques', team: 'Commerciaux' }[rg.view];
+    $('rg-sub').textContent = rg.role ? `${rg.nom} · ${rg.role === 'admin' ? 'administrateur' : 'commercial'}` : 'Panneaux virtuels près des points de vente';
+    if (rg.view === 'login') {
+      b.innerHTML = `<form class="card form" id="rg-login" novalidate><p>Espace réservé aux commerciaux ZUPA et à l’administrateur. Saisissez votre code personnel.</p>
+        <label for="rg-code">Code</label><input class="input" id="rg-code" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ex. KOFFI-2026">
+        <button class="btn primary block" type="submit">Entrer</button></form>`;
+      setTimeout(() => $('rg-code') && $('rg-code').focus(), 250); return;
+    }
+    if (rg.view === 'liste') {
+      const n = k => rg.list.filter(c => k === 'tous' || c.statut === k).length;
+      const rows = rg.list.filter(c => rg.filter === 'tous' || c.statut === rg.filter);
+      const tod = new Date().toISOString().slice(0, 10);
+      b.innerHTML = `<div class="rg-top"><button type="button" class="btn primary" id="rg-new">${ic('plus')}Nouvelle campagne</button>${rg.role === 'admin' ? `<button type="button" class="btn ghost" id="rg-team">${ic('groups')}Commerciaux</button>` : ''}</div>
+        <div class="ap-chips rg-filt">${[['a_valider', 'À valider'], ['active', 'En ligne'], ['pause', 'En pause'], ['refusee', 'Refusées'], ['tous', 'Toutes']].map(([k, l]) => `<button type="button" data-rf="${k}" class="${rg.filter === k ? 'on' : ''}">${l} <small>${n(k)}</small></button>`).join('')}</div>
+        ${rows.length ? rows.map(c => { const [cls, lbl] = RG_ST[c.statut] || ['', c.statut]; const [c1, c2] = CAMP_COL[c.couleur] || CAMP_COL.jaune; const fini = c.fin < tod;
+          return `<article class="rg-card" data-rc="${esc(c.id)}"><span class="rg-sw" style="background:linear-gradient(140deg,${c1},${c2})">${ic(CAMP_CAT_IC[c.cat] || 'explore')}</span>
+          <span class="rg-main"><b>${esc(c.commerce)}</b><small>${esc(c.titre)}${c.accroche ? ' · ' + esc(c.accroche) : ''}</small>
+          <small>${esc((rg.tarifs.find(t => t.formule === c.formule) || {}).libelle || c.formule)} · ${c.rayon_m < 1000 ? c.rayon_m + ' m' : '1 km'}${c.exclusif ? ' · exclusif' : ''} · ${dFr(c.debut)} → ${dFr(c.fin)}</small>
+          <small class="rg-st">${rgStatsLine(c.stats)}</small>
+          <span class="rg-tags"><em class="py-tag ${fini ? 'bad' : cls}">${fini ? 'terminée' : lbl}</em><em class="py-tag ${c.paye ? 'ok' : 'wait'}">${c.paye ? 'payée' : 'non payée'} · ${money(c.prix)} F</em>${rg.role === 'admin' && c.commercial_nom ? `<em class="py-tag">${esc(c.commercial_nom)}</em>` : ''}</span>
+          ${c.statut === 'refusee' && c.motif_refus ? `<small class="rg-ref">Motif : ${esc(c.motif_refus)}</small>` : ''}</span></article>`; }).join('')
+          : `<div class="py-empty">${ic('star')}<b>Aucune campagne ici</b><span>Créez la première au point de vente de votre client : il faut y être pour le localiser.</span></div>`}
+        <button type="button" class="link rg-out" id="rg-out">Se déconnecter</button>`;
+      return;
+    }
+    if (rg.view === 'form') { renderRgForm(b); return; }
+    if (rg.view === 'stats') {
+      const c = rg.stats.c, days = rg.stats.days || [], st = c.stats || {};
+      const max = Math.max(1, ...days.map(d => d.vues));
+      const pct = (a, z) => z ? Math.round(a / z * 1000) / 10 + ' %' : '—';
+      b.innerHTML = `<div class="rg-prev">${campHtml(Object.assign({}, c, { image: rg.stats.image || null }), 'Aperçu')}</div>
+        <div class="card rg-kpis">${[['Vues', st.vues], ['Touchers', st.touchers], ['Appels / messages', st.appels], ['Itinéraires', st.itineraires], ['Passages au point de vente', st.visites]].map(([l, v]) => `<div><b>${money(v || 0)}</b><small>${l}</small></div>`).join('')}
+          <p class="muted">Taux de toucher : <b>${pct(st.touchers, st.vues)}</b> · passages / vues : <b>${pct(st.visites, st.vues)}</b>. Les chiffres sont des totaux anonymes, envoyés par les téléphones toutes les 2 minutes.</p></div>
+        <div class="card"><h3>Jour par jour</h3>${days.length ? days.slice(-21).reverse().map(d => `<div class="rg-day"><span>${dFr(d.jour)}</span><i style="--w:${(d.vues / max * 100).toFixed(0)}%"></i><b>${d.vues}</b><small>${d.touchers} t · ${d.visites} p</small></div>`).join('') : '<p class="muted">Pas encore de données : elles arrivent dès les premières vues.</p>'}</div>
+        <button type="button" class="btn primary block" id="rg-report">${ic('chat')}Envoyer le bilan au client</button>`;
+      return;
+    }
+    if (rg.view === 'team') {
+      b.innerHTML = `<form class="card form" id="rg-team-form" novalidate><h3>Ajouter un commercial</h3>
+          <label for="rg-tn">Nom</label><input class="input" id="rg-tn" maxlength="60" placeholder="ex. Koffi Yao">
+          <label for="rg-tc">Code personnel <small>(6 caractères au moins, à lui donner)</small></label><input class="input" id="rg-tc" maxlength="30" autocapitalize="characters" placeholder="ex. KOFFI-2026">
+          <button class="btn primary block" type="submit">Ajouter</button></form>
+        <div class="card"><h3>Équipe</h3>${rg.team.length ? rg.team.map(m => `<div class="rg-mem${m.actif ? '' : ' off'}"><span><b>${esc(m.nom)}</b><small>${esc(m.code)} · ${m.campagnes} campagne${m.campagnes > 1 ? 's' : ''}</small></span>${m.actif ? `<button type="button" class="btn ghost sm" data-tm-off="${esc(m.code)}">Désactiver</button>` : '<em class="py-tag">désactivé</em>'}</div>`).join('') : '<p class="muted">Aucun commercial pour l’instant.</p>'}</div>`;
+    }
+  }
+
+  // ---- formulaire de campagne
+  function rgNew() {
+    rg.f = { id: null, commerce: '', cat: 'shop', tel: '', whatsapp: true, client_nom: '', client_tel: '', gps: null, rayon_m: 500, exclusif: false,
+      formule: (rg.tarifs[0] || {}).formule || 'quartier7', debut: new Date().toISOString().slice(0, 10), modele: 'promo', couleur: 'jaune', titre: '', accroche: '', sous_titre: '', cta: 'appel', image: null, imgChanged: false,
+      payMode: 'Wave', payRef: '', paye: false };
+    rg.view = 'form'; renderRg(); $('screen-regie').scrollTo({ top: 0 });
+  }
+  async function rgEdit(c) {
+    const im = c.a_image ? await rgRpc('campagne_image', { p_id: c.id }) : null;
+    const [payMode, ...ref] = String(c.paiement || 'Wave').split(' · ');
+    rg.f = { id: c.id, commerce: c.commerce, cat: c.cat, tel: c.tel || '', whatsapp: c.whatsapp, client_nom: c.client_nom || '', client_tel: c.client_tel || '', gps: { lat: c.lat, lon: c.lon, acc: c.gps_acc, old: true },
+      rayon_m: c.rayon_m, exclusif: c.exclusif, formule: c.formule, debut: c.debut, modele: c.modele, couleur: c.couleur, titre: c.titre, accroche: c.accroche || '', sous_titre: c.sous_titre || '', cta: c.cta,
+      image: im && im.ok ? im.data : null, imgChanged: false, payMode: RG_PAY.includes(payMode) ? payMode : 'Wave', payRef: ref.join(' · ').replace(/^réf\. /, ''), paye: c.paye };
+    rg.view = 'form'; renderRg(); $('screen-regie').scrollTo({ top: 0 });
+  }
+  const chips = (name, list, cur) => `<div class="ap-chips" data-rg="${name}">${list.map(([k, l]) => `<button type="button" data-v="${esc(String(k))}" class="${String(cur) === String(k) ? 'on' : ''}">${l}</button>`).join('')}</div>`;
+  function renderRgForm(b) {
+    const f = rg.f, price = rgPrice(f);
+    b.innerHTML = `<form class="form rg-form" id="rg-form" novalidate>
+      <div class="rg-prev" id="rg-prev">${campHtml(f, 'Aperçu')}</div>
+      <div class="card"><h3><span class="ip-step">1</span>Le commerce</h3>
+        <label for="rg-com">Nom affiché</label><input class="input" id="rg-com" data-k="commerce" maxlength="60" value="${esc(f.commerce)}" placeholder="ex. Quincaillerie Le Marteau">
+        <label>Catégorie</label>${chips('cat', RG_CATS, f.cat)}
+        <label for="rg-tel">Téléphone du commerce <small>(affiché)</small></label><input class="input" id="rg-tel" data-k="tel" type="tel" inputmode="tel" maxlength="20" value="${esc(f.tel)}" placeholder="07 00 00 00 00">
+        <label class="ap-check"><input type="checkbox" id="rg-wa"${f.whatsapp ? ' checked' : ''}> Joignable sur WhatsApp</label>
+        <label for="rg-cn">Gérant <small>(non affiché, pour le bilan)</small></label><input class="input" id="rg-cn" data-k="client_nom" maxlength="60" value="${esc(f.client_nom)}" placeholder="Nom du gérant">
+        <input class="input" id="rg-ct" data-k="client_tel" type="tel" inputmode="tel" maxlength="20" value="${esc(f.client_tel)}" placeholder="Téléphone du gérant (WhatsApp)"></div>
+      <div class="card"><h3><span class="ip-step">2</span>Le point de vente <em>sur place</em></h3>
+        <p class="muted">Placez-vous devant le point de vente : le panneau virtuel y est posé par GPS (± 60 m au plus).</p>
+        <div class="ap-state ${f.gps ? 'ok' : 'warn'}" id="rg-gps-st">${f.gps ? `${ic('check')}<span>Point de vente localisé (± ${Math.round(f.gps.acc)} m)${f.gps.old ? ' — touchez « Localiser » pour le remesurer' : ''}</span>` : `${ic('info')}<span>Pas encore localisé.</span>`}</div>
+        <button type="button" class="btn ghost block" id="rg-locate">${ic('locate')}Je suis au point de vente : localiser</button></div>
+      <div class="card"><h3><span class="ip-step">3</span>Diffusion</h3>
+        <label>Rayon du panneau</label>${chips('rayon_m', [[200, '200 m'], [500, '500 m'], [1000, '1 km']], f.rayon_m)}
+        <label class="ap-check"><input type="checkbox" id="rg-ex"${f.exclusif ? ' checked' : ''}> Exclusivité : aucun autre commerce affiché dans cette zone (+${rg.opts.exclusif || 50} %)</label>
+        <label>Formule</label>${chips('formule', rg.tarifs.map(t => [t.formule, `${esc(t.libelle)}<small>${money(t.prix)} F</small>`]), f.formule)}
+        <label for="rg-deb">Début</label><input class="input" id="rg-deb" type="date" data-k="debut" value="${esc(f.debut)}" min="${new Date().toISOString().slice(0, 10)}">
+        <p class="rg-price">Prix : <b>${money(price)} FCFA</b></p></div>
+      <div class="card"><h3><span class="ip-step">4</span>La publicité</h3>
+        <label>Modèle</label>${chips('modele', RG_MOD, f.modele)}
+        <label>Couleur</label><div class="rg-cols" data-rg="couleur">${Object.entries(CAMP_COL).map(([k, [c1, c2]]) => `<button type="button" data-v="${k}" class="${f.couleur === k ? 'on' : ''}" style="background:linear-gradient(140deg,${c1},${c2})" aria-label="${k}"></button>`).join('')}</div>
+        <label for="rg-ti">Titre <small>(40 car.)</small></label><input class="input" id="rg-ti" data-k="titre" maxlength="40" value="${esc(f.titre)}" placeholder="ex. BIG PROMO">
+        <label for="rg-ac">Accroche <small>(14 car. : prix, réduction)</small></label><input class="input" id="rg-ac" data-k="accroche" maxlength="14" value="${esc(f.accroche)}" placeholder="ex. -35 % ou 1 000 F">
+        <label for="rg-st">Texte <small>(60 car.)</small></label><input class="input" id="rg-st" data-k="sous_titre" maxlength="60" value="${esc(f.sous_titre)}" placeholder="ex. sur tous les pots de peinture">
+        <label>Bouton</label>${chips('cta', [['appel', 'Appeler'], ['whatsapp', 'WhatsApp'], ['itineraire', 'J’y vais']], f.cta)}
+        <label>Photo <small>(facultative)</small></label>
+        <div class="ip-photo-btns"><label class="btn ghost sm" for="rg-cam">${ic('camera')}Photo</label><label class="btn ghost sm" for="rg-gal">${ic('image')}Galerie</label>${f.image ? `<button type="button" class="btn ghost sm" id="rg-img-x">${ic('close')}Retirer</button>` : ''}
+          <input type="file" id="rg-cam" accept="image/*" capture="environment" hidden><input type="file" id="rg-gal" accept="image/*" hidden></div></div>
+      <div class="card"><h3><span class="ip-step">5</span>Paiement</h3>
+        ${chips('payMode', RG_PAY.map(x => [x, x]), f.payMode)}
+        <label for="rg-ref">Référence de la transaction</label><input class="input" id="rg-ref" data-k="payRef" maxlength="40" value="${esc(f.payRef)}" placeholder="ex. TX 4F7A21">
+        <label class="ap-check"><input type="checkbox" id="rg-paye"${f.paye ? ' checked' : ''}> Paiement reçu (<span id="rg-paye-p">${money(price)}</span> FCFA)</label>
+        <p class="muted">La campagne n’est diffusée qu’une fois payée${rg.role === 'admin' ? '' : ' et validée par l’administrateur'}.</p></div>
+      <button class="btn primary block" type="submit" id="rg-save">${f.id ? 'Enregistrer les modifications' : rg.role === 'admin' ? 'Créer et diffuser' : 'Envoyer pour validation'}</button>
+      <p class="ap-why" id="rg-why"></p></form>`;
+  }
+  function rgProblem() {
+    const f = rg.f;
+    if ((f.commerce || '').trim().length < 2) return 'Indiquez le nom du commerce.';
+    if (!f.gps) return 'Localisez le point de vente par GPS, sur place.';
+    if ((f.titre || '').trim().length < 2) return 'Écrivez le titre de la publicité.';
+    if (f.tel && phoneDigits(f.tel).length !== 10) return 'Téléphone du commerce : 10 chiffres.';
+    if (f.client_tel && phoneDigits(f.client_tel).length !== 10) return 'Téléphone du gérant : 10 chiffres.';
+    if ((f.cta === 'appel' || f.cta === 'whatsapp') && !f.tel) return 'Le bouton « Appeler » ou « WhatsApp » demande le téléphone du commerce.';
+    return '';
+  }
+  function rgPreview() { const p = $('rg-prev'); if (p) p.innerHTML = campHtml(rg.f, 'Aperçu'); const w = $('rg-why'); if (w) w.textContent = rgProblem(); const pr = document.querySelector('.rg-price b'); if (pr) pr.textContent = money(rgPrice(rg.f)) + ' FCFA'; const pp = $('rg-paye-p'); if (pp) pp.textContent = money(rgPrice(rg.f)); }
+
+  // ---- événements
+  $('rg-open').onclick = () => openRegie();
+  $('rg-back').onclick = () => { if (rg.view === 'form' || rg.view === 'stats' || rg.view === 'team') { if (rg.view === 'form' && !confirm('Quitter sans enregistrer cette campagne ?')) return; rg.view = 'liste'; renderRg(); rgLoad(); } else goBack(); };
+  leaveGuards['screen-regie'] = () => { if (rg.view === 'form' && !confirm('Quitter sans enregistrer cette campagne ?')) return false; if (rg.view !== 'login') rg.view = 'liste'; return true; };
+  $('screen-regie').addEventListener('input', e => {
+    const k = e.target.dataset && e.target.dataset.k; if (!k || !rg.f) return;
+    rg.f[k] = e.target.value; rgPreview();
+  });
+  $('screen-regie').addEventListener('change', async e => {
+    const t = e.target; if (!rg.f) return;
+    if (t.id === 'rg-wa') rg.f.whatsapp = t.checked;
+    else if (t.id === 'rg-ex') { rg.f.exclusif = t.checked; rgPreview(); }
+    else if (t.id === 'rg-paye') rg.f.paye = t.checked;
+    else if (t.id === 'rg-cam' || t.id === 'rg-gal') {
+      const file = t.files && t.files[0]; t.value = ''; if (!file) return;
+      try { let d = await shrink(file, 900, 0.72); if (d.length > 380000) d = await shrink(file, 700, 0.6); rg.f.image = d; rg.f.imgChanged = true; renderRg(); }
+      catch (_) { toast('Photo illisible.', 'error'); }
+    }
+  });
+  $('screen-regie').addEventListener('click', async e => {
+    const t = e.target;
+    const chip = t.closest('[data-rg] [data-v]');
+    if (chip && rg.f) {
+      const name = chip.parentNode.dataset.rg; let v = chip.dataset.v; if (name === 'rayon_m') v = +v;
+      rg.f[name] = v; chip.parentNode.querySelectorAll('[data-v]').forEach(x => x.classList.toggle('on', x === chip)); rgPreview(); return;
+    }
+    if (t.closest('#rg-img-x')) { rg.f.image = null; rg.f.imgChanged = true; renderRg(); return; }
+    if (t.closest('#rg-locate')) {
+      const btn = $('rg-locate'); btn.classList.add('loading');
+      const f = await cleFix(); // mesure GPS fraîche et précise (même règle que la remise des clés)
+      btn.classList.remove('loading');
+      if (!f) { toast('Activez la localisation du téléphone.', 'error'); return; }
+      if (f.acc > 60) { toast(`Signal GPS trop imprécis (± ${Math.round(f.acc)} m) : sortez à découvert et réessayez.`, 'error', 6000); return; }
+      rg.f.gps = { lat: +f.lat.toFixed(6), lon: +f.lon.toFixed(6), acc: f.acc }; vibrate(20);
+      $('rg-gps-st').className = 'ap-state ok'; $('rg-gps-st').innerHTML = `${ic('check')}<span>Point de vente localisé (± ${Math.round(f.acc)} m)</span>`; rgPreview();
+      return;
+    }
+    if (t.closest('#rg-new')) { rgNew(); return; }
+    if (t.closest('#rg-team')) { rg.view = 'team'; renderRg(); const r = await rgCall('commerciaux_liste', { p_admin: rg.code }); if (r.ok && Array.isArray(r.data)) { rg.team = r.data; renderRg(); } return; }
+    if (t.closest('#rg-out')) { store.set('regieCode', ''); Object.assign(rg, { code: '', role: null, nom: '', list: [], view: 'login' }); renderRg(); return; }
+    const rf = t.closest('[data-rf]'); if (rf) { rg.filter = rf.dataset.rf; renderRg(); return; }
+    const off = t.closest('[data-tm-off]');
+    if (off) { if (!confirm('Désactiver ce commercial ? Son code ne fonctionnera plus.')) return; const r = await rgCall('commercial_desactiver', { p_admin: rg.code, p_code: off.dataset.tmOff }); if (!r.ok) { toast(rgErr(r), 'error'); return; } const l = await rgCall('commerciaux_liste', { p_admin: rg.code }); if (l.ok) { rg.team = l.data || []; renderRg(); } return; }
+    if (t.closest('#rg-report')) { rgReport(rg.stats.c); return; }
+    const card = t.closest('[data-rc]'); if (card) { const c = rg.list.find(x => x.id === card.dataset.rc); if (c) rgMenu(c); }
+  });
+  $('screen-regie').addEventListener('submit', async e => {
+    e.preventDefault();
+    if (e.target.id === 'rg-login') { const c = $('rg-code').value.trim(); if (c) await rgLogin(c, false); return; }
+    if (e.target.id === 'rg-team-form') {
+      const nom = $('rg-tn').value.trim(), code = $('rg-tc').value.trim().toUpperCase();
+      if (nom.length < 2 || code.length < 6) { toast('Nom et code (6 caractères au moins).', 'error'); return; }
+      const r = await rgCall('commercial_ajouter', { p_admin: rg.code, p_nom: nom, p_code: code });
+      if (!r.ok) { toast(rgErr(r), 'error'); return; }
+      toast(`${nom} peut maintenant se connecter avec le code ${code}.`, 'success', 7000);
+      const l = await rgCall('commerciaux_liste', { p_admin: rg.code }); if (l.ok) { rg.team = l.data || []; renderRg(); } return;
+    }
+    if (e.target.id === 'rg-form') {
+      const pb = rgProblem(); if (pb) { toast(pb, 'error'); return; }
+      if (rg.busy) return; rg.busy = true; $('rg-save').classList.add('loading');
+      const f = rg.f;
+      const body = { id: f.id, commerce: f.commerce.trim(), cat: f.cat, tel: phoneDigits(f.tel || ''), whatsapp: f.whatsapp, client_nom: f.client_nom, client_tel: phoneDigits(f.client_tel || ''),
+        lat: f.gps.lat, lon: f.gps.lon, gps_acc: Math.max(1, Math.round(f.gps.acc)), rayon_m: f.rayon_m, exclusif: f.exclusif, formule: f.formule, debut: f.debut,
+        modele: f.modele, couleur: f.couleur, titre: f.titre.trim(), accroche: f.accroche, sous_titre: f.sous_titre, cta: f.cta,
+        paiement: [f.payMode, f.payRef ? 'réf. ' + f.payRef.trim() : ''].filter(Boolean).join(' · '), paye: f.paye };
+      if (!f.id || f.imgChanged) body.image = f.image || '';
+      const r = await rgRpc('campagne_enregistrer', { p: body });
+      rg.busy = false; $('rg-save') && $('rg-save').classList.remove('loading');
+      if (!r.ok) { toast('Enregistrement refusé : ' + rgErr(r), 'error', 7000); return; }
+      toast(f.id ? 'Campagne modifiée.' + (rg.role === 'admin' ? '' : ' Elle repasse en validation.') : rg.role === 'admin' ? (f.paye ? 'Campagne créée et diffusée.' : 'Campagne créée : elle sera diffusée dès le paiement noté.') : 'Campagne envoyée pour validation.', 'success', 6000);
+      rg.f = null; rg.view = 'liste'; rg.filter = rg.role === 'admin' ? 'tous' : 'tous'; await rgLoad(); renderRg(); fetchRegie(true);
+    }
+  });
+  function rgMenu(c) {
+    const act = async (a, ok, motif) => { const r = await rgRpc('campagne_action', { p_id: c.id, p_action: a, p_motif: motif || null }); if (!r.ok) { toast(rgErr(r), 'error', 6000); return; } toast(ok, 'success'); await rgLoad(); fetchRegie(true); };
+    const acts = [{ icon: 'explore', label: 'Statistiques et aperçu', fn: async () => {
+      const [d, im] = await Promise.all([rgRpc('campagne_stats_jours', { p_id: c.id }), c.a_image ? rgRpc('campagne_image', { p_id: c.id }) : null]);
+      rg.stats = { c, days: d.ok ? d.data : [], image: im && im.ok ? im.data : null }; rg.view = 'stats'; renderRg(); $('screen-regie').scrollTo({ top: 0 }); } }];
+    if (rg.role === 'admin' && c.statut === 'a_valider') {
+      acts.push({ icon: 'check', label: 'Valider et diffuser', hint: c.paye ? 'Paiement noté : ' + (c.paiement || '') : 'Attention : paiement non noté (diffusion seulement une fois payée)', fn: () => act('valider', 'Campagne validée.') });
+      acts.push({ icon: 'close', label: 'Refuser', danger: true, fn: () => { const m = prompt('Motif du refus (visible par le commercial) :', 'Contenu non conforme'); if (m != null) act('refuser', 'Campagne refusée.', m); } });
+    }
+    if (!c.paye) acts.push({ icon: 'check', label: 'Noter le paiement reçu', hint: `${money(c.prix)} FCFA`, fn: () => { const m = prompt('Moyen et référence du paiement :', c.paiement || 'Wave · réf. '); if (m != null) act('paye', 'Paiement noté.', m); } });
+    acts.push({ icon: 'edit', label: 'Modifier', hint: rg.role === 'admin' ? '' : 'Repasse en validation', fn: () => rgEdit(c) });
+    acts.push({ icon: 'chat', label: 'Envoyer le bilan au client', hint: c.client_tel ? 'WhatsApp ' + c.client_tel : 'Partager', fn: () => rgReport(c) });
+    if (c.statut === 'active') acts.push({ icon: 'close', label: 'Mettre en pause', fn: () => act('pause', 'Campagne en pause.') });
+    if (c.statut === 'pause') acts.push({ icon: 'refresh', label: 'Reprendre', fn: () => act('reprendre', rg.role === 'admin' ? 'Campagne reprise.' : 'Campagne renvoyée en validation.') });
+    acts.push({ icon: 'refresh', label: 'Prolonger d’une période', hint: 'Une nouvelle période à payer', fn: () => { if (confirm('Prolonger cette campagne d’une période ? Le paiement de la prolongation sera à noter.')) act('prolonger', 'Campagne prolongée : notez le paiement.'); } });
+    openActions({ title: c.commerce, sub: `${c.titre} · ${(RG_ST[c.statut] || ['', c.statut])[1]}`, actions: acts });
+  }
+  function rgReport(c) {
+    const s = c.stats || {};
+    const txt = `Bonjour${c.client_nom ? ' ' + c.client_nom : ''}, voici le bilan de votre publicité ZUPA « ${c.titre} » (${c.commerce}), du ${dFr(c.debut)} au ${dFr(c.fin)} :\n`
+      + `• ${money(s.vues || 0)} vues sur les téléphones autour de votre point de vente\n• ${money(s.touchers || 0)} personnes ont touché la publicité\n• ${money(s.appels || 0)} appels ou messages\n`
+      + `• ${money(s.itineraires || 0)} itinéraires vers votre point de vente\n• ${money(s.visites || 0)} passages devant votre point de vente après avoir vu la pub\nMerci de votre confiance ! — ZUPA`;
+    if (c.client_tel) openExternal(`https://wa.me/225${c.client_tel}?text=${encodeURIComponent(txt)}`);
+    else if (navigator.share) navigator.share({ text: txt }).catch(() => {});
+    else { try { navigator.clipboard.writeText(txt); toast('Bilan copié.', 'success'); } catch (_) { toast(txt, 'info', 15000); } }
+  }
 
   /* ---------- Démarrage ---------- */
   // un écran à carte plein écran ne doit jamais défiler lui-même

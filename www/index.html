@@ -543,6 +543,15 @@
     </form>
   </section>
 
+  <!-- régie publicitaire : espace des commerciaux et de l'administrateur -->
+  <section class="screen" id="screen-regie" aria-label="Régie publicitaire">
+    <div class="topbar">
+      <button class="icon-btn" id="rg-back" type="button" aria-label="Retour"><span data-icon="back"></span></button>
+      <div class="topbar-text"><div class="title" id="rg-title">Régie publicitaire</div><div class="subtitle" id="rg-sub">Panneaux virtuels près des points de vente</div></div>
+    </div>
+    <div id="rg-body"></div>
+  </section>
+
   <!-- clés numériques : remise, restitution, perte, réémission -->
   <section class="screen imo" id="screen-cle" aria-label="Clés numériques">
     <div class="topbar">
@@ -647,6 +656,7 @@
     </div>
     <div class="card">
       <h3>À propos</h3>
+      <button class="btn ghost block rg-open" id="rg-open" type="button"><span data-icon="star"></span>Espace régie publicitaire (commerciaux)</button>
       <p class="muted"><b>ZUPA</b> — Bouge. Trouve. Vis.<br>Version <span id="app-version">1.0.0</span>. Données © contributeurs OpenStreetMap (ODbL). Météo : <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0).</p>
     </div>
     <div class="card">
