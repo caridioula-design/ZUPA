@@ -112,9 +112,17 @@ jobs:
         if: env.ZUPA_CLE != ''
         working-directory: android
         run: |
-          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in signature/zupa-release.jks.enc -out "$RUNNER_TEMP/zupa.jks" -pass env:ZUPA_CLE
-          export ZUPA_KEYSTORE_PATH="$RUNNER_TEMP/zupa.jks" ZUPA_KEYSTORE_PASSWORD="$ZUPA_CLE" ZUPA_KEY_ALIAS=zupa ZUPA_KEY_PASSWORD="$ZUPA_CLE"
-          ./gradlew assembleRelease bundleRelease --no-daemon
+          CLE=$(printf %s "$ZUPA_CLE" | tr -d '[:space:]')
+          echo "::notice title=Signature::secret de ${#CLE} caractères (attendu : 32)"
+          if ! CLE="$CLE" openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in signature/zupa-release.jks.enc -out "$RUNNER_TEMP/zupa.jks" -pass env:CLE 2>/tmp/dec.err; then
+            echo "::error title=Signature::Le secret ZUPA_CLE ne déchiffre pas la clé — valeur incorrecte ($(tr '\n' ' ' </tmp/dec.err))"; exit 1
+          fi
+          keytool -list -keystore "$RUNNER_TEMP/zupa.jks" -storepass "$CLE" -alias zupa >/dev/null 2>/tmp/kt.err || { echo "::error title=Signature::keytool : $(tr '\n' ' ' </tmp/kt.err | cut -c1-300)"; exit 1; }
+          export ZUPA_KEYSTORE_PATH="$RUNNER_TEMP/zupa.jks" ZUPA_KEYSTORE_PASSWORD="$CLE" ZUPA_KEY_ALIAS=zupa ZUPA_KEY_PASSWORD="$CLE"
+          if ! ./gradlew assembleRelease bundleRelease --no-daemon > /tmp/rel.log 2>&1; then
+            echo "::error title=Compilation signée::$(grep -E 'What went wrong|Execution failed|error:|Exception|> ' /tmp/rel.log | head -12 | tr '\n' ' ' | cut -c1-900)"
+            tail -60 /tmp/rel.log; exit 1
+          fi
           VERSION=$(node -p "require('../package.json').version")
           cp app/build/outputs/apk/release/app-release.apk "../dist/ZUPA-${VERSION}-signe.apk"
           cp app/build/outputs/bundle/release/app-release.aab "../dist/ZUPA-${VERSION}-playstore.aab"
