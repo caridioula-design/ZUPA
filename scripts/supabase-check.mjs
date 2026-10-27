@@ -31,5 +31,8 @@ const imoGps = imo.s === 200 ? await call('/rest/v1/rpc/annonce_publier', { meth
 const cles = imo.s === 200 ? await call('/rest/v1/rpc/mes_cles', { method: 'POST', body: JSON.stringify({ p_secret: '00000000-0000-4000-8000-0000000000ff' }) }) : null;
 const clesTxt = cles ? (cles.s === 200 ? ' · clés numériques OK' : ' · CLÉS NUMÉRIQUES NON INSTALLÉES : relancez supabase/imo.sql') : '';
 out.push(imo.s === 200 ? `Imo OK${imoGps && imoGps.s >= 400 && /GPS/.test(imoGps.t) ? ' (annonce sans GPS refusée)' : ' : CONTRÔLE GPS À VÉRIFIER ' + (imoGps && imoGps.s)}${clesTxt}` : imo.s === 404 ? 'IMO NON INSTALLÉ : exécutez supabase/imo.sql' : 'Imo : ' + imo.s);
+const rgt = await call('/rest/v1/regie_tarifs?select=formule');
+const rgc = await call('/rest/v1/campagnes?select=id');
+out.push(rgt.s === 200 && rgc.s === 200 ? 'Régie OK' : rgt.s === 404 || rgc.s === 404 ? 'RÉGIE NON INSTALLÉE : exécutez supabase/regie.sql' : 'Régie : ' + rgt.s + '/' + rgc.s);
 const ok = lig.s === 200 && pub.s === 200 && psh.s !== 404 && blq.s !== 404 && popu.s === 200 && read.s === 200 && dev.s >= 400 && bad.s === 400 && upd.s >= 400;
 note(ok ? 'notice' : 'warning', out.join(' · '));
