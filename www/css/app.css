@@ -1688,3 +1688,15 @@ html{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 /* une carte à la fois, même avec un glissement rapide */
 .imc{scroll-snap-stop:always}
 .zad{scroll-snap-stop:always}
+/* pharmacies : date de mise à jour visible sans déplier */
+.gb-title{display:flex;flex-direction:column;line-height:1.25;min-width:0}
+.gb-title .gb-maj{display:block;font-size:.74rem;color:var(--text-2);font-weight:500;margin-top:2px}
+/* publicités de la bulle : plus grandes ; légende courte sur une ligne de hauteur fixe (la zone ne bouge plus) */
+.live-ads .zad{aspect-ratio:5/4;padding:16px 18px}
+.live-ads .zad-big{font-size:clamp(1.8rem,9.5vw,2.8rem)}
+.live-ads .zad-pct{font-size:clamp(2.6rem,14vw,4rem)}
+.live-ads .zad-red{font-size:clamp(1.9rem,10vw,2.9rem)!important}
+.live-ads .zad-txt small{font-size:.86rem}
+.lads-cap{display:flex;align-items:center;justify-content:center;gap:4px;height:20px;margin:0 0 8px;font-size:.8rem;font-weight:500;white-space:nowrap;overflow:hidden;line-height:20px;opacity:.95}
+.lads-cap .ic{width:14px;height:14px;flex:none}
+.lads-cap span{overflow:hidden;text-overflow:ellipsis}

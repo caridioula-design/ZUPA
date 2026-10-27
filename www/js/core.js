@@ -207,10 +207,19 @@ const Core = (() => {
       clusterFor({ name, key: norm(name), lat: +cs.lat, lon: +cs.lon, custom: true });
     });
 
+    // numéros de bus signalés par l'utilisateur mais absents de nos lignes : affichés à l'arrêt (« à confirmer »)
+    customList.forEach(cs => {
+      const nums = (Array.isArray(cs.nums) ? cs.nums : []).filter(n => typeof n === 'string' && n.trim());
+      if (!nums.length) return;
+      const k = norm(cs.name.trim()), arr = byKey.get(k) || [];
+      const c = arr.find(x => haversine(x.lat, x.lon, +cs.lat, +cs.lon) <= (x.generic ? 0.05 : CFG.CLUSTER_KM));
+      if (c) { c.extraSet = c.extraSet || new Set(); nums.forEach(n => c.extraSet.add(n.trim().toUpperCase())); }
+    });
     const byId = new Map(), occ = new Map();
     for (const c of clusters) {
       c.name = [...c.names.entries()].sort((a, b) => b[1] - a[1])[0][0];
       c.lines = [...c.lineSet].sort(numSort);
+      if (c.extraSet) { c.unverified = [...c.extraSet].filter(n => !c.lineSet.has(n)).sort(numSort); delete c.extraSet; }
       const dup = byKey.get(c.key).filter(x => !x.generic).length > 1;
       c.label = dup ? `${c.name} (bus ${c.lines.slice(0, 3).join(', ')})` : c.name;
       c.searchKey = key(c.label);

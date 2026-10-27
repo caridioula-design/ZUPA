@@ -167,11 +167,23 @@
     </div>
     <form class="form" id="as-form" novalidate>
       <div class="card">
-        <h3><span class="step-n">1</span>Nom de l'arrêt</h3>
-        <input class="input" id="as-name" maxlength="60" autocomplete="off" placeholder="Ex. : Carrefour Pharmacie Bel Air">
-        <p class="hint" id="as-name-hint" hidden></p>
+        <div class="segmented as-mode" id="as-mode" role="radiogroup" aria-label="Type d'ajout">
+          <button type="button" data-m="new" class="active" role="radio" aria-checked="true">Nouvel arrêt</button>
+          <button type="button" data-m="ext" role="radio" aria-checked="false">Arrêt existant</button>
+        </div>
+        <div id="as-new-box">
+          <h3><span class="step-n">1</span>Nom de l'arrêt</h3>
+          <input class="input" id="as-name" maxlength="60" autocomplete="off" placeholder="Ex. : Carrefour Pharmacie Bel Air">
+          <p class="hint" id="as-name-hint" hidden></p>
+        </div>
+        <div id="as-ext-box" hidden>
+          <h3><span class="step-n">1</span>Quel arrêt ?</h3>
+          <p class="muted">Un arrêt déjà connu où passe un bus qui n'y figure pas encore.</p>
+          <input class="input" id="as-ext-q" maxlength="60" autocomplete="off" placeholder="Chercher un arrêt…">
+          <div class="as-ext-list" id="as-ext-list" role="radiogroup" aria-label="Arrêts"></div>
+        </div>
       </div>
-      <div class="card">
+      <div class="card" id="as-loc-card">
         <h3><span class="step-n">2</span>Emplacement</h3>
         <p class="muted">Placez-vous à l'arrêt et utilisez votre position, ou touchez la carte. Vous pouvez déplacer le repère.</p>
         <div class="map-wrap" style="margin:12px 0 10px"><div class="map" id="as-map"></div></div>
@@ -189,8 +201,12 @@
           <select class="input" id="as-dir" aria-label="Sens du trajet"></select>
         </div>
         <button type="button" class="btn ghost sm" id="as-add-link" style="margin-top:10px">Ajouter ce bus</button>
+        <div class="as-num-row">
+          <input class="input" id="as-num" maxlength="6" autocomplete="off" autocapitalize="characters" placeholder="Numéro absent de la liste (ex. 81)">
+          <button type="button" class="btn ghost sm" id="as-add-num">Ajouter</button>
+        </div>
         <ul class="link-list" id="as-links"></ul>
-        <p class="hint">Facultatif. Sans bus, l'arrêt sert de point de repère : on vous guide jusqu'à l'arrêt desservi le plus proche.</p>
+        <p class="hint" id="as-bus-hint">Facultatif. Sans bus, l'arrêt sert de point de repère : on vous guide jusqu'à l'arrêt desservi le plus proche.</p>
       </div>
       <div class="card">
         <h3><span class="step-n">4</span>Remarque <small class="muted">(facultatif)</small></h3>

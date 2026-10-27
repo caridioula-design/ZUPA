@@ -1222,7 +1222,8 @@
   /* ---------- Autocomplétion ---------- */
   const suggests = [];
   function closeSuggests() { suggests.forEach(s => s.close()); }
-  const linesHtml = s => s.lines.slice(0, 6).map(n => lineBadge(n, true)).join('') + (s.lines.length > 6 ? `<small>+${s.lines.length - 6}</small>` : '');
+  const linesHtml = s => s.lines.slice(0, 6).map(n => lineBadge(n, true)).join('') + (s.lines.length > 6 ? `<small>+${s.lines.length - 6}</small>` : '')
+    + (s.unverified || []).slice(0, 3).map(n => `<span class="lb sm unv" title="Signalé par vous, à confirmer">${esc(n)}</span>`).join('');
   function stopItem(s, extra) {
     return { type: 'stop', stop: s, html: `<span class="sg-ic">${ic('bus')}</span><span class="sg-main"><span class="sg-name">${esc(s.label)}${s.custom ? '<span class="utag">ajouté</span>' : ''}</span><span class="sg-lines">${linesHtml(s)}</span></span>${extra ? `<span class="sg-extra">${extra}</span>` : ''}` };
   }
@@ -2068,9 +2069,11 @@
     asBackTo = from || current;
     const ex = editId && customStops.find(c => c.id === editId);
     draft = ex
-      ? { id: ex.id, name: ex.name, lat: ex.lat, lon: ex.lon, links: (ex.links || []).filter(n => lineByName(n)), note: ex.note || '', created: ex.created }
-      : { id: null, name: '', lat: null, lon: null, links: [], note: '' };
+      ? { id: ex.id, name: ex.name, lat: ex.lat, lon: ex.lon, links: (ex.links || []).filter(n => lineByName(n)), nums: (ex.nums || []).slice(), ext: !!ex.ext, note: ex.note || '', created: ex.created }
+      : { id: null, name: '', lat: null, lon: null, links: [], nums: [], ext: false, note: '' };
     $('as-title').textContent = ex ? 'Modifier l\'arrêt' : 'Nouvel arrêt';
+    setAsMode(draft.ext ? 'ext' : 'new');
+    $('as-ext-q').value = '';
     $('as-name').value = draft.name;
     $('as-note').value = draft.note;
     $('as-delete').hidden = !ex;
@@ -2118,10 +2121,47 @@
     renderLinks();
   };
 
+  // « Arrêt existant » : on ajoute un bus à un arrêt déjà connu (même nom, même position : il s'y rattache)
+  function setAsMode(m) {
+    draft.ext = m === 'ext';
+    $('as-mode').querySelectorAll('button').forEach(b => { const on = b.dataset.m === m; b.classList.toggle('active', on); b.setAttribute('aria-checked', String(on)); });
+    $('as-new-box').hidden = draft.ext; $('as-ext-box').hidden = !draft.ext; $('as-loc-card').hidden = draft.ext;
+    $('as-bus-hint').textContent = draft.ext ? 'Ajoutez au moins un bus : un numéro de la liste (il servira aussitôt aux itinéraires) ou un numéro absent de nos lignes (affiché à l’arrêt, à confirmer).'
+      : 'Facultatif. Sans bus, l\'arrêt sert de point de repère : on vous guide jusqu\'à l\'arrêt desservi le plus proche.';
+    if (!draft.id) $('as-title').textContent = draft.ext ? 'Ajouter un bus à un arrêt' : 'Nouvel arrêt';
+    if (draft.ext) renderExtList();
+  }
+  function renderExtList() {
+    const q = $('as-ext-q').value.trim();
+    const ref = draft.lat != null ? [draft.lat, draft.lon] : state.pos;
+    let list = q.length >= 2 ? Core.searchStops(D, q, 10).map(x => x.stop || x) : ref ? Core.nearbyStops(D, ref[0], ref[1], 1.5, 8).map(n => n.stop) : [];
+    list = list.filter(Boolean);
+    const sel = draft.ext && draft.name ? Core.norm(draft.name) : null;
+    $('as-ext-list').innerHTML = list.length ? list.map(st => {
+      const on = sel === st.key && draft.lat != null && Core.haversine(st.lat, st.lon, draft.lat, draft.lon) < 0.08;
+      return `<button type="button" role="radio" aria-checked="${on}" class="as-ext${on ? ' on' : ''}" data-st="${esc(st.id)}">${ic('bus')}<span><b>${esc(st.label)}</b><span class="sg-lines">${linesHtml(st) || '<small>aucun bus connu</small>'}</span></span>${ref ? `<small>${fmtDist(Core.haversine(ref[0], ref[1], st.lat, st.lon))}</small>` : ''}</button>`;
+    }).join('') : `<p class="muted">${q.length >= 2 ? 'Aucun arrêt trouvé.' : 'Tapez le nom de l’arrêt.'}</p>`;
+  }
+  $('as-mode').addEventListener('click', e => { const b = e.target.closest('[data-m]'); if (b && !draft.id) { setAsMode(b.dataset.m); if (b.dataset.m === 'new' && !draft.name) $('as-name').value = ''; } });
+  $('as-ext-q').addEventListener('input', debounce(renderExtList, 150));
+  $('as-ext-list').addEventListener('click', e => {
+    const b = e.target.closest('[data-st]'); if (!b) return;
+    const st = D.byId.get(b.dataset.st); if (!st) return;
+    draft.name = st.name; $('as-name').value = st.name;
+    draft.lat = +st.lat.toFixed(6); draft.lon = +st.lon.toFixed(6); draft.acc = null;
+    renderExtList(); renderLinks(); vibrate(10);
+  });
+  $('as-add-num').onclick = () => {
+    const n = $('as-num').value.trim().toUpperCase().replace(/[^0-9A-Z]/g, '');
+    if (!n) { toast('Tapez le numéro du bus.', 'error'); return; }
+    if (lineNums().includes(n)) { toast(`Le bus ${n} est dans la liste : choisissez-le ci-dessus, il servira aussitôt aux itinéraires.`, 'info', 6000); $('as-bus').value = n; fillDirSelect(); $('as-num').value = ''; return; }
+    if (!draft.nums.includes(n)) draft.nums.push(n);
+    $('as-num').value = ''; renderLinks();
+  };
   function renderLinks() {
     const ul = $('as-links');
-    if (!draft.links.length) { ul.innerHTML = ''; return; }
-    ul.innerHTML = draft.links.map((n, i) => {
+    if (!draft.links.length && !(draft.nums || []).length) { ul.innerHTML = ''; return; }
+    ul.innerHTML = (draft.nums || []).map((n, i) => `<li><span class="lb unv">${esc(n)}</span><div><b>Bus ${esc(n)}</b><br><small>Absent de nos lignes : affiché à l’arrêt (à confirmer), pas encore utilisé pour les itinéraires.</small></div><button type="button" class="x-btn" data-unnum="${i}" aria-label="Retirer ce numéro">${ic('close')}</button></li>`).join('') + draft.links.map((n, i) => {
       const l = lineByName(n);
       if (!l) return '';
       let where = '';
@@ -2138,6 +2178,8 @@
   $('as-links').addEventListener('click', e => {
     const b = e.target.closest('[data-unlink]');
     if (b) { draft.links.splice(+b.dataset.unlink, 1); renderLinks(); }
+    const u = e.target.closest('[data-unnum]');
+    if (u) { draft.nums.splice(+u.dataset.unnum, 1); renderLinks(); }
   });
 
   function setDraftPos(lat, lon, acc, fly) {
@@ -2235,7 +2277,9 @@
 
   $('as-form').addEventListener('submit', e => {
     e.preventDefault();
-    const name = $('as-name').value.trim().replace(/\s+/g, ' ');
+    const name = (draft.ext ? draft.name : $('as-name').value).trim().replace(/\s+/g, ' ');
+    if (draft.ext && (!name || draft.lat == null)) { toast('Choisissez l’arrêt dans la liste.', 'error'); return; }
+    if (draft.ext && !draft.links.length && !draft.nums.length) { toast('Ajoutez au moins un bus à cet arrêt.', 'error'); return; }
     if (name.length < 2) { toast('Donnez un nom à l\'arrêt.', 'error'); $('as-name').focus(); return; }
     if (draft.lat == null) { toast('Choisissez l\'emplacement : votre position ou un point sur la carte.', 'error'); return; }
     const far = draft.links.map(lineByName).filter(Boolean)
@@ -2243,7 +2287,7 @@
     if (far.length && !confirm(`L'emplacement est loin du tracé connu du bus ${far.map(l => l.num).join(', ')}. Enregistrer quand même ?`)) return;
     const rec = {
       id: draft.id || 'u-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-      name, lat: draft.lat, lon: draft.lon, links: draft.links.slice(),
+      name, lat: draft.lat, lon: draft.lon, links: draft.links.slice(), nums: (draft.nums || []).slice(), ext: !!draft.ext,
       note: $('as-note').value.trim(), created: draft.created || new Date().toISOString(), updated: new Date().toISOString()
     };
     const i = customStops.findIndex(c => c.id === rec.id);
@@ -2252,7 +2296,7 @@
     rebuildNetwork();
     const isNew = i < 0;
     draft = null;
-    toast(isNew ? `Arrêt « ${name} » enregistré.` : 'Arrêt modifié.', 'success', 5000, {
+    toast(rec.ext ? `Bus ${[...new Set(rec.links.map(n => (lineByName(n) || Core.parseName(n)).num)), ...rec.nums].join(', ')} ajouté${rec.links.length + rec.nums.length > 1 ? 's' : ''} à « ${name} ».` : isNew ? `Arrêt « ${name} » enregistré.` : 'Arrêt modifié.', 'success', 5000, {
       text: 'Y aller', fn: () => { const s = Core.resolveStop(D, name) || Core.nearbyStops(D, rec.lat, rec.lon, 0.1, 1).map(n => n.stop)[0]; if (s) { setOriginStop(null); setDest(s); runSearch(); } }
     });
     show(asBackTo === 'screen-addstop' ? 'screen-profile' : asBackTo);
@@ -2270,7 +2314,7 @@
   $('as-back').innerHTML = ic('back');
   $('as-back').onclick = () => goBack();
   // garde-fou : quitter l'ajout d'un arrêt avec des changements non enregistrés
-  const snapDraft = () => draft ? JSON.stringify([draft.name || '', draft.lat, draft.lon, (draft.links || []).join(), $('as-note').value]) : '';
+  const snapDraft = () => draft ? JSON.stringify([draft.name || '', draft.lat, draft.lon, (draft.links || []).join(), (draft.nums || []).join(), $('as-note').value]) : '';
   let asSnap = '';
   leaveGuards['screen-addstop'] = () => {
     if (draft && snapDraft() !== asSnap && !confirm('Quitter sans enregistrer cet arrêt ?')) return false;
@@ -2284,8 +2328,8 @@
     if (!customStops.length) { ul.innerHTML = '<li class="muted">Aucun arrêt ajouté pour l\'instant.</li>'; $('export-stops').disabled = true; return; }
     $('export-stops').disabled = false;
     ul.innerHTML = customStops.map(c => {
-      const nums = [...new Set((c.links || []).map(n => (lineByName(n) || Core.parseName(n)).num))];
-      return `<li>${ic('addPin')}<span>${esc(c.name)}<br><small class="muted">${nums.length ? 'Bus ' + nums.map(esc).join(', ') : 'Sans bus'}${c.note ? ' · ' + esc(c.note) : ''}</small></span><button class="btn ghost sm" data-edit-stop="${esc(c.id)}">Modifier</button></li>`;
+      const nums = [...new Set((c.links || []).map(n => (lineByName(n) || Core.parseName(n)).num).concat(c.nums || []))];
+      return `<li>${ic('addPin')}<span>${esc(c.name)}${c.ext ? ' <small class="muted">(arrêt existant)</small>' : ''}<br><small class="muted">${nums.length ? 'Bus ' + nums.map(esc).join(', ') : 'Sans bus'}${c.note ? ' · ' + esc(c.note) : ''}</small></span><button class="btn ghost sm" data-edit-stop="${esc(c.id)}">Modifier</button></li>`;
     }).join('');
   }
   $('custom-list').addEventListener('click', e => {
@@ -2296,7 +2340,7 @@
   $('export-stops').onclick = async () => {
     const payload = {
       app: 'ZUPA', version: 1, exported: new Date().toISOString(),
-      stops: customStops.map(c => ({ name: c.name, lat: c.lat, lon: c.lon, note: c.note || '', lines: c.links || [], created: c.created }))
+      stops: customStops.map(c => ({ name: c.name, lat: c.lat, lon: c.lon, note: c.note || '', lines: c.links || [], nums: c.nums || [], ext: !!c.ext, created: c.created }))
     };
     const json = JSON.stringify(payload, null, 2);
     const fname = `zupa-arrets-${new Date().toISOString().slice(0, 10)}.json`;
@@ -2498,7 +2542,7 @@
   });
   function freshLine(stt) {
     const g = week();
-    const maj = g && g.maj ? fmtDay(g.maj) : null;
+    const maj = ph.gardes && ph.gardes.maj ? fmtDay(ph.gardes.maj) : g && g.maj ? fmtDay(g.maj) : null;
     const pill = stt === 'current' ? '<span class="fresh ok"><i></i>À jour</span>' : '<span class="fresh old"><i></i>À actualiser</span>';
     let txt;
     if (ph.checking) txt = 'Vérification en ligne…';
@@ -2517,7 +2561,7 @@
       const detail = (nInt ? `${g.pharmacies.length - nInt} à Abidjan · ${nInt} dans ${villes} villes de l'intérieur` : `${g.pharmacies.length} pharmacies`) + (nMan ? ` · ${nMan} ajoutée${nMan > 1 ? 's' : ''} par ZUPA` : '');
       const open = !!store.get('gardeOpen', false);
       el.className = 'garde-banner fold' + (open ? ' open' : '');
-      el.innerHTML = `<button type="button" class="gb-head" aria-expanded="${open}">${ic('cross')}<span class="gb-title"><b>De garde</b> du ${esc(fmtDay(g.du))} au ${esc(fmtDay(g.au))}</span><span class="fresh ok${ph.checking ? ' checking' : ''}"><i></i>À jour</span>${ic('chevron')}</button><div class="gb-body"><div><small>${detail} · source : UNPPCI</small>${freshLine(stt)}</div></div>`;
+      el.innerHTML = `<button type="button" class="gb-head" aria-expanded="${open}">${ic('cross')}<span class="gb-title"><b>De garde</b> du ${esc(fmtDay(g.du))} au ${esc(fmtDay(g.au))}<small class="gb-maj">${(ph.gardes && ph.gardes.maj) || g.maj ? `Liste mise à jour le ${esc(fmtDay((ph.gardes && ph.gardes.maj) || g.maj))}` : 'Liste UNPPCI de la semaine'}${ph.checking ? ' · vérification…' : ph.checkedAt && !ph.checkFailed ? ` · vérifiée ${fmtAgo(ph.checkedAt)}` : ph.checkedAt ? ` · hors ligne` : ''}</small></span><span class="fresh ok${ph.checking ? ' checking' : ''}"><i></i>À jour</span>${ic('chevron')}</button><div class="gb-body"><div><small>${detail} · source : UNPPCI</small>${freshLine(stt)}</div></div>`;
     } else {
       el.className = 'garde-banner warn';
       el.innerHTML = `${ic('info')}<span><b>Liste de garde ${stt === 'expired' ? 'expirée' : stt === 'future' ? 'pas encore en vigueur' : 'indisponible'}</b><small>${stt === 'expired' ? `Dernière liste : semaine du ${esc(fmtDay(g.du))}. ` : ''}Connectez-vous à internet pour recevoir la liste de la semaine. En attendant, les pharmacies ouvertes sont indiquées selon leurs horaires.</small>${freshLine(stt)}</span>`;
@@ -5105,6 +5149,7 @@
     el.style.setProperty('--cl-top', rgbS(ct)); el.style.setProperty('--cl-bot', rgbS(cb));
     el.style.setProperty('--haze', w.fog ? '0.55' : w.rain ? '0.22' : '0');
     el.classList.toggle('thunder', w.storm);
+    if (wx.d && wx.day !== undefined && wx.day !== (e > -0.8)) renderWx(); // lever / coucher du soleil : l'icône change aussi
     rainSet(w.rain);
     syncBars();
   }
@@ -5153,13 +5198,16 @@
     else inner = cloud('front dark') + bolt;
     return `<svg viewBox="0 0 40 40" aria-hidden="true">${inner}</svg>`;
   }
+  // jour ou nuit d'après la hauteur réelle du soleil ici et maintenant (pas d'après un relevé qui peut dater)
+  function wxDay() { const lat = state.pos ? state.pos[0] : 5.33, lon = state.pos ? state.pos[1] : -4.03; return sunElev(new Date(), lat, lon) > -0.8; }
   const WX_TXT = c => c === 0 ? 'Ciel dégagé' : c === 1 ? 'Peu nuageux' : c === 2 ? 'Partiellement nuageux' : c === 3 ? 'Couvert' : c <= 48 ? 'Brouillard' : c <= 57 ? 'Bruine' : c <= 67 ? 'Pluie' : c <= 82 ? 'Averses' : 'Orage';
   function renderWx() {
     const b = $('wx'); if (!b) return;
     if (!wx.d) { b.hidden = true; return; }
     const w = wxNow();
     b.hidden = false;
-    $('wx-ic').innerHTML = wxIcon(w.code, wx.d.isDay !== 0);
+    wx.day = wxDay();
+    $('wx-ic').innerHTML = wxIcon(w.code, wx.day);
     $('wx-t').textContent = `${Math.round(wx.d.temp)} °C`;
     b.setAttribute('aria-label', `Météo : ${WX_TXT(w.code)}, ${Math.round(wx.d.temp)} degrés`);
     b.title = WX_TXT(w.code);
@@ -5221,7 +5269,7 @@
   function ladsCaption() {
     const a = DEMO_ADS[lads.i], p = lads.pts[lads.i]; if (!a || !p || !state.pos) return;
     const m = Math.max(5, Math.round(dist(state.pos, p) * 1000 / 5) * 5);
-    $('lads-cap').innerHTML = `Regardez près de vous ${m < 1000 ? `à ${m} m` : `à ${(m / 1000).toFixed(1).replace('.', ',')} km`} chez <b>${esc(a.brand)}</b>`;
+    $('lads-cap').innerHTML = `${ic('pin')}<span>${m < 1000 ? `${m} m` : `${(m / 1000).toFixed(1).replace('.', ',')} km`} · <b>${esc(a.brand)}</b></span>`;
   }
   function ladsGo(i) {
     const rail = $('lads-rail'), n = DEMO_ADS.length;
