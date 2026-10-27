@@ -91,6 +91,13 @@ alter table public.campagnes add constraint campagnes_cat_check check (cat in ('
 alter table public.campagnes drop constraint if exists campagnes_couleur_check;
 alter table public.campagnes add constraint campagnes_couleur_check check (couleur in ('jaune', 'orange', 'rouge', 'vert', 'bleu', 'violet', 'noir'));
 alter table public.campagnes alter column titre drop not null;
+-- contrôles de texte tolérants (une ancienne version exigeait un titre de 2 caractères minimum)
+alter table public.campagnes drop constraint if exists campagnes_titre_check;
+alter table public.campagnes add constraint campagnes_titre_check check (titre is null or char_length(titre) <= 40);
+alter table public.campagnes drop constraint if exists campagnes_sous_titre_check;
+alter table public.campagnes add constraint campagnes_sous_titre_check check (sous_titre is null or char_length(sous_titre) <= 60);
+alter table public.campagnes drop constraint if exists campagnes_accroche_check;
+alter table public.campagnes add constraint campagnes_accroche_check check (accroche is null or char_length(accroche) <= 14);
 create index if not exists campagnes_actives on public.campagnes (fin) where statut = 'active';
 create index if not exists campagnes_owner on public.campagnes (owner_hash);
 alter table public.campagnes enable row level security;
@@ -156,7 +163,7 @@ begin
     insert into campagnes (owner_hash, commerce, cat, tel, whatsapp, lat, lon, gps_acc, rayon_m, exclusif, formule, debut, fin, modele, titre, sous_titre, accroche, cta, couleur, image, statut, prix, paye)
     values (h, btrim(p->>'commerce'), coalesce(p->>'cat', 'shop'), nullif(regexp_replace(coalesce(p->>'tel', ''), '\D', '', 'g'), ''), coalesce((p->>'whatsapp')::boolean, true),
       (p->>'lat')::float8, (p->>'lon')::float8, (p->>'gps_acc')::real, coalesce((p->>'rayon_m')::int, 500), coalesce((p->>'exclusif')::boolean, false),
-      t.formule, deb, deb + t.jours - 1, coalesce(p->>'modele', 'promo'), nullif(btrim(p->>'titre'), ''), nullif(btrim(p->>'sous_titre'), ''), nullif(btrim(p->>'accroche'), ''),
+      t.formule, deb, deb + t.jours - 1, coalesce(p->>'modele', 'promo'), left(nullif(btrim(p->>'titre'), ''), 40), left(nullif(btrim(p->>'sous_titre'), ''), 60), left(nullif(btrim(p->>'accroche'), ''), 14),
       coalesce(p->>'cta', 'appel'), coalesce(p->>'couleur', 'jaune'), nullif(p->>'image', ''),
       case when valide then 'a_valider' else 'active' end, regie_prix(t.formule, coalesce((p->>'rayon_m')::int, 500), coalesce((p->>'exclusif')::boolean, false)), true)
     returning id into v;
@@ -166,7 +173,7 @@ begin
     update campagnes set commerce = btrim(p->>'commerce'), cat = coalesce(p->>'cat', cat), tel = nullif(regexp_replace(coalesce(p->>'tel', ''), '\D', '', 'g'), ''),
       whatsapp = coalesce((p->>'whatsapp')::boolean, whatsapp), lat = (p->>'lat')::float8, lon = (p->>'lon')::float8, gps_acc = (p->>'gps_acc')::real,
       rayon_m = coalesce((p->>'rayon_m')::int, rayon_m), exclusif = coalesce((p->>'exclusif')::boolean, exclusif),
-      modele = coalesce(p->>'modele', modele), titre = nullif(btrim(p->>'titre'), ''), sous_titre = nullif(btrim(p->>'sous_titre'), ''), accroche = nullif(btrim(p->>'accroche'), ''),
+      modele = coalesce(p->>'modele', modele), titre = left(nullif(btrim(p->>'titre'), ''), 40), sous_titre = left(nullif(btrim(p->>'sous_titre'), ''), 60), accroche = left(nullif(btrim(p->>'accroche'), ''), 14),
       cta = coalesce(p->>'cta', cta), couleur = coalesce(p->>'couleur', couleur), image = case when p ? 'image' then nullif(p->>'image', '') else image end,
       statut = case when valide and statut = 'active' then 'a_valider' else statut end, updated_at = now()
     where id = v;
