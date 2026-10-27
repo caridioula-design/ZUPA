@@ -34,5 +34,9 @@ out.push(imo.s === 200 ? `Imo OK${imoGps && imoGps.s >= 400 && /GPS/.test(imoGps
 const rgt = await call('/rest/v1/regie_tarifs?select=formule');
 const rgc = await call('/rest/v1/campagnes?select=id');
 out.push(rgt.s === 200 && rgc.s === 200 ? 'Régie OK' : rgt.s === 404 || rgc.s === 404 ? 'RÉGIE NON INSTALLÉE : exécutez supabase/regie.sql' : 'Régie : ' + rgt.s + '/' + rgc.s);
+const cpt = await call('/rest/v1/rpc/compte_lire', { method: 'POST', body: '{}' });
+const aset = await call('/auth/v1/settings');
+let prov = ''; try { const e = JSON.parse((await (await fetch(url + '/auth/v1/settings', { headers: H })).text())).external || {}; prov = ['google', 'facebook'].map(k => k + (e[k] ? ' activé' : ' NON ACTIVÉ')).join(', '); } catch (_) { prov = 'fournisseurs : ' + aset.s; }
+out.push((cpt.s === 404 ? 'COMPTES NON INSTALLÉS : exécutez supabase/compte.sql' : cpt.s === 401 || cpt.s === 403 ? 'comptes OK (protégés)' : 'comptes : réponse ' + cpt.s) + ' — connexion ' + prov);
 const ok = lig.s === 200 && pub.s === 200 && psh.s !== 404 && blq.s !== 404 && popu.s === 200 && read.s === 200 && dev.s >= 400 && bad.s === 400 && upd.s >= 400;
 note(ok ? 'notice' : 'warning', out.join(' · '));

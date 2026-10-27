@@ -2045,7 +2045,7 @@
       : `<li class="muted">Aucun favori pour l'instant (${FAV_LIMIT} maximum).</li>`;
     renderCustomList();
     renderMyPlaces();
-    renderFriends(); renderPrivList(); renderGroups(); renderMyLines();
+    renderFriends(); renderPrivList(); renderGroups(); renderMyLines(); renderCompte();
     frRefresh(true);
     // les lieux reçus affichés sont considérés comme vus
     setTimeout(() => { if (current === 'screen-profile' && fr.recus.some(r => !r.lu)) { fr.recus.forEach(r => { if (!r.lu) { r.lu = true; rpc('lieu_recu_maj', { p_id: r.id }); } }); store.set('recus', fr.recus); syncBadge(); renderFriends(); } }, 4000);
@@ -4144,6 +4144,220 @@
     const App = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
     if (App && isNative()) App.addListener('backButton', () => { if (!goBack()) App.exitApp(); });
   } catch (_) {}
+
+  /* =====================================================================
+     COMPTE : connexion Google / Facebook (Supabase Auth) pour sauvegarder et
+     retrouver ses données après une réinstallation ou sur un nouveau téléphone.
+     - sauvegardé : prénom, nom, favoris, secret de l'appareil (amis, annonces,
+       clés, publicités), arrêts / lignes / bus ajoutés, code de secours…
+     - les lieux confidentiels (maison, travail) ne partent QUE si l'utilisateur
+       coche l'option (désactivée par défaut) ;
+     - la position, les caches et les statistiques ne sont jamais sauvegardés.
+     ===================================================================== */
+  const ACCT_KEYS = ['profile', 'secret', 'device', 'me', 'friends', 'groups', 'myPlaces', 'myLines', 'lignes', 'customStops', 'busCopies',
+    'cleSecours', 'cles', 'imoMine', 'recus', 'recusSeen', 'myMsgs', 'blocked', 'reported', 'imoReported', 'recents', 'recentPlaces',
+    'theme', 'mode', 'notifOn', 'phFilter', 'gardesManuelles'];
+  const ACCT_REDIRECT = 'ci.zupa.app://auth';
+  const acct = { s: store.get('compte', null), prov: null, busy: false, pending: null, timer: 0, err: '' };
+  const acctOn = () => !!(acct.s && acct.s.refresh);
+  const acctPrivOk = () => !!(acct.s && acct.s.priv);
+
+  async function acctFetch(path, opts = {}) {
+    const headers = { apikey: SB.key, 'Content-Type': 'application/json', ...(opts.headers || {}) };
+    const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 15000);
+    try {
+      const r = await fetch(SB.url + path, { method: opts.method || 'GET', headers, body: opts.body ? JSON.stringify(opts.body) : undefined, signal: ctl.signal, cache: 'no-store' });
+      const txt = await r.text(); let data = null; try { data = txt ? JSON.parse(txt) : null; } catch (_) {}
+      return { ok: r.ok, status: r.status, data };
+    } catch (_) { return { ok: false, status: 0, data: null, net: true }; }
+    finally { clearTimeout(t); }
+  }
+  function acctUser(u) {
+    const m = (u && u.user_metadata) || {};
+    return { email: (u && u.email) || m.email || '', name: m.full_name || m.name || '', avatar: m.avatar_url || m.picture || '',
+      provider: (u && u.app_metadata && u.app_metadata.provider) || '' };
+  }
+  function acctSave() { store.set('compte', acct.s); }
+  async function acctToken() {
+    if (!acctOn()) return null;
+    if (acct.s.access && Date.now() < (acct.s.exp || 0) - 60e3) return acct.s.access;
+    const r = await acctFetch('/auth/v1/token?grant_type=refresh_token', { method: 'POST', body: { refresh_token: acct.s.refresh } });
+    if (r.ok && r.data && r.data.access_token) {
+      Object.assign(acct.s, { access: r.data.access_token, refresh: r.data.refresh_token || acct.s.refresh, exp: Date.now() + (r.data.expires_in || 3600) * 1000 });
+      if (r.data.user) Object.assign(acct.s, acctUser(r.data.user));
+      acctSave(); return acct.s.access;
+    }
+    if (r.status === 400 || r.status === 401 || r.status === 403) { // session révoquée : on se déconnecte proprement, les données restent sur le téléphone
+      acct.s = null; acctSave(); renderCompte(); toast('Session du compte expirée : reconnectez-vous pour continuer la sauvegarde.', 'error', 6000);
+    }
+    return null;
+  }
+  async function acctRpc(fn, body) {
+    const tok = await acctToken(); if (!tok) return { ok: false, status: 401, data: null };
+    return acctFetch('/rest/v1/rpc/' + fn, { method: 'POST', body: body || {}, headers: { Authorization: 'Bearer ' + tok } });
+  }
+  function acctSnapshot() {
+    const data = {};
+    ACCT_KEYS.forEach(k => { const v = localStorage.getItem('zupa:' + k); if (v != null) data[k] = v; });
+    if (acctPrivOk()) { const v = localStorage.getItem('zupa:private'); if (v != null) data.private = v; }
+    return data;
+  }
+  function acctSummary(data) {
+    const p = (k, d) => { try { return data[k] == null ? d : JSON.parse(data[k]); } catch (_) { return d; } };
+    const prof = p('profile', {}) || {}, out = [];
+    const nm = [prof.firstname, prof.lastname].filter(Boolean).join(' ');
+    if (nm) out.push(nm);
+    const n = (a, one, many) => { const c = Array.isArray(a) ? a.length : 0; if (c) out.push(`${c} ${c > 1 ? many : one}`); };
+    n(prof.favorites, 'favori', 'favoris'); n(p('friends', []), 'ami', 'amis'); n(p('imoMine', []), 'annonce', 'annonces');
+    n(p('cles', []), 'clé', 'clés'); n(p('customStops', []), 'arrêt ajouté', 'arrêts ajoutés'); n(p('busCopies', []), 'bus ajouté', 'bus ajoutés');
+    n(p('myLines', []), 'ligne', 'lignes'); n(p('myPlaces', []), 'lieu partagé', 'lieux partagés');
+    if (data.private) out.push('lieux confidentiels');
+    return out.join(' · ') || 'aucune donnée personnelle';
+  }
+  async function acctPush(force) {
+    if (!acctOn() || acct.pending) return;
+    const data = acctSnapshot(), json = JSON.stringify(data);
+    if (!force && json === acct.lastJson) return;
+    if (json.length > 900000) { acct.err = 'Données trop volumineuses pour la sauvegarde.'; renderCompte(); return; }
+    const r = await acctRpc('compte_sauver', { p_data: data, p_device: deviceId });
+    if (r.ok) { acct.lastJson = json; acct.s.sync = Date.now(); acct.err = ''; acctSave(); }
+    else acct.err = r.status === 0 ? 'Hors ligne : sauvegarde au prochain réseau.' : r.status === 404 ? 'Sauvegarde non activée côté serveur (compte.sql).' : 'Sauvegarde impossible pour le moment.';
+    if (current === 'screen-profile') renderCompte();
+  }
+  function acctSoon() { if (!acctOn() || acct.pending) return; clearTimeout(acct.timer); acct.timer = setTimeout(() => acctPush(false), 5000); }
+  // toute écriture d'une donnée sauvegardée programme une sauvegarde (regroupée)
+  { const set0 = store.set; const watched = new Set(ACCT_KEYS.concat('private'));
+    store.set = (k, v) => { set0(k, v); if (watched.has(k)) acctSoon(); }; }
+  document.addEventListener('visibilitychange', () => { if (document.hidden && acctOn()) { clearTimeout(acct.timer); acctPush(false); } });
+
+  async function acctProviders() {
+    if (acct.prov || !sbOn()) return;
+    const r = await acctFetch('/auth/v1/settings');
+    acct.prov = r.ok && r.data && r.data.external ? { google: !!r.data.external.google, facebook: !!r.data.external.facebook } : { google: false, facebook: false, off: true };
+    if (current === 'screen-profile') renderCompte();
+  }
+  function acctLogin(provider) {
+    if (!sbOn()) { toast('Service en ligne non configuré.', 'error'); return; }
+    if (acct.prov && !acct.prov[provider]) { toast(`Connexion ${provider === 'google' ? 'Google' : 'Facebook'} pas encore activée.`, 'error', 5000); return; }
+    const back = isNative() ? ACCT_REDIRECT : location.origin + location.pathname;
+    toast('Ouverture de la connexion…', 'info', 2500);
+    openExternal(`${SB.url}/auth/v1/authorize?provider=${provider}&redirect_to=${encodeURIComponent(back)}`);
+  }
+  // retour de la page de connexion : ci.zupa.app://auth#access_token=…&refresh_token=…
+  async function acctCallback(url) {
+    const i = String(url || '').indexOf('#'); if (i < 0) return false;
+    const q = new URLSearchParams(String(url).slice(i + 1));
+    if (q.get('error') || q.get('error_description')) { toast('Connexion annulée : ' + (q.get('error_description') || q.get('error')).replace(/\+/g, ' '), 'error', 6000); return true; }
+    const access = q.get('access_token'), refresh = q.get('refresh_token');
+    if (!access || !refresh) return false;
+    acct.s = { access, refresh, exp: Date.now() + (+q.get('expires_in') || 3600) * 1000, priv: false };
+    const u = await acctFetch('/auth/v1/user', { headers: { Authorization: 'Bearer ' + access } });
+    if (u.ok) Object.assign(acct.s, acctUser(u.data));
+    acctSave();
+    await acctAfterLogin();
+    return true;
+  }
+  async function acctAfterLogin() {
+    acct.busy = true; renderCompte();
+    const r = await acctRpc('compte_lire');
+    acct.busy = false;
+    const row = r.ok ? (Array.isArray(r.data) ? r.data[0] : r.data) : null;
+    if (r.ok && (!row || !row.data)) { await acctPush(true); toast('Compte connecté : vos données sont sauvegardées.', 'success', 5000); }
+    else if (row && row.data) {
+      const same = row.device === deviceId || JSON.stringify(row.data) === JSON.stringify(acctSnapshot());
+      if (same) { acct.lastJson = JSON.stringify(row.data); acct.s.sync = Date.now(); acctSave(); acctPush(false); toast('Compte connecté.', 'success'); }
+      else { acct.pending = row; if (current !== 'screen-profile') show('screen-profile'); toast('Une sauvegarde existe pour ce compte : choisissez quoi faire.', 'info', 6000); }
+    } else toast(r.status === 404 ? 'Connecté, mais la sauvegarde n\'est pas encore activée sur le serveur.' : 'Connecté. Sauvegarde impossible pour le moment.', 'error', 6000);
+    renderCompte();
+  }
+  function acctRestore() {
+    const row = acct.pending; if (!row || !row.data) return;
+    const keep = acct.s;
+    ACCT_KEYS.concat('private').forEach(k => { if (k === 'private' && !row.data.private) return; try { localStorage.removeItem('zupa:' + k); } catch (_) {} });
+    Object.entries(row.data).forEach(([k, v]) => { if (k === 'private' || ACCT_KEYS.includes(k)) try { localStorage.setItem('zupa:' + k, v); } catch (_) {} });
+    if (row.data.private) keep.priv = true;
+    acct.pending = null; acct.s = keep; acctSave();
+    try { sessionStorage.setItem('zupa:restored', '1'); } catch (_) {}
+    location.reload();
+  }
+  async function acctReplace() {
+    if (!confirm('Remplacer la sauvegarde du compte par les données de ce téléphone ? L\'ancienne sauvegarde sera perdue.')) return;
+    acct.pending = null; await acctPush(true); toast('Sauvegarde remplacée par ce téléphone.', 'success'); renderCompte();
+  }
+  async function acctLogout() {
+    if (!confirm('Se déconnecter ? Vos données restent sur ce téléphone, mais ne seront plus sauvegardées.')) return;
+    await acctPush(false);
+    const tok = acct.s && acct.s.access;
+    if (tok) acctFetch('/auth/v1/logout', { method: 'POST', headers: { Authorization: 'Bearer ' + tok } });
+    acct.s = null; acct.pending = null; acctSave(); renderCompte();
+  }
+  async function acctForget() {
+    if (!confirm('Supprimer la sauvegarde en ligne et se déconnecter ? Les données de ce téléphone ne sont pas touchées.')) return;
+    const r = await acctRpc('compte_effacer');
+    if (r.ok) { acct.s.sync = 0; acct.lastJson = ''; acctSave(); toast('Sauvegarde en ligne supprimée, compte déconnecté.', 'success'); acct.s = null; acctSave(); renderCompte(); }
+    else toast('Suppression impossible pour le moment.', 'error');
+  }
+  const G_SVG = '<svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>';
+  const F_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="#fff" d="M14 13.5h2.5l1-4H14v-2c0-1 0-2 2-2h1.5V2.1C17.2 2.1 15.9 2 14.5 2 11.6 2 9.5 3.8 9.5 7v2.5h-3v4h3V22h4.5z"/></svg>';
+  function renderCompte() {
+    const el = $('acct-card'); if (!el) return;
+    if (!sbOn()) { el.hidden = true; return; }
+    el.hidden = false; acctProviders();
+    if (!acctOn()) {
+      const p = acct.prov || {};
+      el.innerHTML = `<h3>Mon compte</h3>
+        <p class="acct-txt">Connectez-vous pour <b>retrouver votre profil, vos favoris, vos amis, vos annonces et vos clés</b> après une mise à jour, une réinstallation ou sur un nouveau téléphone.</p>
+        <button class="acct-btn g" type="button" data-acct="google"${acct.prov && !p.google ? ' aria-disabled="true"' : ''}>${G_SVG}<span>Continuer avec Google</span></button>
+        <button class="acct-btn f" type="button" data-acct="facebook"${acct.prov && !p.facebook ? ' aria-disabled="true"' : ''}>${F_SVG}<span>Continuer avec Facebook</span></button>
+        ${acct.prov && !p.google && !p.facebook ? '<p class="acct-note">La connexion sera disponible très bientôt.</p>' : ''}
+        <p class="acct-note">Vos lieux confidentiels (maison, travail) et votre position ne sont jamais envoyés sans votre accord.</p>`;
+    } else {
+      const s = acct.s, row = acct.pending;
+      const who = esc(s.name || s.email || 'Compte connecté');
+      const av = s.avatar ? `<img src="${esc(s.avatar)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : '';
+      const pv = s.provider === 'facebook' ? 'Facebook' : s.provider === 'google' ? 'Google' : '';
+      el.innerHTML = `<h3>Mon compte</h3>
+        <div class="acct-who"><span class="acct-av">${av}<i>${esc((s.name || s.email || '?').trim().charAt(0).toUpperCase())}</i></span>
+          <div><b>${who}</b><small>${esc([pv, s.name ? s.email : ''].filter(Boolean).join(' · '))}</small></div></div>
+        ${row ? `<div class="acct-pend"><b>Sauvegarde trouvée</b><small>du ${esc(new Date(row.updated_at).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }))}</small>
+            <p>${esc(acctSummary(row.data))}</p>
+            <button class="btn primary block" type="button" data-acct="restore">Restaurer mes données</button>
+            <button class="btn ghost block" type="button" data-acct="replace">Garder ce téléphone (remplace la sauvegarde)</button></div>`
+          : `<p class="acct-sync">${acct.busy ? 'Vérification de la sauvegarde…' : acct.err ? esc(acct.err) : s.sync ? 'Sauvegarde automatique · dernière le ' + esc(new Date(s.sync).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })) : 'Sauvegarde automatique activée'}</p>
+            <label class="acct-opt"><input type="checkbox" id="acct-priv"${s.priv ? ' checked' : ''}><span>Inclure mes lieux confidentiels (maison, travail)</span></label>
+            <div class="acct-row"><button class="btn ghost sm" type="button" data-acct="sync">Sauvegarder maintenant</button>
+            <button class="btn ghost sm" type="button" data-acct="logout">Se déconnecter</button></div>
+            <button class="acct-del" type="button" data-acct="forget">Supprimer la sauvegarde en ligne</button>`}`;
+      const cb = $('acct-priv'); if (cb) cb.onchange = () => { acct.s.priv = cb.checked; acctSave(); acctPush(true); };
+    }
+    el.querySelectorAll('[data-acct]').forEach(b => b.onclick = () => {
+      const a = b.dataset.acct;
+      if (a === 'google' || a === 'facebook') acctLogin(a);
+      else if (a === 'restore') acctRestore();
+      else if (a === 'replace') acctReplace();
+      else if (a === 'sync') { acctPush(true).then(() => { if (!acct.err) toast('Données sauvegardées.', 'success'); }); }
+      else if (a === 'logout') acctLogout();
+      else if (a === 'forget') acctForget();
+    });
+  }
+  function acctBoot() {
+    try { if (sessionStorage.getItem('zupa:restored')) { sessionStorage.removeItem('zupa:restored'); setTimeout(() => toast('Vos données ont été restaurées.', 'success', 5000), 600); } } catch (_) {}
+    try {
+      const App = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+      if (App && isNative()) {
+        App.addListener('appUrlOpen', e => { if (e && /^ci\.zupa\.app:\/\/auth/.test(e.url || '')) acctCallback(e.url); });
+        App.getLaunchUrl && App.getLaunchUrl().then(r => { if (r && /^ci\.zupa\.app:\/\/auth/.test(r.url || '')) acctCallback(r.url); }).catch(() => {});
+      }
+    } catch (_) {}
+    const fromHash = () => {
+      if (!/access_token=|error_description=/.test(location.hash)) return false;
+      const h = location.hash; history.replaceState(null, '', location.pathname + location.search);
+      acctCallback(h); return true;
+    };
+    window.addEventListener('hashchange', fromHash);
+    if (!fromHash() && acctOn()) setTimeout(() => acctPush(false), 4000);
+  }
+  acctBoot();
 
   /* =====================================================================
      IMO : logements mis en location par des particuliers et des agents
