@@ -1700,3 +1700,15 @@ html{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .lads-cap{display:flex;align-items:center;justify-content:center;gap:4px;height:20px;margin:0 0 8px;font-size:.8rem;font-weight:500;white-space:nowrap;overflow:hidden;line-height:20px;opacity:.95}
 .lads-cap .ic{width:14px;height:14px;flex:none}
 .lads-cap span{overflow:hidden;text-overflow:ellipsis}
+/* numéro de bus signalé par l'utilisateur, à confirmer */
+.lb.unv{background:transparent;color:var(--text-2);border:1.5px dashed currentColor;--c:transparent}
+.as-mode{margin-bottom:12px}
+.as-ext-list{display:grid;gap:6px;margin-top:8px}
+.as-ext{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border-radius:14px;border:1.5px solid var(--border);background:var(--surface);text-align:left;color:var(--text)}
+.as-ext.on{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 8%,var(--surface))}
+.as-ext>.ic{width:20px;height:20px;color:var(--brand);flex:none}
+.as-ext>span{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.as-ext>span b{font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.as-ext>small{color:var(--text-3);font-size:.76rem}
+.as-num-row{display:flex;gap:8px;margin-top:10px}
+.as-num-row .input{flex:1;text-transform:uppercase}
