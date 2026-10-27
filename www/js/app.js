@@ -22,8 +22,21 @@
       return { name: `${LINE_TYPES[r.type].label} ${ref}: ${a[0].name} → ${a[a.length - 1].name}`, kind: r.type, ref, cost: r.tarif || null, stops: a.map(x => ({ name: x.name, lat: +x.lat, lon: +x.lon })) };
     });
   }
-  let D = Core.build(RAW.concat(extraLines()), customStops);
-  function rebuildNetwork() { D = Core.build(RAW.concat(extraLines()), customStops); }
+  // Nouveaux bus qui suivent le trajet d'une ligne existante (ex. le 981 fait le même parcours que le 04)
+  const busCopiesGet = () => { try { const v = JSON.parse(localStorage.getItem('zupa:busCopies') || '[]'); return Array.isArray(v) ? v : []; } catch (_) { return []; } };
+  function busCopies() {
+    const out = [];
+    for (const bc of busCopiesGet()) {
+      const num = String(bc.num || '').toUpperCase().replace(/[^0-9A-Z]/g, ''); if (!num) continue;
+      for (const nm of bc.from || []) {
+        const l = RAW.find(x => x.name === nm); if (!l || !Array.isArray(l.stops)) continue;
+        out.push({ name: `Bus ${num}: ${String(l.name).split(':').slice(1).join(':').trim() || l.name}`, ref: num, kind: 'bus', cost: l.cost || null, copyOf: l.name, stops: l.stops });
+      }
+    }
+    return out;
+  }
+  let D = Core.build(RAW.concat(extraLines(), busCopies()), customStops);
+  function rebuildNetwork() { D = Core.build(RAW.concat(extraLines(), busCopies()), customStops); }
 
   /* ---------- Icônes ---------- */
   const ICONS = {
@@ -2169,7 +2182,11 @@
   function renderLinks() {
     const ul = $('as-links');
     if (!draft.links.length && !(draft.nums || []).length) { ul.innerHTML = ''; return; }
-    ul.innerHTML = (draft.nums || []).map((n, i) => `<li><span class="lb unv">${esc(n)}</span><div><b>Bus ${esc(n)}</b><br><small>Absent de nos lignes : affiché à l’arrêt (à confirmer), pas encore utilisé pour les itinéraires.</small></div><button type="button" class="x-btn" data-unnum="${i}" aria-label="Retirer ce numéro">${ic('close')}</button></li>`).join('') + draft.links.map((n, i) => {
+    const busNums = lineNums().filter(n => (D.lines.find(l => l.num === n) || {}).kind === 'bus');
+    draft.numFrom = draft.numFrom || {};
+    ul.innerHTML = (draft.nums || []).map((n, i) => `<li><span class="lb unv">${esc(n)}</span><div><b>Bus ${esc(n)}</b>
+      <label class="as-follow">Il suit le trajet de la ligne <select class="input sm" data-numfrom="${esc(n)}"><option value="">trajet inconnu</option>${busNums.map(x => `<option value="${esc(x)}"${draft.numFrom[n] === x ? ' selected' : ''}>${esc(x)} · ${esc((D.lines.find(l => l.num === x).title || '').split('→')[0])}</option>`).join('')}</select></label>
+      <small>${draft.numFrom[n] ? `Le bus ${esc(n)} sera ajouté sur tout le trajet de la ligne ${esc(draft.numFrom[n])} (les deux sens) et servira aux itinéraires.` : 'Trajet inconnu : affiché à l’arrêt (à confirmer), pas encore utilisé pour les itinéraires.'}</small></div><button type="button" class="x-btn" data-unnum="${i}" aria-label="Retirer ce numéro">${ic('close')}</button></li>`).join('') + draft.links.map((n, i) => {
       const l = lineByName(n);
       if (!l) return '';
       let where = '';
@@ -2183,6 +2200,10 @@
       return `<li>${lineBadge(l.num)}<div><b>${esc(l.title || l.name)}</b>${where}</div><button type="button" class="x-btn" data-unlink="${i}" aria-label="Retirer ce bus">${ic('close')}</button></li>`;
     }).join('');
   }
+  $('as-links').addEventListener('change', e => {
+    const sel = e.target.closest('[data-numfrom]'); if (!sel) return;
+    draft.numFrom = draft.numFrom || {}; draft.numFrom[sel.dataset.numfrom] = sel.value; renderLinks();
+  });
   $('as-links').addEventListener('click', e => {
     const b = e.target.closest('[data-unlink]');
     if (b) { draft.links.splice(+b.dataset.unlink, 1); renderLinks(); }
@@ -2298,13 +2319,23 @@
       name, lat: draft.lat, lon: draft.lon, links: draft.links.slice(), nums: (draft.nums || []).slice(), ext: !!draft.ext,
       note: $('as-note').value.trim(), created: draft.created || new Date().toISOString(), updated: new Date().toISOString()
     };
+    const follow = Object.entries(draft.numFrom || {}).filter(([n, from]) => from && rec.nums.includes(n));
+    if (follow.length) {
+      const all = busCopiesGet().filter(bc => !follow.some(([n]) => bc.num === n));
+      follow.forEach(([n, from]) => all.push({ num: n, from: RAW.filter(l => D.lines.some(d => d.name === l.name && d.num === from)).map(l => l.name), via: from, created: new Date().toISOString() }));
+      try { localStorage.setItem('zupa:busCopies', JSON.stringify(all)); } catch (_) {}
+      rebuildNetwork();
+      // l'arrêt est relié au nouveau bus (il est inséré sur son trajet s'il n'y est pas déjà)
+      follow.forEach(([n]) => { D.lines.filter(l => l.num === n).forEach(l => { if (!rec.links.includes(l.name)) rec.links.push(l.name); }); rec.nums = rec.nums.filter(x => x !== n); });
+    }
     const i = customStops.findIndex(c => c.id === rec.id);
     if (i >= 0) customStops[i] = rec; else customStops.push(rec);
     saveCustom();
     rebuildNetwork();
     const isNew = i < 0;
     draft = null;
-    toast(rec.ext ? `Bus ${[...new Set(rec.links.map(n => (lineByName(n) || Core.parseName(n)).num)), ...rec.nums].join(', ')} ajouté${rec.links.length + rec.nums.length > 1 ? 's' : ''} à « ${name} ».` : isNew ? `Arrêt « ${name} » enregistré.` : 'Arrêt modifié.', 'success', 5000, {
+    const addedNums = [...new Set(rec.links.map(n => (lineByName(n) || Core.parseName(n)).num).concat(rec.nums))];
+    toast(rec.ext ? `Bus ${addedNums.join(', ')} ajouté${addedNums.length > 1 ? 's' : ''} à « ${name} ».` : isNew ? `Arrêt « ${name} » enregistré.` : 'Arrêt modifié.', 'success', 5000, {
       text: 'Y aller', fn: () => { const s = Core.resolveStop(D, name) || Core.nearbyStops(D, rec.lat, rec.lon, 0.1, 1).map(n => n.stop)[0]; if (s) { setOriginStop(null); setDest(s); runSearch(); } }
     });
     show(asBackTo === 'screen-addstop' ? 'screen-profile' : asBackTo);
@@ -2331,7 +2362,13 @@
   $('cta-addstop').onclick = () => openAddStop(null, 'screen-home');
   $('add-stop-btn').onclick = () => openAddStop(null, 'screen-profile');
 
+  function renderBusCopies() {
+    const box = $('bus-copies'); if (!box) return;
+    const bcs = busCopiesGet();
+    box.innerHTML = bcs.length ? `<p class="muted bc-h">Bus ajoutés sur une ligne existante</p>` + bcs.map((bc, i) => `<li>${ic('bus')}<span>Bus ${esc(bc.num)}<br><small class="muted">même trajet que la ligne ${esc(bc.via || '?')}</small></span><button class="btn ghost sm" data-bc-del="${i}">Retirer</button></li>`).join('') : '';
+  }
   function renderCustomList() {
+    renderBusCopies();
     const ul = $('custom-list');
     if (!customStops.length) { ul.innerHTML = '<li class="muted">Aucun arrêt ajouté pour l\'instant.</li>'; $('export-stops').disabled = true; return; }
     $('export-stops').disabled = false;
@@ -2340,6 +2377,12 @@
       return `<li>${ic('addPin')}<span>${esc(c.name)}${c.ext ? ' <small class="muted">(arrêt existant)</small>' : ''}<br><small class="muted">${nums.length ? 'Bus ' + nums.map(esc).join(', ') : 'Sans bus'}${c.note ? ' · ' + esc(c.note) : ''}</small></span><button class="btn ghost sm" data-edit-stop="${esc(c.id)}">Modifier</button></li>`;
     }).join('');
   }
+  $('bus-copies').addEventListener('click', e => {
+    const b = e.target.closest('[data-bc-del]'); if (!b) return;
+    const all = busCopiesGet(), bc = all[+b.dataset.bcDel]; if (!bc || !confirm(`Retirer le bus ${bc.num} ?`)) return;
+    all.splice(+b.dataset.bcDel, 1); try { localStorage.setItem('zupa:busCopies', JSON.stringify(all)); } catch (_) {}
+    rebuildNetwork(); renderCustomList(); toast(`Bus ${bc.num} retiré.`);
+  });
   $('custom-list').addEventListener('click', e => {
     const b = e.target.closest('[data-edit-stop]');
     if (b) openAddStop(b.dataset.editStop, 'screen-profile');
@@ -5272,6 +5315,7 @@
   // dessin d'une campagne à partir de son modèle (le même rendu sert à l'aperçu de l'espace commercial)
   function campHtml(c, tag) {
     const [c1, c2, ink, acc] = CAMP_COL[c.couleur] || CAMP_COL.jaune;
+    if (c.modele === 'visuel') return `<div class="zad cz cz-visuel" style="--z1:${c1};--z2:${c2}"><span class="zad-tag">${tag || 'Publicité'}</span>${c.image ? `<img class="cz-full" src="${c.image}" alt="">` : '<span class="cz-empty">Votre visuel</span>'}</div>`;
     const art = c.image ? `<div class="cz-art photo"><img src="${c.image}" alt=""></div>` : `<div class="cz-art">${ic(CAMP_CAT_IC[c.cat] || 'explore')}</div>`;
     const txt = `<div class="cz-txt">${c.modele === 'service' ? `<small class="cz-kick">${esc(c.commerce)}</small>` : ''}<b class="cz-t">${esc(c.titre || 'Votre titre')}</b>${c.accroche ? `<b class="cz-acc">${esc(c.accroche)}</b>` : ''}${c.sous_titre ? `<small class="cz-sub">${esc(c.sous_titre)}</small>` : ''}<span class="cz-cta">${CTA_TXT[c.cta] || 'Appeler'} ›</span></div>`;
     return `<div class="zad cz cz-${c.modele || 'promo'}" style="--z1:${c1};--z2:${c2};--zi:${ink};--za:${acc}"><span class="zad-tag">${tag || 'Publicité'}</span>${c.modele === 'produit' ? art + txt : c.modele === 'resto' ? txt + art : art + txt}</div>`;
@@ -5389,7 +5433,7 @@
     const b = e.target.closest('[data-ad]'); if (!b) return;
     const it = lads.items[+b.dataset.ad]; if (!it) return;
     if (it.demo) { toast(`« ${it.brand} » est une publicité fictive : les vraies offres des commerces près de vous arrivent bientôt.`, 'info', 5000); return; }
-    if (it.house) { if (CONFIG.adsContact) openExternal(CONFIG.adsContact); else toast('Commerçants : contactez ZUPA pour poser votre panneau publicitaire virtuel dans votre quartier.', 'info', 6000); return; }
+    if (it.house) { openRegie(true); return; }
     campOpen(it.c);
   });
   // toucher une pub : les actions du commerce (chaque action est comptée, sans savoir qui l'a faite)
@@ -5417,40 +5461,26 @@
   });
 
   /* =====================================================================
-     RÉGIE — espace des commerciaux (et de l'administrateur)
-     Création des campagnes au point de vente (GPS sur place), aperçu en direct, prix, paiement Mobile Money noté,
-     validation par l'administrateur, statistiques et bilan envoyé au commerçant sur WhatsApp.
+     MA PUBLICITÉ — chaque utilisateur crée la publicité de son commerce (démo : diffusion immédiate)
+     Point de vente localisé sur place, modèle rapide, éditeur de visuel ou visuel prêt au gabarit 1000 × 800.
      ===================================================================== */
-  const rg = { code: store.get('regieCode', ''), role: null, nom: '', list: [], view: 'login', filter: 'a_valider', f: null, tarifs: [], opts: {}, team: [], stats: null, busy: false };
+  const rg = { list: [], view: 'liste', f: null, tarifs: [], opts: {}, stats: null, busy: false };
   const RG_CATS = [['resto', 'Restaurant'], ['maquis', 'Maquis / bar'], ['shop', 'Boutique'], ['supermarche', 'Supermarché'], ['marche', 'Marché'], ['hotel', 'Hôtel'], ['station', 'Station'], ['pharma', 'Pharmacie'], ['sante', 'Santé'], ['service', 'Service'], ['autre', 'Autre']];
   const RG_MOD = [['promo', 'Promotion'], ['produit', 'Produit + photo'], ['resto', 'Plat / menu'], ['service', 'Service']];
-  const RG_PAY = ['Wave', 'Orange Money', 'MTN MoMo', 'Moov Money', 'Espèces'];
-  const RG_ST = { a_valider: ['wait', 'à valider'], active: ['ok', 'en ligne'], pause: ['', 'en pause'], refusee: ['bad', 'refusée'] };
-  const rgCall = (fn, body) => sb('/rest/v1/rpc/' + fn, { method: 'POST', body, timeout: 25000 });
-  const rgRpc = (fn, body) => rgCall(fn, { p_code: rg.code, ...body });
-  const rgErr = r => r.net ? 'Pas de connexion internet.' : r.status === 404 ? 'La régie n’est pas encore installée (supabase/regie.sql).' : sbErr(r);
-  const dFr = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '';
+  const RG_ST = { a_valider: ['wait', 'en vérification'], active: ['ok', 'en ligne'], pause: ['', 'en pause'], refusee: ['bad', 'refusée'] };
+  const rgRpc = (fn, body) => sb('/rest/v1/rpc/' + fn, { method: 'POST', body: { p_secret: mySecret, ...body }, timeout: 30000 });
+  const rgErr = r => r.net ? 'Pas de connexion internet.' : r.status === 404 ? 'La publicité n’est pas encore activée sur le serveur (supabase/regie.sql).' : sbErr(r);
+  const dFr = d => d ? new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '';
 
-  async function openRegie() {
+  async function openRegie(newOne) {
     if (!sbOn()) { toast('Base partagée non configurée.', 'error'); return; }
     show('screen-regie');
-    if (!rg.code) { rg.view = 'login'; renderRg(); return; }
     rg.view = 'liste'; renderRg();
-    if (!(await rgLogin(rg.code, true))) { rg.view = 'login'; renderRg(); }
-  }
-  async function rgLogin(code, quiet) {
-    let r = await rgCall('regie_role', { p_code: code });
-    if (r.ok && !r.data && code !== code.toUpperCase()) { const r2 = await rgCall('regie_role', { p_code: code.toUpperCase() }); if (r2.ok && r2.data) { r = r2; code = code.toUpperCase(); } }
-    if (!r.ok) { if (!quiet) toast(rgErr(r), 'error'); return false; }
-    if (!r.data) { if (!quiet) toast('Code incorrect ou désactivé.', 'error'); store.set('regieCode', ''); rg.code = ''; return false; }
-    rg.code = code; rg.role = r.data.role; rg.nom = r.data.nom; store.set('regieCode', code);
-    rg.filter = rg.role === 'admin' ? 'a_valider' : 'tous';
-    await Promise.all([rgLoad(), rgTarifs()]);
-    if (rg.view === 'login') rg.view = 'liste';
-    renderRg(); return true;
+    await Promise.all([rgLoad(), rg.tarifs.length ? null : rgTarifs()]);
+    if (newOne || !rg.list.length) rgNew(); else renderRg();
   }
   async function rgLoad() {
-    const r = await rgRpc('campagnes_liste', {});
+    const r = await rgRpc('mes_campagnes', {});
     if (r.ok && Array.isArray(r.data)) rg.list = r.data;
     if (current === 'screen-regie' && rg.view === 'liste') renderRg();
   }
@@ -5458,141 +5488,294 @@
     const [a, b] = await Promise.all([sb('/rest/v1/regie_tarifs?select=*&order=ordre'), sb('/rest/v1/regie_options?select=*')]);
     if (a.ok && Array.isArray(a.data)) rg.tarifs = a.data;
     if (b.ok && Array.isArray(b.data)) rg.opts = Object.fromEntries(b.data.map(o => [o.cle, o.pourcent]));
+    if (!rg.tarifs.length) rg.tarifs = [{ formule: 'quartier7', libelle: 'Quartier · 7 jours', jours: 7, prix: 15000 }, { formule: 'quartier30', libelle: 'Quartier · 30 jours', jours: 30, prix: 45000 }, { formule: 'ville30', libelle: 'Toute la ville · 30 jours', jours: 30, prix: 150000 }];
   }
   function rgPrice(f) {
     const t = rg.tarifs.find(x => x.formule === f.formule); if (!t) return 0;
     return Math.round(t.prix * (100 + (rg.opts['rayon' + f.rayon_m] || 0) + (f.exclusif ? rg.opts.exclusif || 0 : 0)) / 100);
   }
-  const rgStatsLine = st => st ? `${ic('explore')}<b>${money(st.vues)}</b> vues · <b>${money(st.touchers)}</b> touchers · <b>${money(st.appels)}</b> appels · <b>${money(st.itineraires)}</b> itin. · <b>${money(st.visites)}</b> visites` : '';
+  const rgStatsLine = st => st ? `${ic('explore')}<b>${money(st.vues)}</b> vues · <b>${money(st.touchers)}</b> touchers · <b>${money(st.appels)}</b> appels · <b>${money(st.visites)}</b> passages` : '';
+  const chips = (name, list, cur) => `<div class="ap-chips" data-rg="${name}">${list.map(([k, l]) => `<button type="button" data-v="${esc(String(k))}" class="${String(cur) === String(k) ? 'on' : ''}">${l}</button>`).join('')}</div>`;
 
   function renderRg() {
     const b = $('rg-body'); if (!b) return;
-    $('rg-title').textContent = { login: 'Régie publicitaire', liste: 'Mes campagnes', form: rg.f && rg.f.id ? 'Modifier la campagne' : 'Nouvelle campagne', stats: 'Statistiques', team: 'Commerciaux' }[rg.view];
-    $('rg-sub').textContent = rg.role ? `${rg.nom} · ${rg.role === 'admin' ? 'administrateur' : 'commercial'}` : 'Panneaux virtuels près des points de vente';
-    if (rg.view === 'login') {
-      b.innerHTML = `<form class="card form" id="rg-login" novalidate><p>Espace réservé aux commerciaux ZUPA et à l’administrateur. Saisissez votre code personnel.</p>
-        <label for="rg-code">Code</label><input class="input" id="rg-code" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ex. KOFFI-2026">
-        <button class="btn primary block" type="submit">Entrer</button></form>`;
-      setTimeout(() => $('rg-code') && $('rg-code').focus(), 250); return;
-    }
+    $('rg-title').textContent = { liste: 'Ma publicité', form: rg.f && rg.f.id ? 'Modifier la publicité' : 'Nouvelle publicité', stats: 'Statistiques', editor: 'Créer le visuel' }[rg.view];
+    $('rg-sub').textContent = rg.view === 'editor' ? 'Déplacez, tournez, agrandissez les éléments' : 'Un panneau virtuel près de votre point de vente · démo gratuite';
     if (rg.view === 'liste') {
-      const n = k => rg.list.filter(c => k === 'tous' || c.statut === k).length;
-      const rows = rg.list.filter(c => rg.filter === 'tous' || c.statut === rg.filter);
       const tod = new Date().toISOString().slice(0, 10);
-      b.innerHTML = `<div class="rg-top"><button type="button" class="btn primary" id="rg-new">${ic('plus')}Nouvelle campagne</button>${rg.role === 'admin' ? `<button type="button" class="btn ghost" id="rg-team">${ic('groups')}Commerciaux</button>` : ''}</div>
-        <div class="ap-chips rg-filt">${[['a_valider', 'À valider'], ['active', 'En ligne'], ['pause', 'En pause'], ['refusee', 'Refusées'], ['tous', 'Toutes']].map(([k, l]) => `<button type="button" data-rf="${k}" class="${rg.filter === k ? 'on' : ''}">${l} <small>${n(k)}</small></button>`).join('')}</div>
-        ${rows.length ? rows.map(c => { const [cls, lbl] = RG_ST[c.statut] || ['', c.statut]; const [c1, c2] = CAMP_COL[c.couleur] || CAMP_COL.jaune; const fini = c.fin < tod;
-          return `<article class="rg-card" data-rc="${esc(c.id)}"><span class="rg-sw" style="background:linear-gradient(140deg,${c1},${c2})">${ic(CAMP_CAT_IC[c.cat] || 'explore')}</span>
-          <span class="rg-main"><b>${esc(c.commerce)}</b><small>${esc(c.titre)}${c.accroche ? ' · ' + esc(c.accroche) : ''}</small>
+      b.innerHTML = `<button type="button" class="btn primary block rg-new" id="rg-new">${ic('plus')}Nouvelle publicité</button>
+        <div class="card rg-how"><b>${ic('info')} Comment ça marche ?</b><p>Votre publicité est un panneau virtuel posé à votre point de vente. Les utilisateurs de ZUPA qui passent dans le rayon choisi ne voient que la vôtre ; plus loin, elle s’affiche selon la formule. <b>Démo :</b> diffusion immédiate et gratuite ; plus tard, chaque publicité sera vérifiée avant d’être diffusée.</p></div>
+        ${rg.list.length ? rg.list.map(c => { const [cls, lbl] = RG_ST[c.statut] || ['', c.statut]; const [c1, c2] = CAMP_COL[c.couleur] || CAMP_COL.jaune; const fini = String(c.fin).slice(0, 10) < tod;
+          return `<article class="rg-card" data-rc="${esc(c.id)}"><span class="rg-sw" style="background:linear-gradient(140deg,${c1},${c2})">${ic(c.modele === 'visuel' ? 'image' : CAMP_CAT_IC[c.cat] || 'explore')}</span>
+          <span class="rg-main"><b>${esc(c.commerce)}</b><small>${esc(c.modele === 'visuel' ? 'Visuel personnalisé' : [c.titre, c.accroche].filter(Boolean).join(' · '))}</small>
           <small>${esc((rg.tarifs.find(t => t.formule === c.formule) || {}).libelle || c.formule)} · ${c.rayon_m < 1000 ? c.rayon_m + ' m' : '1 km'}${c.exclusif ? ' · exclusif' : ''} · ${dFr(c.debut)} → ${dFr(c.fin)}</small>
           <small class="rg-st">${rgStatsLine(c.stats)}</small>
-          <span class="rg-tags"><em class="py-tag ${fini ? 'bad' : cls}">${fini ? 'terminée' : lbl}</em><em class="py-tag ${c.paye ? 'ok' : 'wait'}">${c.paye ? 'payée' : 'non payée'} · ${money(c.prix)} F</em>${rg.role === 'admin' && c.commercial_nom ? `<em class="py-tag">${esc(c.commercial_nom)}</em>` : ''}</span>
-          ${c.statut === 'refusee' && c.motif_refus ? `<small class="rg-ref">Motif : ${esc(c.motif_refus)}</small>` : ''}</span></article>`; }).join('')
-          : `<div class="py-empty">${ic('star')}<b>Aucune campagne ici</b><span>Créez la première au point de vente de votre client : il faut y être pour le localiser.</span></div>`}
-        <button type="button" class="link rg-out" id="rg-out">Se déconnecter</button>`;
+          <span class="rg-tags"><em class="py-tag ${fini ? 'bad' : cls}">${fini ? 'terminée' : lbl}</em></span></span></article>`; }).join('')
+          : `<div class="py-empty">${ic('star')}<b>Pas encore de publicité</b><span>Créez la vôtre en quelques minutes, devant votre point de vente.</span></div>`}`;
       return;
     }
     if (rg.view === 'form') { renderRgForm(b); return; }
+    if (rg.view === 'editor') { renderEditor(b); return; }
     if (rg.view === 'stats') {
       const c = rg.stats.c, days = rg.stats.days || [], st = c.stats || {};
       const max = Math.max(1, ...days.map(d => d.vues));
       const pct = (a, z) => z ? Math.round(a / z * 1000) / 10 + ' %' : '—';
       b.innerHTML = `<div class="rg-prev">${campHtml(Object.assign({}, c, { image: rg.stats.image || null }), 'Aperçu')}</div>
         <div class="card rg-kpis">${[['Vues', st.vues], ['Touchers', st.touchers], ['Appels / messages', st.appels], ['Itinéraires', st.itineraires], ['Passages au point de vente', st.visites]].map(([l, v]) => `<div><b>${money(v || 0)}</b><small>${l}</small></div>`).join('')}
-          <p class="muted">Taux de toucher : <b>${pct(st.touchers, st.vues)}</b> · passages / vues : <b>${pct(st.visites, st.vues)}</b>. Les chiffres sont des totaux anonymes, envoyés par les téléphones toutes les 2 minutes.</p></div>
-        <div class="card"><h3>Jour par jour</h3>${days.length ? days.slice(-21).reverse().map(d => `<div class="rg-day"><span>${dFr(d.jour)}</span><i style="--w:${(d.vues / max * 100).toFixed(0)}%"></i><b>${d.vues}</b><small>${d.touchers} t · ${d.visites} p</small></div>`).join('') : '<p class="muted">Pas encore de données : elles arrivent dès les premières vues.</p>'}</div>
-        <button type="button" class="btn primary block" id="rg-report">${ic('chat')}Envoyer le bilan au client</button>`;
-      return;
-    }
-    if (rg.view === 'team') {
-      b.innerHTML = `<form class="card form" id="rg-team-form" novalidate><h3>Ajouter un commercial</h3>
-          <label for="rg-tn">Nom</label><input class="input" id="rg-tn" maxlength="60" placeholder="ex. Koffi Yao">
-          <label for="rg-tc">Code personnel <small>(6 caractères au moins, à lui donner)</small></label><input class="input" id="rg-tc" maxlength="30" autocapitalize="characters" placeholder="ex. KOFFI-2026">
-          <button class="btn primary block" type="submit">Ajouter</button></form>
-        <div class="card"><h3>Équipe</h3>${rg.team.length ? rg.team.map(m => `<div class="rg-mem${m.actif ? '' : ' off'}"><span><b>${esc(m.nom)}</b><small>${esc(m.code)} · ${m.campagnes} campagne${m.campagnes > 1 ? 's' : ''}</small></span>${m.actif ? `<button type="button" class="btn ghost sm" data-tm-off="${esc(m.code)}">Désactiver</button>` : '<em class="py-tag">désactivé</em>'}</div>`).join('') : '<p class="muted">Aucun commercial pour l’instant.</p>'}</div>`;
+          <p class="muted">Taux de toucher : <b>${pct(st.touchers, st.vues)}</b> · passages / vues : <b>${pct(st.visites, st.vues)}</b>. Totaux anonymes : aucune information sur les personnes.</p></div>
+        <div class="card"><h3>Jour par jour</h3>${days.length ? days.slice(-21).reverse().map(d => `<div class="rg-day"><span>${dFr(d.jour)}</span><i style="--w:${(d.vues / max * 100).toFixed(0)}%"></i><b>${d.vues}</b><small>${d.touchers} t · ${d.visites} p</small></div>`).join('') : '<p class="muted">Pas encore de données : elles arrivent dès les premières vues.</p>'}</div>`;
     }
   }
 
-  // ---- formulaire de campagne
+  // ---- formulaire
   function rgNew() {
-    rg.f = { id: null, commerce: '', cat: 'shop', tel: '', whatsapp: true, client_nom: '', client_tel: '', gps: null, rayon_m: 500, exclusif: false,
-      formule: (rg.tarifs[0] || {}).formule || 'quartier7', debut: new Date().toISOString().slice(0, 10), modele: 'promo', couleur: 'jaune', titre: '', accroche: '', sous_titre: '', cta: 'appel', image: null, imgChanged: false,
-      payMode: 'Wave', payRef: '', paye: false };
+    rg.f = { id: null, commerce: '', cat: 'shop', tel: '', whatsapp: true, gps: null, rayon_m: 500, exclusif: false,
+      formule: (rg.tarifs[0] || {}).formule || 'quartier7', debut: new Date().toISOString().slice(0, 10), mode: 'modele', modele: 'promo', couleur: 'jaune',
+      titre: '', accroche: '', sous_titre: '', cta: 'appel', image: null, visuel: null, imgChanged: false, ed: null };
     rg.view = 'form'; renderRg(); $('screen-regie').scrollTo({ top: 0 });
   }
   async function rgEdit(c) {
-    const im = c.a_image ? await rgRpc('campagne_image', { p_id: c.id }) : null;
-    const [payMode, ...ref] = String(c.paiement || 'Wave').split(' · ');
-    rg.f = { id: c.id, commerce: c.commerce, cat: c.cat, tel: c.tel || '', whatsapp: c.whatsapp, client_nom: c.client_nom || '', client_tel: c.client_tel || '', gps: { lat: c.lat, lon: c.lon, acc: c.gps_acc, old: true },
-      rayon_m: c.rayon_m, exclusif: c.exclusif, formule: c.formule, debut: c.debut, modele: c.modele, couleur: c.couleur, titre: c.titre, accroche: c.accroche || '', sous_titre: c.sous_titre || '', cta: c.cta,
-      image: im && im.ok ? im.data : null, imgChanged: false, payMode: RG_PAY.includes(payMode) ? payMode : 'Wave', payRef: ref.join(' · ').replace(/^réf\. /, ''), paye: c.paye };
+    const im = c.a_image ? await rgRpc('ma_campagne_image', { p_id: c.id }) : null;
+    const img = im && im.ok ? im.data : null, vis = c.modele === 'visuel';
+    rg.f = { id: c.id, commerce: c.commerce, cat: c.cat, tel: c.tel || '', whatsapp: c.whatsapp, gps: { lat: c.lat, lon: c.lon, acc: c.gps_acc, old: true },
+      rayon_m: c.rayon_m, exclusif: c.exclusif, formule: c.formule, debut: String(c.debut).slice(0, 10), mode: vis ? 'visuel' : 'modele', modele: vis ? 'promo' : c.modele, couleur: c.couleur,
+      titre: c.titre || '', accroche: c.accroche || '', sous_titre: c.sous_titre || '', cta: c.cta, image: vis ? null : img, visuel: vis ? img : null, imgChanged: false, ed: null };
     rg.view = 'form'; renderRg(); $('screen-regie').scrollTo({ top: 0 });
   }
-  const chips = (name, list, cur) => `<div class="ap-chips" data-rg="${name}">${list.map(([k, l]) => `<button type="button" data-v="${esc(String(k))}" class="${String(cur) === String(k) ? 'on' : ''}">${l}</button>`).join('')}</div>`;
+  const rgCamp = f => f.mode === 'visuel' ? Object.assign({}, f, { modele: 'visuel', image: f.visuel }) : f;
   function renderRgForm(b) {
-    const f = rg.f, price = rgPrice(f);
+    const f = rg.f, price = rgPrice(f), vis = f.mode === 'visuel';
     b.innerHTML = `<form class="form rg-form" id="rg-form" novalidate>
-      <div class="rg-prev" id="rg-prev">${campHtml(f, 'Aperçu')}</div>
-      <div class="card"><h3><span class="ip-step">1</span>Le commerce</h3>
+      <div class="rg-prev" id="rg-prev">${campHtml(rgCamp(f), 'Aperçu')}</div>
+      <div class="card"><h3><span class="ip-step">1</span>Votre commerce</h3>
         <label for="rg-com">Nom affiché</label><input class="input" id="rg-com" data-k="commerce" maxlength="60" value="${esc(f.commerce)}" placeholder="ex. Quincaillerie Le Marteau">
         <label>Catégorie</label>${chips('cat', RG_CATS, f.cat)}
-        <label for="rg-tel">Téléphone du commerce <small>(affiché)</small></label><input class="input" id="rg-tel" data-k="tel" type="tel" inputmode="tel" maxlength="20" value="${esc(f.tel)}" placeholder="07 00 00 00 00">
-        <label class="ap-check"><input type="checkbox" id="rg-wa"${f.whatsapp ? ' checked' : ''}> Joignable sur WhatsApp</label>
-        <label for="rg-cn">Gérant <small>(non affiché, pour le bilan)</small></label><input class="input" id="rg-cn" data-k="client_nom" maxlength="60" value="${esc(f.client_nom)}" placeholder="Nom du gérant">
-        <input class="input" id="rg-ct" data-k="client_tel" type="tel" inputmode="tel" maxlength="20" value="${esc(f.client_tel)}" placeholder="Téléphone du gérant (WhatsApp)"></div>
+        <label for="rg-tel">Téléphone <small>(pour vous appeler)</small></label><input class="input" id="rg-tel" data-k="tel" type="tel" inputmode="tel" maxlength="20" value="${esc(f.tel)}" placeholder="07 00 00 00 00">
+        <label class="ap-check"><input type="checkbox" id="rg-wa"${f.whatsapp ? ' checked' : ''}> Joignable sur WhatsApp</label></div>
       <div class="card"><h3><span class="ip-step">2</span>Le point de vente <em>sur place</em></h3>
-        <p class="muted">Placez-vous devant le point de vente : le panneau virtuel y est posé par GPS (± 60 m au plus).</p>
-        <div class="ap-state ${f.gps ? 'ok' : 'warn'}" id="rg-gps-st">${f.gps ? `${ic('check')}<span>Point de vente localisé (± ${Math.round(f.gps.acc)} m)${f.gps.old ? ' — touchez « Localiser » pour le remesurer' : ''}</span>` : `${ic('info')}<span>Pas encore localisé.</span>`}</div>
+        <p class="muted">Placez-vous devant votre point de vente : le panneau virtuel y est posé par GPS (± 60 m au plus).</p>
+        <div class="ap-state ${f.gps ? 'ok' : 'warn'}" id="rg-gps-st">${f.gps ? `${ic('check')}<span>Point de vente localisé (± ${Math.round(f.gps.acc)} m)</span>` : `${ic('info')}<span>Pas encore localisé.</span>`}</div>
         <button type="button" class="btn ghost block" id="rg-locate">${ic('locate')}Je suis au point de vente : localiser</button></div>
-      <div class="card"><h3><span class="ip-step">3</span>Diffusion</h3>
-        <label>Rayon du panneau</label>${chips('rayon_m', [[200, '200 m'], [500, '500 m'], [1000, '1 km']], f.rayon_m)}
-        <label class="ap-check"><input type="checkbox" id="rg-ex"${f.exclusif ? ' checked' : ''}> Exclusivité : aucun autre commerce affiché dans cette zone (+${rg.opts.exclusif || 50} %)</label>
-        <label>Formule</label>${chips('formule', rg.tarifs.map(t => [t.formule, `${esc(t.libelle)}<small>${money(t.prix)} F</small>`]), f.formule)}
-        <label for="rg-deb">Début</label><input class="input" id="rg-deb" type="date" data-k="debut" value="${esc(f.debut)}" min="${new Date().toISOString().slice(0, 10)}">
-        <p class="rg-price">Prix : <b>${money(price)} FCFA</b></p></div>
-      <div class="card"><h3><span class="ip-step">4</span>La publicité</h3>
-        <label>Modèle</label>${chips('modele', RG_MOD, f.modele)}
+      <div class="card"><h3><span class="ip-step">3</span>La publicité</h3>
+        <div class="segmented rg-mode" data-rg="mode"><button type="button" data-v="modele" class="${vis ? '' : 'active on'}">Modèle rapide</button><button type="button" data-v="visuel" class="${vis ? 'active on' : ''}">Mon visuel</button></div>
+        ${vis ? `<p class="muted">Un visuel au format 1000 × 800 px (5:4) : créez-le ici, ou importez un visuel déjà fait.</p>
+          <div class="rg-vis-btns"><button type="button" class="btn primary" id="rg-ed">${ic('edit')}${f.visuel ? 'Modifier le visuel' : 'Créer mon visuel'}</button>
+          <label class="btn ghost" for="rg-imp">${ic('image')}Importer un visuel prêt</label><input type="file" id="rg-imp" accept="image/png,image/jpeg,image/webp" hidden></div>
+          <button type="button" class="link rg-gab" id="rg-gab">${ic('info')}Voir le gabarit (format à respecter)</button>`
+        : `<label>Modèle</label>${chips('modele', RG_MOD, f.modele)}
         <label>Couleur</label><div class="rg-cols" data-rg="couleur">${Object.entries(CAMP_COL).map(([k, [c1, c2]]) => `<button type="button" data-v="${k}" class="${f.couleur === k ? 'on' : ''}" style="background:linear-gradient(140deg,${c1},${c2})" aria-label="${k}"></button>`).join('')}</div>
         <label for="rg-ti">Titre <small>(40 car.)</small></label><input class="input" id="rg-ti" data-k="titre" maxlength="40" value="${esc(f.titre)}" placeholder="ex. BIG PROMO">
         <label for="rg-ac">Accroche <small>(14 car. : prix, réduction)</small></label><input class="input" id="rg-ac" data-k="accroche" maxlength="14" value="${esc(f.accroche)}" placeholder="ex. -35 % ou 1 000 F">
         <label for="rg-st">Texte <small>(60 car.)</small></label><input class="input" id="rg-st" data-k="sous_titre" maxlength="60" value="${esc(f.sous_titre)}" placeholder="ex. sur tous les pots de peinture">
-        <label>Bouton</label>${chips('cta', [['appel', 'Appeler'], ['whatsapp', 'WhatsApp'], ['itineraire', 'J’y vais']], f.cta)}
         <label>Photo <small>(facultative)</small></label>
         <div class="ip-photo-btns"><label class="btn ghost sm" for="rg-cam">${ic('camera')}Photo</label><label class="btn ghost sm" for="rg-gal">${ic('image')}Galerie</label>${f.image ? `<button type="button" class="btn ghost sm" id="rg-img-x">${ic('close')}Retirer</button>` : ''}
-          <input type="file" id="rg-cam" accept="image/*" capture="environment" hidden><input type="file" id="rg-gal" accept="image/*" hidden></div></div>
-      <div class="card"><h3><span class="ip-step">5</span>Paiement</h3>
-        ${chips('payMode', RG_PAY.map(x => [x, x]), f.payMode)}
-        <label for="rg-ref">Référence de la transaction</label><input class="input" id="rg-ref" data-k="payRef" maxlength="40" value="${esc(f.payRef)}" placeholder="ex. TX 4F7A21">
-        <label class="ap-check"><input type="checkbox" id="rg-paye"${f.paye ? ' checked' : ''}> Paiement reçu (<span id="rg-paye-p">${money(price)}</span> FCFA)</label>
-        <p class="muted">La campagne n’est diffusée qu’une fois payée${rg.role === 'admin' ? '' : ' et validée par l’administrateur'}.</p></div>
-      <button class="btn primary block" type="submit" id="rg-save">${f.id ? 'Enregistrer les modifications' : rg.role === 'admin' ? 'Créer et diffuser' : 'Envoyer pour validation'}</button>
+          <input type="file" id="rg-cam" accept="image/*" capture="environment" hidden><input type="file" id="rg-gal" accept="image/*" hidden></div>`}
+        <label>Quand on touche la publicité</label>${chips('cta', [['appel', 'Appeler'], ['whatsapp', 'WhatsApp'], ['itineraire', 'J’y vais']], f.cta)}</div>
+      <div class="card"><h3><span class="ip-step">4</span>Diffusion</h3>
+        <label>Rayon du panneau</label>${chips('rayon_m', [[200, '200 m'], [500, '500 m'], [1000, '1 km']], f.rayon_m)}
+        <label class="ap-check"><input type="checkbox" id="rg-ex"${f.exclusif ? ' checked' : ''}> Exclusivité : aucun autre commerce affiché dans ma zone</label>
+        <label>Durée</label>${chips('formule', rg.tarifs.map(t => [t.formule, esc(t.libelle)]), f.formule)}
+        <label for="rg-deb">Début</label><input class="input" id="rg-deb" type="date" data-k="debut" value="${esc(f.debut)}" min="${new Date().toISOString().slice(0, 10)}">
+        <p class="rg-price">Démo : <b>gratuit</b> <small>(prix prévu : <span id="rg-pp">${money(price)}</span> FCFA)</small></p></div>
+      <button class="btn primary block" type="submit" id="rg-save">${f.id ? 'Enregistrer les modifications' : 'Publier ma publicité'}</button>
       <p class="ap-why" id="rg-why"></p></form>`;
+    rgPreview();
   }
   function rgProblem() {
     const f = rg.f;
-    if ((f.commerce || '').trim().length < 2) return 'Indiquez le nom du commerce.';
+    if ((f.commerce || '').trim().length < 2) return 'Indiquez le nom de votre commerce.';
     if (!f.gps) return 'Localisez le point de vente par GPS, sur place.';
-    if ((f.titre || '').trim().length < 2) return 'Écrivez le titre de la publicité.';
-    if (f.tel && phoneDigits(f.tel).length !== 10) return 'Téléphone du commerce : 10 chiffres.';
-    if (f.client_tel && phoneDigits(f.client_tel).length !== 10) return 'Téléphone du gérant : 10 chiffres.';
-    if ((f.cta === 'appel' || f.cta === 'whatsapp') && !f.tel) return 'Le bouton « Appeler » ou « WhatsApp » demande le téléphone du commerce.';
+    if (f.mode === 'visuel' && !f.visuel) return 'Créez ou importez votre visuel.';
+    if (f.mode !== 'visuel' && (f.titre || '').trim().length < 2) return 'Écrivez le titre de la publicité.';
+    if (f.tel && phoneDigits(f.tel).length !== 10) return 'Téléphone : 10 chiffres.';
+    if ((f.cta === 'appel' || f.cta === 'whatsapp') && !f.tel) return 'Le bouton « Appeler » ou « WhatsApp » demande votre téléphone.';
     return '';
   }
-  function rgPreview() { const p = $('rg-prev'); if (p) p.innerHTML = campHtml(rg.f, 'Aperçu'); const w = $('rg-why'); if (w) w.textContent = rgProblem(); const pr = document.querySelector('.rg-price b'); if (pr) pr.textContent = money(rgPrice(rg.f)) + ' FCFA'; const pp = $('rg-paye-p'); if (pp) pp.textContent = money(rgPrice(rg.f)); }
+  function rgPreview() { const p = $('rg-prev'); if (p) p.innerHTML = campHtml(rgCamp(rg.f), 'Aperçu'); const w = $('rg-why'); if (w) w.textContent = rgProblem(); const pp = $('rg-pp'); if (pp) pp.textContent = money(rgPrice(rg.f)); }
 
-  // ---- événements
+  // visuel prêt : recadré au gabarit 1000 × 800 (5:4)
+  function loadImg(src) { return new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = src; }); }
+  function readFile(file) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(file); }); }
+  async function coverTo(src, W, H, type, q) {
+    const im = await loadImg(src), c = document.createElement('canvas'); c.width = W; c.height = H;
+    const k = Math.max(W / im.width, H / im.height), w = im.width * k, h = im.height * k;
+    const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, W, H); x.drawImage(im, (W - w) / 2, (H - h) / 2, w, h);
+    return { data: c.toDataURL(type || 'image/jpeg', q || 0.86), ratio: im.width / im.height };
+  }
+  async function jpegUnder(canvas, max) { for (const q of [0.88, 0.8, 0.7, 0.6, 0.5]) { const d = canvas.toDataURL('image/jpeg', q); if (d.length < max) return d; } return canvas.toDataURL('image/jpeg', 0.4); }
+  async function importVisual(file) {
+    try {
+      const src = await readFile(file), im = await loadImg(src), r = im.width / im.height;
+      if (Math.abs(r - 1.25) > 0.04 && !confirm(`Ce visuel fait ${im.width} × ${im.height} px : il n’est pas au format 5:4 (1000 × 800). Il sera recadré au centre. Continuer ?`)) return null;
+      const c = document.createElement('canvas'); c.width = 1000; c.height = 800;
+      const k = Math.max(1000 / im.width, 800 / im.height), w = im.width * k, h = im.height * k, x = c.getContext('2d');
+      x.fillStyle = '#fff'; x.fillRect(0, 0, 1000, 800); x.drawImage(im, (1000 - w) / 2, (800 - h) / 2, w, h);
+      return await jpegUnder(c, 560000);
+    } catch (_) { toast('Image illisible.', 'error'); return null; }
+  }
+  function showGabarit() {
+    const c = document.createElement('canvas'); c.width = 1000; c.height = 800; const x = c.getContext('2d');
+    x.fillStyle = '#f4f4f5'; x.fillRect(0, 0, 1000, 800);
+    x.strokeStyle = '#a1a1aa'; x.setLineDash([14, 10]); x.lineWidth = 4; x.strokeRect(40, 40, 920, 720);
+    x.setLineDash([]); x.fillStyle = 'rgba(239,68,68,.18)'; x.fillRect(760, 0, 240, 90); x.fillStyle = '#b91c1c'; x.font = '700 26px sans-serif'; x.fillText('Badge « Publicité »', 772, 55);
+    x.fillStyle = '#3f3f46'; x.font = '800 56px sans-serif'; x.textAlign = 'center'; x.fillText('1000 × 800 px (5:4)', 500, 380);
+    x.font = '500 30px sans-serif'; x.fillText('Zone sûre : marge de 40 px (pointillés)', 500, 450); x.fillText('Coin haut droit : laissé au badge', 500, 500);
+    const box = document.createElement('div'); box.className = 'rg-gab-box';
+    box.innerHTML = `<div class="rg-gab-in"><img src="${c.toDataURL('image/png')}" alt="Gabarit 1000 × 800"><p><b>Format du visuel :</b> 1000 × 800 pixels (rapport 5:4), JPEG ou PNG.<br>Gardez les textes importants à 40 px des bords et laissez libre le coin en haut à droite (badge « Publicité »). Un visuel d’un autre format est recadré au centre.</p><button type="button" class="btn primary block">Compris</button></div>`;
+    box.addEventListener('click', e => { if (e.target === box || e.target.closest('button')) box.remove(); });
+    document.body.appendChild(box);
+  }
+
+  /* ---------- Éditeur de visuel : calques déplaçables, rotation, taille ---------- */
+  const ED_W = 1000, ED_H = 800;
+  let ed = null, edDrag = null;
+  const edId = () => 'o' + Math.random().toString(36).slice(2, 8);
+  function edStart() {
+    const f = rg.f;
+    if (f.ed) { ed = f.ed; }
+    else if (f.visuel) ed = { bg: { k: 'img', src: f.visuel }, objs: [], sel: null };
+    else {
+      const [, , ink, acc] = CAMP_COL[f.couleur] || CAMP_COL.jaune;
+      ed = { bg: { k: 'grad', c: f.couleur || 'jaune' }, sel: null, objs: [
+        { id: edId(), t: 'text', x: 500, y: 250, r: 0, s: 1, text: (f.titre || 'VOTRE TITRE').toUpperCase(), font: 't', color: ink, size: 110, stroke: false },
+        { id: edId(), t: 'text', x: 500, y: 420, r: -4, s: 1, text: f.accroche || '-20 %', font: 't', color: acc, size: 160, stroke: false },
+        { id: edId(), t: 'text', x: 500, y: 590, r: 0, s: 1, text: f.sous_titre || (f.commerce || 'Votre commerce'), font: 'b', color: ink, size: 48, stroke: false }] };
+    }
+    rg.view = 'editor'; renderRg(); $('screen-regie').scrollTo({ top: 0 });
+  }
+  const edBgCss = bg => bg.k === 'img' ? `url("${bg.src}") center/cover` : (([c1, c2]) => `linear-gradient(140deg,${c1},${c2})`)(CAMP_COL[bg.c] || CAMP_COL.jaune);
+  const edFont = o => o.font === 't' ? getComputedStyle(document.body).getPropertyValue('--font-title') || 'sans-serif' : getComputedStyle(document.body).getPropertyValue('--font') || 'sans-serif';
+  function edObjHtml(o, k) {
+    const st = `left:${(o.x * k).toFixed(1)}px;top:${(o.y * k).toFixed(1)}px;transform:translate(-50%,-50%) rotate(${o.r}deg) scale(${o.s});--inv:${(1 / o.s).toFixed(3)}`;
+    const inner = o.t === 'text'
+      ? `<span class="ed-txt" style="font-family:${edFont(o)};font-size:${(o.size * k).toFixed(1)}px;color:${o.color};${o.stroke ? `-webkit-text-stroke:${(o.size * k * 0.05).toFixed(1)}px ${o.color === '#111111' || o.color === '#111' ? '#fff' : '#111'};paint-order:stroke fill;` : ''}">${esc(o.text).replace(/\n/g, '<br>')}</span>`
+      : `<img src="${o.src}" alt="" style="width:${(o.w * k).toFixed(1)}px;height:${(o.h * k).toFixed(1)}px" draggable="false">`;
+    return `<div class="ed-o${ed.sel === o.id ? ' sel' : ''}" data-o="${o.id}" style="${st}">${inner}${ed.sel === o.id ? '<i class="ed-h rot" data-h="rot"></i><i class="ed-h sc" data-h="sc"></i>' : ''}</div>`;
+  }
+  function renderEditor(b) {
+    const o = ed.objs.find(x => x.id === ed.sel);
+    const COLS = ['#111111', '#ffffff', '#e10e1e', '#ffd000', '#16a34a', '#2563eb', '#7c3aed', '#f97316'];
+    b.innerHTML = `<div class="ed-wrap"><div class="ed-stage" id="ed-stage" style="background:${edBgCss(ed.bg)}"><div class="ed-safe"></div><span class="zad-tag ed-tag">Publicité</span><div id="ed-objs"></div></div></div>
+      <div class="ed-tools">
+        <button type="button" data-ed="text">${ic('edit')}<span>Texte</span></button>
+        <label for="ed-png">${ic('image')}<span>Image PNG</span></label><input type="file" id="ed-png" accept="image/png,image/webp,image/jpeg" hidden>
+        <button type="button" data-ed="bg">${ic('explore')}<span>Fond</span></button>
+        <label for="ed-ready">${ic('addPin')}<span>Visuel prêt</span></label><input type="file" id="ed-ready" accept="image/png,image/jpeg,image/webp" hidden>
+        <button type="button" data-ed="gab">${ic('info')}<span>Gabarit</span></button>
+      </div>
+      <div class="card ed-panel" id="ed-panel">${o ? `
+        ${o.t === 'text' ? `<label for="ed-tx">Texte</label><textarea class="input" id="ed-tx" rows="2" maxlength="80">${esc(o.text)}</textarea>
+          <div class="ed-row"><div class="segmented" data-edf><button type="button" data-v="t" class="${o.font === 't' ? 'active' : ''}">Titre</button><button type="button" data-v="b" class="${o.font === 'b' ? 'active' : ''}">Texte</button></div>
+          <label class="ap-check"><input type="checkbox" id="ed-stk"${o.stroke ? ' checked' : ''}> Contour</label></div>
+          <div class="ed-cols">${COLS.map(c => `<button type="button" data-col="${c}" style="background:${c}" class="${o.color === c ? 'on' : ''}" aria-label="Couleur ${c}"></button>`).join('')}<input type="color" id="ed-col" value="${o.color}" aria-label="Autre couleur"></div>` : ''}
+        <label>Taille <small id="ed-sv">${Math.round(o.s * 100)} %</small></label><input type="range" id="ed-s" min="20" max="400" value="${Math.round(o.s * 100)}">
+        <label>Rotation <small id="ed-rv">${Math.round(o.r)}°</small></label><input type="range" id="ed-r" min="-180" max="180" value="${Math.round(o.r)}">
+        <div class="ed-row ed-acts"><button type="button" class="btn ghost sm" data-ed="front">Devant</button><button type="button" class="btn ghost sm" data-ed="back">Derrière</button><button type="button" class="btn ghost sm" data-ed="dup">Dupliquer</button><button type="button" class="btn ghost sm danger" data-ed="del">${ic('trash')}</button></div>`
+        : ed.showBg ? `<label>Fond</label><div class="rg-cols">${Object.entries(CAMP_COL).map(([k, [c1, c2]]) => `<button type="button" data-bg="${k}" class="${ed.bg.k === 'grad' && ed.bg.c === k ? 'on' : ''}" style="background:linear-gradient(140deg,${c1},${c2})" aria-label="${k}"></button>`).join('')}</div>
+          <label class="btn ghost sm" for="ed-bgimg">${ic('camera')}Photo de fond</label><input type="file" id="ed-bgimg" accept="image/*" hidden>`
+        : '<p class="muted">Touchez un élément pour le modifier. Faites-le glisser pour le déplacer, la poignée du haut le fait tourner, celle du coin l’agrandit. Une image PNG sans fond s’ajoute sans cadre.</p>'}
+      </div>
+      <div class="ed-foot"><button type="button" class="btn ghost" data-ed="cancel">Annuler</button><button type="button" class="btn primary" data-ed="use">Utiliser ce visuel</button></div>`;
+    edDraw();
+  }
+  function edK() { const st = $('ed-stage'); return st ? st.clientWidth / ED_W : 0.35; }
+  function edDraw() { const box = $('ed-objs'); if (!box) return; const k = edK(); box.innerHTML = ed.objs.map(o => edObjHtml(o, k)).join(''); }
+  function edPanel() { if (rg.view === 'editor') { const sy = $('screen-regie').scrollTop; renderEditor($('rg-body')); $('screen-regie').scrollTop = sy; } }
+  function edPos(e) { const r = $('ed-stage').getBoundingClientRect(), k = r.width / ED_W; return [(e.clientX - r.left) / k, (e.clientY - r.top) / k]; }
+  async function edExport() {
+    const c = document.createElement('canvas'); c.width = ED_W; c.height = ED_H; const x = c.getContext('2d');
+    if (ed.bg.k === 'img') { const im = await loadImg(ed.bg.src); const k = Math.max(ED_W / im.width, ED_H / im.height); x.drawImage(im, (ED_W - im.width * k) / 2, (ED_H - im.height * k) / 2, im.width * k, im.height * k); }
+    else { const [c1, c2] = CAMP_COL[ed.bg.c] || CAMP_COL.jaune; const g = x.createLinearGradient(0, 0, ED_W, ED_H); g.addColorStop(0, c1); g.addColorStop(1, c2); x.fillStyle = g; x.fillRect(0, 0, ED_W, ED_H); }
+    try { await Promise.all([document.fonts.load(`700 80px ${edFont({ font: 't' })}`), document.fonts.load(`600 40px ${edFont({ font: 'b' })}`)]); } catch (_) {}
+    for (const o of ed.objs) {
+      x.save(); x.translate(o.x, o.y); x.rotate(o.r * Math.PI / 180); x.scale(o.s, o.s);
+      if (o.t === 'text') {
+        x.font = `${o.font === 't' ? 700 : 600} ${o.size}px ${edFont(o)}`; x.textAlign = 'center'; x.textBaseline = 'middle';
+        const lines = String(o.text).split('\n'), lh = o.size * 1.08;
+        lines.forEach((ln, i) => {
+          const y = (i - (lines.length - 1) / 2) * lh;
+          if (o.stroke) { x.lineJoin = 'round'; x.lineWidth = o.size * 0.1; x.strokeStyle = o.color === '#111111' || o.color === '#111' ? '#fff' : '#111'; x.strokeText(ln, 0, y); }
+          x.fillStyle = o.color; x.fillText(ln, 0, y);
+        });
+      } else { const im = await loadImg(o.src); x.drawImage(im, -o.w / 2, -o.h / 2, o.w, o.h); }
+      x.restore();
+    }
+    return jpegUnder(c, 560000);
+  }
+  async function edAddPng(file) {
+    try {
+      let src = await readFile(file); const im = await loadImg(src);
+      const k = Math.min(1, 700 / Math.max(im.width, im.height));
+      if (k < 1 || src.length > 900000) { const c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); src = c.toDataURL('image/png'); }
+      const fit = Math.min(1, 420 / Math.max(im.width * k, im.height * k));
+      const o = { id: edId(), t: 'img', x: 500, y: 400, r: 0, s: 1, src, w: Math.round(im.width * k * fit), h: Math.round(im.height * k * fit) };
+      ed.objs.push(o); ed.sel = o.id; ed.showBg = false; edPanel();
+    } catch (_) { toast('Image illisible.', 'error'); }
+  }
+  // gestes sur la scène : glisser, tourner (poignée du haut), agrandir (poignée du coin)
+  document.addEventListener('pointerdown', e => {
+    if (rg.view !== 'editor' || !e.target.closest('#ed-stage')) return;
+    const el = e.target.closest('.ed-o'), h = e.target.closest('.ed-h');
+    if (!el) { if (ed.sel) { ed.sel = null; edPanel(); } return; }
+    const o = ed.objs.find(x => x.id === el.dataset.o); if (!o) return;
+    e.preventDefault();
+    if (ed.sel !== o.id) { ed.sel = o.id; ed.showBg = false; edPanel(); }
+    const [px, py] = edPos(e);
+    edDrag = { o, mode: h ? h.dataset.h : 'move', px, py, x0: o.x, y0: o.y, s0: o.s, d0: Math.hypot(px - o.x, py - o.y) || 1, id: e.pointerId };
+  }, { passive: false });
+  document.addEventListener('pointermove', e => {
+    if (!edDrag || e.pointerId !== edDrag.id) return;
+    e.preventDefault();
+    const d = edDrag, o = d.o, [px, py] = edPos(e);
+    if (d.mode === 'move') { o.x = Math.max(0, Math.min(ED_W, d.x0 + px - d.px)); o.y = Math.max(0, Math.min(ED_H, d.y0 + py - d.py)); }
+    else if (d.mode === 'rot') { let a = Math.atan2(py - o.y, px - o.x) * 180 / Math.PI + 90; if (a > 180) a -= 360; if (Math.abs(a) < 4) a = 0; o.r = Math.round(a); }
+    else if (d.mode === 'sc') o.s = Math.max(0.2, Math.min(4, d.s0 * Math.hypot(px - o.x, py - o.y) / d.d0));
+    const el = document.querySelector(`.ed-o[data-o="${o.id}"]`), k = edK();
+    if (el) { el.style.left = (o.x * k) + 'px'; el.style.top = (o.y * k) + 'px'; el.style.transform = `translate(-50%,-50%) rotate(${o.r}deg) scale(${o.s})`; el.style.setProperty('--inv', (1 / o.s).toFixed(3)); }
+    const sv = $('ed-s'), rv = $('ed-r'); if (sv) { sv.value = Math.round(o.s * 100); $('ed-sv').textContent = Math.round(o.s * 100) + ' %'; } if (rv) { rv.value = o.r; $('ed-rv').textContent = o.r + '°'; }
+  }, { passive: false });
+  ['pointerup', 'pointercancel'].forEach(ev => document.addEventListener(ev, () => { edDrag = null; }));
+  window.addEventListener('resize', () => { if (rg.view === 'editor') edDraw(); });
+
+  // ---- événements de l'écran
   $('rg-open').onclick = () => openRegie();
-  $('rg-back').onclick = () => { if (rg.view === 'form' || rg.view === 'stats' || rg.view === 'team') { if (rg.view === 'form' && !confirm('Quitter sans enregistrer cette campagne ?')) return; rg.view = 'liste'; renderRg(); rgLoad(); } else goBack(); };
-  leaveGuards['screen-regie'] = () => { if (rg.view === 'form' && !confirm('Quitter sans enregistrer cette campagne ?')) return false; if (rg.view !== 'login') rg.view = 'liste'; return true; };
+  $('rg-back').onclick = () => {
+    if (rg.view === 'editor') { rg.view = 'form'; renderRg(); return; }
+    if (rg.view === 'form' || rg.view === 'stats') { if (rg.view === 'form' && !confirm('Quitter sans enregistrer cette publicité ?')) return; rg.view = 'liste'; renderRg(); rgLoad(); }
+    else goBack();
+  };
+  leaveGuards['screen-regie'] = () => { if ((rg.view === 'form' || rg.view === 'editor') && !confirm('Quitter sans enregistrer cette publicité ?')) return false; rg.view = 'liste'; return true; };
   $('screen-regie').addEventListener('input', e => {
-    const k = e.target.dataset && e.target.dataset.k; if (!k || !rg.f) return;
-    rg.f[k] = e.target.value; rgPreview();
+    const t = e.target;
+    if (rg.view === 'editor') {
+      const o = ed.objs.find(x => x.id === ed.sel); if (!o) return;
+      if (t.id === 'ed-tx') o.text = t.value;
+      else if (t.id === 'ed-s') { o.s = +t.value / 100; $('ed-sv').textContent = t.value + ' %'; }
+      else if (t.id === 'ed-r') { o.r = +t.value; $('ed-rv').textContent = t.value + '°'; }
+      else if (t.id === 'ed-col') o.color = t.value;
+      edDraw(); return;
+    }
+    const k = t.dataset && t.dataset.k; if (!k || !rg.f) return;
+    rg.f[k] = t.value; rgPreview();
   });
   $('screen-regie').addEventListener('change', async e => {
-    const t = e.target; if (!rg.f) return;
+    const t = e.target;
+    if (t.id === 'ed-stk') { const o = ed.objs.find(x => x.id === ed.sel); if (o) { o.stroke = t.checked; edDraw(); } return; }
+    if (t.id === 'ed-png') { const f = t.files && t.files[0]; t.value = ''; if (f) edAddPng(f); return; }
+    if (t.id === 'ed-ready' || t.id === 'ed-bgimg') {
+      const f = t.files && t.files[0]; t.value = ''; if (!f) return;
+      if (t.id === 'ed-ready') { const d = await importVisual(f); if (!d) return; if (ed.objs.length && !confirm('Remplacer tout le visuel par celui-ci ? Les textes et images ajoutés seront retirés.')) return; ed.bg = { k: 'img', src: d }; ed.objs = []; ed.sel = null; }
+      else { const d = await coverTo(await readFile(f), ED_W, ED_H); ed.bg = { k: 'img', src: d.data }; }
+      ed.showBg = false; edPanel(); return;
+    }
+    if (!rg.f) return;
     if (t.id === 'rg-wa') rg.f.whatsapp = t.checked;
     else if (t.id === 'rg-ex') { rg.f.exclusif = t.checked; rgPreview(); }
-    else if (t.id === 'rg-paye') rg.f.paye = t.checked;
+    else if (t.id === 'rg-imp') {
+      const f = t.files && t.files[0]; t.value = ''; if (!f) return;
+      const d = await importVisual(f); if (!d) return;
+      rg.f.visuel = d; rg.f.imgChanged = true; rg.f.ed = null; renderRg();
+    }
     else if (t.id === 'rg-cam' || t.id === 'rg-gal') {
       const file = t.files && t.files[0]; t.value = ''; if (!file) return;
       try { let d = await shrink(file, 900, 0.72); if (d.length > 380000) d = await shrink(file, 700, 0.6); rg.f.image = d; rg.f.imgChanged = true; renderRg(); }
@@ -5601,15 +5784,42 @@
   });
   $('screen-regie').addEventListener('click', async e => {
     const t = e.target;
+    if (rg.view === 'editor') {
+      const b = t.closest('[data-ed]'), col = t.closest('[data-col]'), bg = t.closest('[data-bg]'), fnt = t.closest('[data-edf] [data-v]');
+      const o = ed.objs.find(x => x.id === ed.sel);
+      if (col && o) { o.color = col.dataset.col; edPanel(); return; }
+      if (bg) { ed.bg = { k: 'grad', c: bg.dataset.bg }; edPanel(); return; }
+      if (fnt && o) { o.font = fnt.dataset.v; edPanel(); return; }
+      if (!b) return;
+      const a = b.dataset.ed;
+      if (a === 'text') { const n = { id: edId(), t: 'text', x: 500, y: 400, r: 0, s: 1, text: 'Votre texte', font: 'b', color: (CAMP_COL[ed.bg.c] || CAMP_COL.jaune)[2], size: 64, stroke: ed.bg.k === 'img' }; ed.objs.push(n); ed.sel = n.id; ed.showBg = false; edPanel(); setTimeout(() => { const tx = $('ed-tx'); if (tx) { tx.focus(); tx.select(); } }, 50); }
+      else if (a === 'bg') { ed.sel = null; ed.showBg = !ed.showBg; edPanel(); }
+      else if (a === 'gab') showGabarit();
+      else if (a === 'del' && o) { ed.objs = ed.objs.filter(x => x !== o); ed.sel = null; edPanel(); }
+      else if (a === 'dup' && o) { const n = Object.assign({}, o, { id: edId(), x: Math.min(ED_W, o.x + 40), y: Math.min(ED_H, o.y + 40) }); ed.objs.push(n); ed.sel = n.id; edPanel(); }
+      else if (a === 'front' && o) { ed.objs = ed.objs.filter(x => x !== o).concat(o); edDraw(); }
+      else if (a === 'back' && o) { ed.objs = [o].concat(ed.objs.filter(x => x !== o)); edDraw(); }
+      else if (a === 'cancel') { rg.view = 'form'; renderRg(); }
+      else if (a === 'use') {
+        b.classList.add('loading');
+        try { rg.f.visuel = await edExport(); rg.f.ed = ed; rg.f.imgChanged = true; rg.f.mode = 'visuel'; rg.view = 'form'; renderRg(); toast('Visuel prêt.', 'success'); }
+        catch (_) { toast('Le visuel n’a pas pu être créé.', 'error'); b.classList.remove('loading'); }
+      }
+      return;
+    }
     const chip = t.closest('[data-rg] [data-v]');
     if (chip && rg.f) {
       const name = chip.parentNode.dataset.rg; let v = chip.dataset.v; if (name === 'rayon_m') v = +v;
-      rg.f[name] = v; chip.parentNode.querySelectorAll('[data-v]').forEach(x => x.classList.toggle('on', x === chip)); rgPreview(); return;
+      rg.f[name] = v;
+      if (name === 'mode') { renderRg(); return; }
+      chip.parentNode.querySelectorAll('[data-v]').forEach(x => x.classList.toggle('on', x === chip)); rgPreview(); return;
     }
     if (t.closest('#rg-img-x')) { rg.f.image = null; rg.f.imgChanged = true; renderRg(); return; }
+    if (t.closest('#rg-ed')) { edStart(); return; }
+    if (t.closest('#rg-gab')) { showGabarit(); return; }
     if (t.closest('#rg-locate')) {
       const btn = $('rg-locate'); btn.classList.add('loading');
-      const f = await cleFix(); // mesure GPS fraîche et précise (même règle que la remise des clés)
+      const f = await cleFix();
       btn.classList.remove('loading');
       if (!f) { toast('Activez la localisation du téléphone.', 'error'); return; }
       if (f.acc > 60) { toast(`Signal GPS trop imprécis (± ${Math.round(f.acc)} m) : sortez à découvert et réessayez.`, 'error', 6000); return; }
@@ -5618,66 +5828,35 @@
       return;
     }
     if (t.closest('#rg-new')) { rgNew(); return; }
-    if (t.closest('#rg-team')) { rg.view = 'team'; renderRg(); const r = await rgCall('commerciaux_liste', { p_admin: rg.code }); if (r.ok && Array.isArray(r.data)) { rg.team = r.data; renderRg(); } return; }
-    if (t.closest('#rg-out')) { store.set('regieCode', ''); Object.assign(rg, { code: '', role: null, nom: '', list: [], view: 'login' }); renderRg(); return; }
-    const rf = t.closest('[data-rf]'); if (rf) { rg.filter = rf.dataset.rf; renderRg(); return; }
-    const off = t.closest('[data-tm-off]');
-    if (off) { if (!confirm('Désactiver ce commercial ? Son code ne fonctionnera plus.')) return; const r = await rgCall('commercial_desactiver', { p_admin: rg.code, p_code: off.dataset.tmOff }); if (!r.ok) { toast(rgErr(r), 'error'); return; } const l = await rgCall('commerciaux_liste', { p_admin: rg.code }); if (l.ok) { rg.team = l.data || []; renderRg(); } return; }
-    if (t.closest('#rg-report')) { rgReport(rg.stats.c); return; }
     const card = t.closest('[data-rc]'); if (card) { const c = rg.list.find(x => x.id === card.dataset.rc); if (c) rgMenu(c); }
   });
   $('screen-regie').addEventListener('submit', async e => {
     e.preventDefault();
-    if (e.target.id === 'rg-login') { const c = $('rg-code').value.trim(); if (c) await rgLogin(c, false); return; }
-    if (e.target.id === 'rg-team-form') {
-      const nom = $('rg-tn').value.trim(), code = $('rg-tc').value.trim().toUpperCase();
-      if (nom.length < 2 || code.length < 6) { toast('Nom et code (6 caractères au moins).', 'error'); return; }
-      const r = await rgCall('commercial_ajouter', { p_admin: rg.code, p_nom: nom, p_code: code });
-      if (!r.ok) { toast(rgErr(r), 'error'); return; }
-      toast(`${nom} peut maintenant se connecter avec le code ${code}.`, 'success', 7000);
-      const l = await rgCall('commerciaux_liste', { p_admin: rg.code }); if (l.ok) { rg.team = l.data || []; renderRg(); } return;
-    }
-    if (e.target.id === 'rg-form') {
-      const pb = rgProblem(); if (pb) { toast(pb, 'error'); return; }
-      if (rg.busy) return; rg.busy = true; $('rg-save').classList.add('loading');
-      const f = rg.f;
-      const body = { id: f.id, commerce: f.commerce.trim(), cat: f.cat, tel: phoneDigits(f.tel || ''), whatsapp: f.whatsapp, client_nom: f.client_nom, client_tel: phoneDigits(f.client_tel || ''),
-        lat: f.gps.lat, lon: f.gps.lon, gps_acc: Math.max(1, Math.round(f.gps.acc)), rayon_m: f.rayon_m, exclusif: f.exclusif, formule: f.formule, debut: f.debut,
-        modele: f.modele, couleur: f.couleur, titre: f.titre.trim(), accroche: f.accroche, sous_titre: f.sous_titre, cta: f.cta,
-        paiement: [f.payMode, f.payRef ? 'réf. ' + f.payRef.trim() : ''].filter(Boolean).join(' · '), paye: f.paye };
-      if (!f.id || f.imgChanged) body.image = f.image || '';
-      const r = await rgRpc('campagne_enregistrer', { p: body });
-      rg.busy = false; $('rg-save') && $('rg-save').classList.remove('loading');
-      if (!r.ok) { toast('Enregistrement refusé : ' + rgErr(r), 'error', 7000); return; }
-      toast(f.id ? 'Campagne modifiée.' + (rg.role === 'admin' ? '' : ' Elle repasse en validation.') : rg.role === 'admin' ? (f.paye ? 'Campagne créée et diffusée.' : 'Campagne créée : elle sera diffusée dès le paiement noté.') : 'Campagne envoyée pour validation.', 'success', 6000);
-      rg.f = null; rg.view = 'liste'; rg.filter = rg.role === 'admin' ? 'tous' : 'tous'; await rgLoad(); renderRg(); fetchRegie(true);
-    }
+    if (e.target.id !== 'rg-form') return;
+    const pb = rgProblem(); if (pb) { toast(pb, 'error'); return; }
+    if (rg.busy) return; rg.busy = true; $('rg-save').classList.add('loading');
+    const f = rg.f, vis = f.mode === 'visuel';
+    const body = { id: f.id, commerce: f.commerce.trim(), cat: f.cat, tel: phoneDigits(f.tel || ''), whatsapp: f.whatsapp, lat: f.gps.lat, lon: f.gps.lon, gps_acc: Math.max(1, Math.round(f.gps.acc)),
+      rayon_m: f.rayon_m, exclusif: f.exclusif, formule: f.formule, debut: f.debut, modele: vis ? 'visuel' : f.modele, couleur: f.couleur,
+      titre: vis ? (f.titre || f.commerce).trim().slice(0, 40) : f.titre.trim(), accroche: vis ? '' : f.accroche, sous_titre: vis ? '' : f.sous_titre, cta: f.cta };
+    if (!f.id || f.imgChanged) body.image = (vis ? f.visuel : f.image) || '';
+    const r = await rgRpc('campagne_publier', { p: body });
+    rg.busy = false; $('rg-save') && $('rg-save').classList.remove('loading');
+    if (!r.ok) { toast('Publication refusée : ' + rgErr(r), 'error', 7000); return; }
+    toast(f.id ? 'Publicité modifiée.' : 'Publicité en ligne ! Elle s’affiche autour de votre point de vente.', 'success', 6000);
+    rg.f = null; rg.view = 'liste'; await rgLoad(); renderRg(); fetchRegie(true);
   });
   function rgMenu(c) {
-    const act = async (a, ok, motif) => { const r = await rgRpc('campagne_action', { p_id: c.id, p_action: a, p_motif: motif || null }); if (!r.ok) { toast(rgErr(r), 'error', 6000); return; } toast(ok, 'success'); await rgLoad(); fetchRegie(true); };
+    const act = async (a, ok) => { const r = await rgRpc('ma_campagne', { p_id: c.id, p_action: a }); if (!r.ok) { toast(rgErr(r), 'error', 6000); return; } toast(ok, 'success'); await rgLoad(); fetchRegie(true); };
     const acts = [{ icon: 'explore', label: 'Statistiques et aperçu', fn: async () => {
-      const [d, im] = await Promise.all([rgRpc('campagne_stats_jours', { p_id: c.id }), c.a_image ? rgRpc('campagne_image', { p_id: c.id }) : null]);
-      rg.stats = { c, days: d.ok ? d.data : [], image: im && im.ok ? im.data : null }; rg.view = 'stats'; renderRg(); $('screen-regie').scrollTo({ top: 0 }); } }];
-    if (rg.role === 'admin' && c.statut === 'a_valider') {
-      acts.push({ icon: 'check', label: 'Valider et diffuser', hint: c.paye ? 'Paiement noté : ' + (c.paiement || '') : 'Attention : paiement non noté (diffusion seulement une fois payée)', fn: () => act('valider', 'Campagne validée.') });
-      acts.push({ icon: 'close', label: 'Refuser', danger: true, fn: () => { const m = prompt('Motif du refus (visible par le commercial) :', 'Contenu non conforme'); if (m != null) act('refuser', 'Campagne refusée.', m); } });
-    }
-    if (!c.paye) acts.push({ icon: 'check', label: 'Noter le paiement reçu', hint: `${money(c.prix)} FCFA`, fn: () => { const m = prompt('Moyen et référence du paiement :', c.paiement || 'Wave · réf. '); if (m != null) act('paye', 'Paiement noté.', m); } });
-    acts.push({ icon: 'edit', label: 'Modifier', hint: rg.role === 'admin' ? '' : 'Repasse en validation', fn: () => rgEdit(c) });
-    acts.push({ icon: 'chat', label: 'Envoyer le bilan au client', hint: c.client_tel ? 'WhatsApp ' + c.client_tel : 'Partager', fn: () => rgReport(c) });
-    if (c.statut === 'active') acts.push({ icon: 'close', label: 'Mettre en pause', fn: () => act('pause', 'Campagne en pause.') });
-    if (c.statut === 'pause') acts.push({ icon: 'refresh', label: 'Reprendre', fn: () => act('reprendre', rg.role === 'admin' ? 'Campagne reprise.' : 'Campagne renvoyée en validation.') });
-    acts.push({ icon: 'refresh', label: 'Prolonger d’une période', hint: 'Une nouvelle période à payer', fn: () => { if (confirm('Prolonger cette campagne d’une période ? Le paiement de la prolongation sera à noter.')) act('prolonger', 'Campagne prolongée : notez le paiement.'); } });
-    openActions({ title: c.commerce, sub: `${c.titre} · ${(RG_ST[c.statut] || ['', c.statut])[1]}`, actions: acts });
-  }
-  function rgReport(c) {
-    const s = c.stats || {};
-    const txt = `Bonjour${c.client_nom ? ' ' + c.client_nom : ''}, voici le bilan de votre publicité ZUPA « ${c.titre} » (${c.commerce}), du ${dFr(c.debut)} au ${dFr(c.fin)} :\n`
-      + `• ${money(s.vues || 0)} vues sur les téléphones autour de votre point de vente\n• ${money(s.touchers || 0)} personnes ont touché la publicité\n• ${money(s.appels || 0)} appels ou messages\n`
-      + `• ${money(s.itineraires || 0)} itinéraires vers votre point de vente\n• ${money(s.visites || 0)} passages devant votre point de vente après avoir vu la pub\nMerci de votre confiance ! — ZUPA`;
-    if (c.client_tel) openExternal(`https://wa.me/225${c.client_tel}?text=${encodeURIComponent(txt)}`);
-    else if (navigator.share) navigator.share({ text: txt }).catch(() => {});
-    else { try { navigator.clipboard.writeText(txt); toast('Bilan copié.', 'success'); } catch (_) { toast(txt, 'info', 15000); } }
+      const [d, im] = await Promise.all([rgRpc('ma_campagne_stats', { p_id: c.id }), c.a_image ? rgRpc('ma_campagne_image', { p_id: c.id }) : null]);
+      rg.stats = { c, days: d.ok ? d.data : [], image: im && im.ok ? im.data : null }; rg.view = 'stats'; renderRg(); $('screen-regie').scrollTo({ top: 0 }); } },
+      { icon: 'edit', label: 'Modifier', fn: () => rgEdit(c) }];
+    if (c.statut === 'active') acts.push({ icon: 'close', label: 'Mettre en pause', fn: () => act('pause', 'Publicité en pause.') });
+    if (c.statut === 'pause') acts.push({ icon: 'refresh', label: 'Reprendre', fn: () => act('reprendre', 'Publicité de nouveau en ligne.') });
+    acts.push({ icon: 'refresh', label: 'Prolonger', hint: 'Une durée de plus', fn: () => act('prolonger', 'Publicité prolongée.') });
+    acts.push({ icon: 'trash', label: 'Supprimer', danger: true, fn: () => { if (confirm('Supprimer définitivement cette publicité et ses statistiques ?')) act('supprimer', 'Publicité supprimée.'); } });
+    openActions({ title: c.commerce, sub: (RG_ST[c.statut] || ['', c.statut])[1], actions: acts });
   }
 
   /* ---------- Démarrage ---------- */

@@ -1,36 +1,42 @@
 -- =====================================================================
--- ZUPA — régie publicitaire (version pilote) : panneaux publicitaires virtuels
--- À exécuter une fois dans Supabase › SQL Editor › New query › coller › Run, APRÈS v2.sql
--- (il utilise vos codes administrateur). Ré-exécutable sans risque.
+-- ZUPA — régie publicitaire (démo) : panneaux publicitaires virtuels
+-- À exécuter dans Supabase › SQL Editor › New query › coller › Run. Ré-exécutable sans risque
+-- (remplace aussi la première version « commerciaux / administrateur »).
 --
 -- Principe :
---  * chaque campagne est un « panneau virtuel » posé au point de vente (position GPS prise sur place) ;
---  * à moins de rayon_m (500 m par défaut) d'un point de vente, l'utilisateur ne voit que ses pubs ;
---  * ailleurs, il voit les campagnes « toute la ville » et celles proches de son trajet ;
---  * les commerciaux créent les campagnes avec leur code ; l'administrateur les valide avant diffusion ;
---  * la position des utilisateurs ne quitte jamais le téléphone : l'application télécharge les campagnes
---    actives et choisit elle-même ; seules des statistiques additionnées par jour remontent.
---
--- Créer un commercial (une fois par personne) :
---   select public.commercial_ajouter('VOTRE-CODE-ADMIN', 'Koffi Yao', 'KOFFI-2026');
--- Modifier les tarifs : Table Editor › regie_tarifs.
+--  * chaque utilisateur crée lui-même la publicité de son commerce, depuis l'application ;
+--  * la campagne est un « panneau virtuel » posé au point de vente (position GPS prise sur place) ;
+--  * à moins de rayon_m (500 m par défaut) d'un point de vente, on ne voit que ses pubs ;
+--    ailleurs, les campagnes « toute la ville » et celles proches ;
+--  * DÉMO : les campagnes sont diffusées tout de suite et gratuitement. Plus tard, pour qu'elles soient
+--    vérifiées avant diffusion :  update public.regie_config set valeur = 'oui' where cle = 'validation';
+--    puis, pour en autoriser une :  update public.campagnes set statut = 'active' where id = '…';
+--  * la position des utilisateurs ne quitte jamais le téléphone ; seules des statistiques additionnées
+--    par jour remontent. L'auteur d'une campagne n'est identifié que par l'empreinte de son secret.
 -- =====================================================================
 create extension if not exists pgcrypto;
 
--- ---------- tarifs (modifiables dans Table Editor) ----------
+create table if not exists public.regie_config (cle text primary key, valeur text not null);
+insert into public.regie_config values ('validation', 'non'), ('demo', 'oui') on conflict (cle) do nothing;
+alter table public.regie_config enable row level security;
+revoke all on public.regie_config from anon, authenticated;
+grant select on public.regie_config to anon, authenticated;
+drop policy if exists regie_config_lecture on public.regie_config;
+create policy regie_config_lecture on public.regie_config for select to anon, authenticated using (true);
+
+-- ---------- tarifs (affichés à titre indicatif pendant la démo ; modifiables dans Table Editor) ----------
 create table if not exists public.regie_tarifs (
   formule text primary key,
   libelle text not null,
   jours   int not null check (jours between 1 and 366),
-  prix    int not null check (prix >= 0),          -- FCFA, rayon 500 m
+  prix    int not null check (prix >= 0),
   ordre   int not null default 0
 );
 insert into public.regie_tarifs (formule, libelle, jours, prix, ordre) values
-  ('quartier7',  'Quartier · 7 jours',       7,   15000, 1),
-  ('quartier30', 'Quartier · 30 jours',      30,  45000, 2),
+  ('quartier7',  'Quartier · 7 jours',        7,  15000, 1),
+  ('quartier30', 'Quartier · 30 jours',       30,  45000, 2),
   ('ville30',    'Toute la ville · 30 jours', 30, 150000, 3)
 on conflict (formule) do nothing;
--- majorations (en %) : rayon 1 km, exclusivité de la zone ; rayon 200 m : réduction
 create table if not exists public.regie_options (cle text primary key, pourcent int not null);
 insert into public.regie_options values ('rayon1000', 30), ('rayon200', -20), ('exclusif', 50) on conflict (cle) do nothing;
 alter table public.regie_tarifs enable row level security;
@@ -42,61 +48,59 @@ create policy regie_tarifs_lecture on public.regie_tarifs for select to anon, au
 drop policy if exists regie_options_lecture on public.regie_options;
 create policy regie_options_lecture on public.regie_options for select to anon, authenticated using (true);
 
--- ---------- commerciaux ----------
-create table if not exists public.commerciaux (
-  code  text primary key check (char_length(code) >= 6),
-  nom   text not null check (char_length(btrim(nom)) between 2 and 60),
-  actif boolean not null default true,
-  created_at timestamptz not null default now()
-);
-alter table public.commerciaux enable row level security;
-revoke all on public.commerciaux from anon, authenticated;
-
 -- ---------- campagnes ----------
 create table if not exists public.campagnes (
   id          uuid primary key default gen_random_uuid(),
+  owner_hash  bytea,
   commerce    text not null check (char_length(btrim(commerce)) between 2 and 60),
-  cat         text not null default 'shop' check (cat in ('resto', 'maquis', 'shop', 'supermarche', 'marche', 'hotel', 'station', 'pharma', 'sante', 'service', 'autre')),
-  tel         text check (tel is null or tel ~ '^[0-9]{10}$'),          -- contact du commerce (affiché)
+  cat         text not null default 'shop',
+  tel         text check (tel is null or tel ~ '^[0-9]{10}$'),
   whatsapp    boolean not null default true,
   lat         double precision not null check (lat between 4.3 and 10.8),
   lon         double precision not null check (lon between -8.7 and -2.4),
-  gps_acc     real not null check (gps_acc > 0 and gps_acc <= 60),     -- point de vente localisé sur place
+  gps_acc     real not null check (gps_acc > 0 and gps_acc <= 60),
   rayon_m     int not null default 500 check (rayon_m in (200, 500, 1000)),
   exclusif    boolean not null default false,
   formule     text not null references public.regie_tarifs (formule),
   debut       date not null default current_date,
   fin         date not null,
-  modele      text not null default 'promo' check (modele in ('promo', 'produit', 'resto', 'service')),
-  titre       text not null check (char_length(btrim(titre)) between 2 and 40),
+  modele      text not null default 'promo',
+  titre       text not null check (char_length(btrim(titre)) between 1 and 40),
   sous_titre  text check (char_length(sous_titre) <= 60),
-  accroche    text check (char_length(accroche) <= 14),                -- ex. « -35 % », « 1 000 F »
+  accroche    text check (char_length(accroche) <= 14),
   cta         text not null default 'appel' check (cta in ('appel', 'whatsapp', 'itineraire')),
-  couleur     text not null default 'jaune' check (couleur in ('jaune', 'orange', 'rouge', 'vert', 'bleu', 'violet', 'noir')),
-  image       text check (image is null or (char_length(image) < 400000 and image like 'data:image/jpeg;base64,%')),
-  statut      text not null default 'a_valider' check (statut in ('a_valider', 'active', 'pause', 'refusee')),
-  motif_refus text check (char_length(motif_refus) <= 120),
+  couleur     text not null default 'jaune',
+  image       text,
+  statut      text not null default 'active',
   prix        int not null default 0,
-  paiement    text check (char_length(paiement) <= 80),                -- ex. « Wave · réf. 123456 »
-  paye        boolean not null default false,
-  client_nom  text check (char_length(client_nom) <= 60),               -- gérant (non affiché)
-  client_tel  text check (client_tel is null or client_tel ~ '^[0-9]{10}$'),
-  commercial  text references public.commerciaux (code),               -- null = créée par l'administrateur
+  paye        boolean not null default true,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now(),
   check (fin >= debut)
 );
+-- mise à niveau depuis la première version (commerciaux / administrateur)
+alter table public.campagnes add column if not exists owner_hash bytea;
+alter table public.campagnes drop constraint if exists campagnes_modele_check;
+alter table public.campagnes add constraint campagnes_modele_check check (modele in ('promo', 'produit', 'resto', 'service', 'visuel'));
+alter table public.campagnes drop constraint if exists campagnes_image_check;
+alter table public.campagnes add constraint campagnes_image_check check (image is null or (char_length(image) < 600000 and (image like 'data:image/jpeg;base64,%' or image like 'data:image/png;base64,%')));
+alter table public.campagnes drop constraint if exists campagnes_statut_check;
+alter table public.campagnes add constraint campagnes_statut_check check (statut in ('a_valider', 'active', 'pause', 'refusee'));
+alter table public.campagnes drop constraint if exists campagnes_cat_check;
+alter table public.campagnes add constraint campagnes_cat_check check (cat in ('resto', 'maquis', 'shop', 'supermarche', 'marche', 'hotel', 'station', 'pharma', 'sante', 'service', 'autre'));
+alter table public.campagnes drop constraint if exists campagnes_couleur_check;
+alter table public.campagnes add constraint campagnes_couleur_check check (couleur in ('jaune', 'orange', 'rouge', 'vert', 'bleu', 'violet', 'noir'));
+alter table public.campagnes alter column titre drop not null;
 create index if not exists campagnes_actives on public.campagnes (fin) where statut = 'active';
+create index if not exists campagnes_owner on public.campagnes (owner_hash);
 alter table public.campagnes enable row level security;
 revoke all on public.campagnes from anon, authenticated;
--- lecture publique : campagnes validées, payées et en cours ; jamais le prix, le paiement ni le gérant
 grant select (id, commerce, cat, tel, whatsapp, lat, lon, rayon_m, exclusif, formule, debut, fin, modele, titre, sous_titre, accroche, cta, couleur, image)
   on public.campagnes to anon, authenticated;
 drop policy if exists campagnes_lecture on public.campagnes;
 create policy campagnes_lecture on public.campagnes for select to anon, authenticated
   using (statut = 'active' and paye and current_date between debut and fin);
 
--- ---------- statistiques : additions anonymes par jour ----------
 create table if not exists public.campagne_stats (
   campagne_id uuid not null references public.campagnes (id) on delete cascade,
   jour        date not null default current_date,
@@ -104,43 +108,23 @@ create table if not exists public.campagne_stats (
   touchers    int not null default 0,
   appels      int not null default 0,
   itineraires int not null default 0,
-  visites     int not null default 0,       -- passages à moins de 60 m du point de vente dans les 2 h après une vue
+  visites     int not null default 0,
   primary key (campagne_id, jour)
 );
 alter table public.campagne_stats enable row level security;
 revoke all on public.campagne_stats from anon, authenticated;
 
--- ---------- droits ----------
-create or replace function public.regie_role(p_code text) returns jsonb
-language sql stable security definer set search_path = public as $$
-  select case
-    when exists (select 1 from admin_codes where code = p_code) then jsonb_build_object('role', 'admin', 'nom', 'Administrateur')
-    when exists (select 1 from commerciaux where code = p_code and actif) then jsonb_build_object('role', 'commercial', 'nom', (select nom from commerciaux where code = p_code))
-    else null end;
-$$;
-create or replace function public.commercial_ajouter(p_admin text, p_nom text, p_code text) returns boolean
-language plpgsql security definer set search_path = public as $$
-begin
-  if not exists (select 1 from admin_codes where code = p_admin) then raise exception 'Code administrateur incorrect' using errcode = 'P0001'; end if;
-  insert into commerciaux (code, nom) values (btrim(p_code), btrim(p_nom))
-    on conflict (code) do update set nom = excluded.nom, actif = true;
-  return true;
-end $$;
-create or replace function public.commercial_desactiver(p_admin text, p_code text) returns boolean
-language plpgsql security definer set search_path = public as $$
-begin
-  if not exists (select 1 from admin_codes where code = p_admin) then raise exception 'Code administrateur incorrect' using errcode = 'P0001'; end if;
-  update commerciaux set actif = false where code = p_code;
-  return found;
-end $$;
-create or replace function public.commerciaux_liste(p_admin text) returns jsonb
-language sql stable security definer set search_path = public as $$
-  select case when exists (select 1 from admin_codes where code = p_admin)
-    then coalesce((select jsonb_agg(jsonb_build_object('code', c.code, 'nom', c.nom, 'actif', c.actif,
-      'campagnes', (select count(*) from campagnes k where k.commercial = c.code)) order by c.nom) from commerciaux c), '[]') end;
-$$;
+-- ancienne version : fonctions commerciaux / administrateur retirées
+drop function if exists public.regie_role(text);
+drop function if exists public.commercial_ajouter(text, text, text);
+drop function if exists public.commercial_desactiver(text, text);
+drop function if exists public.commerciaux_liste(text);
+drop function if exists public.campagne_enregistrer(text, jsonb);
+drop function if exists public.campagne_action(text, uuid, text, text);
+drop function if exists public.campagnes_liste(text);
+drop function if exists public.campagne_image(text, uuid);
+drop function if exists public.campagne_stats_jours(text, uuid);
 
--- prix d'une campagne d'après les tarifs
 create or replace function public.regie_prix(p_formule text, p_rayon int, p_exclusif boolean) returns int
 language sql stable security definer set search_path = public as $$
   select round(t.prix * (100 + coalesce((select pourcent from regie_options where cle = 'rayon' || p_rayon), 0)
@@ -148,101 +132,80 @@ language sql stable security definer set search_path = public as $$
   from regie_tarifs t where t.formule = p_formule;
 $$;
 
--- créer ou modifier une campagne (commercial ou administrateur)
-create or replace function public.campagne_enregistrer(p_code text, p jsonb) returns uuid
-language plpgsql security definer set search_path = public as $$
-declare r jsonb := regie_role(p_code); v uuid := nullif(p->>'id', '')::uuid; t regie_tarifs; deb date; k campagnes;
+-- créer ou modifier SA campagne
+create or replace function public.campagne_publier(p_secret uuid, p jsonb) returns uuid
+language plpgsql security definer set search_path = public, extensions as $$
+declare h bytea := digest(p_secret::text, 'sha256'); v uuid := nullif(p->>'id', '')::uuid; t regie_tarifs; deb date; k campagnes;
+  valide boolean := coalesce((select valeur from regie_config where cle = 'validation'), 'non') = 'oui';
 begin
-  if r is null then raise exception 'Code commercial incorrect ou désactivé' using errcode = 'P0001'; end if;
-  if p->>'lat' is null or p->>'lon' is null or p->>'gps_acc' is null then
-    raise exception 'Localisez le point de vente par GPS, sur place' using errcode = 'P0001';
-  end if;
+  if p->>'lat' is null or p->>'lon' is null or p->>'gps_acc' is null then raise exception 'Localisez le point de vente par GPS, sur place' using errcode = 'P0001'; end if;
   if (p->>'gps_acc')::real > 60 then raise exception 'Signal GPS trop imprécis (± % m) : 60 m au plus', round((p->>'gps_acc')::numeric) using errcode = 'P0001'; end if;
   select * into t from regie_tarifs where formule = p->>'formule';
   if not found then raise exception 'Formule inconnue' using errcode = 'P0001'; end if;
-  -- exclusivité : pas deux campagnes exclusives dont les zones se chevauchent
+  if coalesce(p->>'modele', 'promo') = 'visuel' and coalesce(p->>'image', '') = '' and v is null then raise exception 'Ajoutez le visuel de la publicité' using errcode = 'P0001'; end if;
+  if v is null and (select count(*) from campagnes where owner_hash = h and created_at > now() - interval '1 day') >= 5 then
+    raise exception 'Limite atteinte : 5 campagnes par jour' using errcode = 'P0001';
+  end if;
   if coalesce((p->>'exclusif')::boolean, false) and exists (select 1 from campagnes c where c.exclusif and c.statut in ('active', 'a_valider')
       and c.fin >= current_date and c.id is distinct from v
       and 111320 * sqrt(power(c.lat - (p->>'lat')::float8, 2) + power((c.lon - (p->>'lon')::float8) * cos(radians(c.lat)), 2)) < c.rayon_m + coalesce((p->>'rayon_m')::int, 500)) then
-    raise exception 'Une autre campagne a déjà l''exclusivité de cette zone' using errcode = 'P0001';
+    raise exception 'Un autre commerce a déjà l''exclusivité de cette zone' using errcode = 'P0001';
   end if;
   deb := greatest(current_date, coalesce((p->>'debut')::date, current_date));
   if v is null then
-    insert into campagnes (commerce, cat, tel, whatsapp, lat, lon, gps_acc, rayon_m, exclusif, formule, debut, fin, modele, titre, sous_titre, accroche, cta, couleur, image,
-      statut, prix, paiement, paye, client_nom, client_tel, commercial)
-    values (btrim(p->>'commerce'), coalesce(p->>'cat', 'shop'), nullif(regexp_replace(coalesce(p->>'tel', ''), '\D', '', 'g'), ''), coalesce((p->>'whatsapp')::boolean, true),
+    insert into campagnes (owner_hash, commerce, cat, tel, whatsapp, lat, lon, gps_acc, rayon_m, exclusif, formule, debut, fin, modele, titre, sous_titre, accroche, cta, couleur, image, statut, prix, paye)
+    values (h, btrim(p->>'commerce'), coalesce(p->>'cat', 'shop'), nullif(regexp_replace(coalesce(p->>'tel', ''), '\D', '', 'g'), ''), coalesce((p->>'whatsapp')::boolean, true),
       (p->>'lat')::float8, (p->>'lon')::float8, (p->>'gps_acc')::real, coalesce((p->>'rayon_m')::int, 500), coalesce((p->>'exclusif')::boolean, false),
-      t.formule, deb, deb + t.jours - 1, coalesce(p->>'modele', 'promo'), btrim(p->>'titre'), nullif(btrim(p->>'sous_titre'), ''), nullif(btrim(p->>'accroche'), ''),
+      t.formule, deb, deb + t.jours - 1, coalesce(p->>'modele', 'promo'), nullif(btrim(p->>'titre'), ''), nullif(btrim(p->>'sous_titre'), ''), nullif(btrim(p->>'accroche'), ''),
       coalesce(p->>'cta', 'appel'), coalesce(p->>'couleur', 'jaune'), nullif(p->>'image', ''),
-      case when r->>'role' = 'admin' then 'active' else 'a_valider' end,
-      regie_prix(t.formule, coalesce((p->>'rayon_m')::int, 500), coalesce((p->>'exclusif')::boolean, false)),
-      nullif(btrim(p->>'paiement'), ''), coalesce((p->>'paye')::boolean, false), nullif(btrim(p->>'client_nom'), ''),
-      nullif(regexp_replace(coalesce(p->>'client_tel', ''), '\D', '', 'g'), ''), case when r->>'role' = 'commercial' then p_code end)
+      case when valide then 'a_valider' else 'active' end, regie_prix(t.formule, coalesce((p->>'rayon_m')::int, 500), coalesce((p->>'exclusif')::boolean, false)), true)
     returning id into v;
   else
-    select * into k from campagnes where id = v;
-    if not found or (r->>'role' = 'commercial' and k.commercial is distinct from p_code) then raise exception 'Campagne introuvable' using errcode = 'P0001'; end if;
+    select * into k from campagnes where id = v and owner_hash = h;
+    if not found then raise exception 'Campagne introuvable' using errcode = 'P0001'; end if;
     update campagnes set commerce = btrim(p->>'commerce'), cat = coalesce(p->>'cat', cat), tel = nullif(regexp_replace(coalesce(p->>'tel', ''), '\D', '', 'g'), ''),
       whatsapp = coalesce((p->>'whatsapp')::boolean, whatsapp), lat = (p->>'lat')::float8, lon = (p->>'lon')::float8, gps_acc = (p->>'gps_acc')::real,
       rayon_m = coalesce((p->>'rayon_m')::int, rayon_m), exclusif = coalesce((p->>'exclusif')::boolean, exclusif),
-      modele = coalesce(p->>'modele', modele), titre = btrim(p->>'titre'), sous_titre = nullif(btrim(p->>'sous_titre'), ''), accroche = nullif(btrim(p->>'accroche'), ''),
+      modele = coalesce(p->>'modele', modele), titre = nullif(btrim(p->>'titre'), ''), sous_titre = nullif(btrim(p->>'sous_titre'), ''), accroche = nullif(btrim(p->>'accroche'), ''),
       cta = coalesce(p->>'cta', cta), couleur = coalesce(p->>'couleur', couleur), image = case when p ? 'image' then nullif(p->>'image', '') else image end,
-      paiement = nullif(btrim(p->>'paiement'), ''), paye = coalesce((p->>'paye')::boolean, paye), client_nom = nullif(btrim(p->>'client_nom'), ''),
-      client_tel = nullif(regexp_replace(coalesce(p->>'client_tel', ''), '\D', '', 'g'), ''),
-      -- une campagne modifiée par un commercial repasse en validation
-      statut = case when r->>'role' = 'admin' then statut when statut = 'refusee' then 'a_valider' else case when statut = 'active' then 'a_valider' else statut end end,
-      updated_at = now()
+      statut = case when valide and statut = 'active' then 'a_valider' else statut end, updated_at = now()
     where id = v;
   end if;
   return v;
 end $$;
 
--- administrateur : valider / refuser / mettre en pause / reprendre / prolonger
-create or replace function public.campagne_action(p_code text, p_id uuid, p_action text, p_motif text default null) returns boolean
-language plpgsql security definer set search_path = public as $$
-declare r jsonb := regie_role(p_code); k campagnes; t regie_tarifs;
+create or replace function public.mes_campagnes(p_secret uuid) returns jsonb
+language sql stable security definer set search_path = public, extensions as $$
+  select coalesce(jsonb_agg(to_jsonb(c) - 'image' - 'owner_hash' || jsonb_build_object('a_image', c.image is not null,
+      'stats', (select jsonb_build_object('vues', coalesce(sum(s.vues), 0), 'touchers', coalesce(sum(s.touchers), 0), 'appels', coalesce(sum(s.appels), 0),
+         'itineraires', coalesce(sum(s.itineraires), 0), 'visites', coalesce(sum(s.visites), 0)) from campagne_stats s where s.campagne_id = c.id))
+    order by c.created_at desc), '[]')
+  from campagnes c where c.owner_hash = digest(p_secret::text, 'sha256');
+$$;
+create or replace function public.ma_campagne_image(p_secret uuid, p_id uuid) returns text
+language sql stable security definer set search_path = public, extensions as $$
+  select image from campagnes where id = p_id and owner_hash = digest(p_secret::text, 'sha256');
+$$;
+create or replace function public.ma_campagne_stats(p_secret uuid, p_id uuid) returns jsonb
+language sql stable security definer set search_path = public, extensions as $$
+  select coalesce(jsonb_agg(to_jsonb(s) - 'campagne_id' order by s.jour), '[]') from campagne_stats s join campagnes c on c.id = s.campagne_id
+  where s.campagne_id = p_id and c.owner_hash = digest(p_secret::text, 'sha256');
+$$;
+-- pause, reprise, prolongation, suppression (par son auteur)
+create or replace function public.ma_campagne(p_secret uuid, p_id uuid, p_action text) returns boolean
+language plpgsql security definer set search_path = public, extensions as $$
+declare h bytea := digest(p_secret::text, 'sha256'); t regie_tarifs; k campagnes;
 begin
-  if r is null then raise exception 'Code incorrect' using errcode = 'P0001'; end if;
-  select * into k from campagnes where id = p_id;
-  if not found or (r->>'role' = 'commercial' and k.commercial is distinct from p_code) then raise exception 'Campagne introuvable' using errcode = 'P0001'; end if;
-  if p_action in ('valider', 'refuser') and r->>'role' <> 'admin' then raise exception 'Réservé à l''administrateur' using errcode = 'P0001'; end if;
-  if p_action = 'valider' then update campagnes set statut = 'active', motif_refus = null, updated_at = now() where id = p_id;
-  elsif p_action = 'refuser' then update campagnes set statut = 'refusee', motif_refus = left(p_motif, 120), updated_at = now() where id = p_id;
-  elsif p_action = 'pause' then update campagnes set statut = 'pause', updated_at = now() where id = p_id and statut = 'active';
-  elsif p_action = 'reprendre' then
-    update campagnes set statut = case when r->>'role' = 'admin' then 'active' else 'a_valider' end, updated_at = now() where id = p_id and statut = 'pause';
-  elsif p_action = 'paye' then update campagnes set paye = true, paiement = coalesce(nullif(btrim(p_motif), ''), paiement), updated_at = now() where id = p_id;
-  elsif p_action = 'prolonger' then
-    select * into t from regie_tarifs where formule = k.formule;
-    update campagnes set fin = greatest(fin, current_date) + t.jours, paye = false, paiement = null, updated_at = now() where id = p_id;
+  select * into k from campagnes where id = p_id and owner_hash = h;
+  if not found then raise exception 'Campagne introuvable' using errcode = 'P0001'; end if;
+  if p_action = 'pause' then update campagnes set statut = 'pause', updated_at = now() where id = p_id and statut = 'active';
+  elsif p_action = 'reprendre' then update campagnes set statut = 'active', updated_at = now() where id = p_id and statut = 'pause';
+  elsif p_action = 'prolonger' then select * into t from regie_tarifs where formule = k.formule; update campagnes set fin = greatest(fin, current_date) + t.jours, updated_at = now() where id = p_id;
+  elsif p_action = 'supprimer' then delete from campagnes where id = p_id;
   else raise exception 'Action inconnue' using errcode = 'P0001'; end if;
   return true;
 end $$;
 
--- liste des campagnes (les siennes pour un commercial, toutes pour l'administrateur) avec leurs totaux
-create or replace function public.campagnes_liste(p_code text) returns jsonb
-language sql stable security definer set search_path = public as $$
-  with r as (select regie_role(p_code) j)
-  select case when (select j from r) is null then null else coalesce((
-    select jsonb_agg(to_jsonb(c) - 'image' || jsonb_build_object('a_image', c.image is not null,
-      'commercial_nom', (select nom from commerciaux m where m.code = c.commercial),
-      'stats', (select jsonb_build_object('vues', coalesce(sum(s.vues), 0), 'touchers', coalesce(sum(s.touchers), 0), 'appels', coalesce(sum(s.appels), 0),
-         'itineraires', coalesce(sum(s.itineraires), 0), 'visites', coalesce(sum(s.visites), 0), 'jours', count(*)) from campagne_stats s where s.campagne_id = c.id))
-      order by c.created_at desc)
-    from campagnes c where (select j->>'role' from r) = 'admin' or c.commercial = p_code), '[]') end;
-$$;
-create or replace function public.campagne_image(p_code text, p_id uuid) returns text
-language sql stable security definer set search_path = public as $$
-  select image from campagnes c where c.id = p_id and regie_role(p_code) is not null
-    and (regie_role(p_code)->>'role' = 'admin' or c.commercial = p_code);
-$$;
-create or replace function public.campagne_stats_jours(p_code text, p_id uuid) returns jsonb
-language sql stable security definer set search_path = public as $$
-  select coalesce(jsonb_agg(to_jsonb(s) - 'campagne_id' order by s.jour), '[]') from campagne_stats s join campagnes c on c.id = s.campagne_id
-  where s.campagne_id = p_id and regie_role(p_code) is not null and (regie_role(p_code)->>'role' = 'admin' or c.commercial = p_code);
-$$;
-
--- l'application envoie ses compteurs du jour, additionnés (aucune position, aucun identifiant)
 create or replace function public.pub_compter(p jsonb) returns int
 language plpgsql security definer set search_path = public as $$
 declare e jsonb; n int := 0;
@@ -263,9 +226,8 @@ end $$;
 do $$
 declare f text;
 begin
-  foreach f in array array['regie_role(text)', 'commercial_ajouter(text, text, text)', 'commercial_desactiver(text, text)', 'commerciaux_liste(text)',
-    'regie_prix(text, int, boolean)', 'campagne_enregistrer(text, jsonb)', 'campagne_action(text, uuid, text, text)', 'campagnes_liste(text)',
-    'campagne_image(text, uuid)', 'campagne_stats_jours(text, uuid)', 'pub_compter(jsonb)']
+  foreach f in array array['regie_prix(text, int, boolean)', 'campagne_publier(uuid, jsonb)', 'mes_campagnes(uuid)', 'ma_campagne_image(uuid, uuid)',
+    'ma_campagne_stats(uuid, uuid)', 'ma_campagne(uuid, uuid, text)', 'pub_compter(jsonb)']
   loop
     execute format('revoke all on function public.%s from public', f);
     execute format('grant execute on function public.%s to anon, authenticated', f);

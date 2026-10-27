@@ -1784,3 +1784,58 @@ html{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .rg-mem.off{opacity:.55}
 #screen-regie .ap-chips button.on{background:var(--brand);border-color:var(--brand);color:#fff}
 #screen-regie .py-empty{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
+
+/* =====================================================================
+   MA PUBLICITÉ — visuel complet et éditeur
+   ===================================================================== */
+.cz-visuel{padding:0!important;background:linear-gradient(140deg,var(--z1),var(--z2))}
+.cz-full{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit}
+.cz-empty{margin:auto;font-weight:800;opacity:.6}
+.rg-new{display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:12px}
+.rg-new .ic{width:18px;height:18px}
+.rg-how{margin-bottom:12px}
+.rg-how>b{display:flex;align-items:center;gap:6px}
+.rg-how>b .ic{width:18px;height:18px;color:var(--brand)}
+.rg-how p{margin:6px 0 0;font-size:.84rem;color:var(--text-2)}
+.rg-mode{margin-bottom:10px}
+.rg-mode button.on{color:var(--brand)}
+.rg-vis-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+.rg-vis-btns .btn{display:flex;align-items:center;justify-content:center;gap:6px;font-size:.86rem}
+.rg-vis-btns .ic{width:18px;height:18px}
+.rg-gab{display:flex;align-items:center;gap:4px;margin:4px 0 10px;font-size:.82rem}
+.rg-gab .ic{width:15px;height:15px}
+.rg-price small{color:var(--text-3)}
+.rg-gab-box{position:fixed;inset:0;z-index:3500;background:rgba(0,0,0,.55);display:grid;place-items:center;padding:20px}
+.rg-gab-in{background:var(--surface);border-radius:20px;padding:16px;max-width:420px;width:100%}
+.rg-gab-in img{width:100%;border-radius:12px;display:block;border:1px solid var(--border)}
+.rg-gab-in p{font-size:.86rem;color:var(--text-2)}
+/* éditeur */
+.ed-wrap{position:sticky;top:calc(4px + var(--sat));z-index:6;margin-bottom:12px;filter:drop-shadow(0 8px 18px rgba(0,0,0,.2))}
+.ed-stage{position:relative;width:100%;aspect-ratio:5/4;border-radius:18px;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+.ed-safe{position:absolute;inset:4%;border:1.5px dashed rgba(255,255,255,.55);border-radius:10px;pointer-events:none;mix-blend-mode:difference}
+.ed-tag{position:absolute;top:8px;right:10px;z-index:3;pointer-events:none}
+.ed-o{position:absolute;transform-origin:center;cursor:grab;touch-action:none;line-height:1.05;white-space:nowrap}
+.ed-o.sel{outline:2px dashed #fff;outline-offset:4px;box-shadow:0 0 0 1px rgba(0,0,0,.5)}
+.ed-txt{display:block;text-align:center;font-weight:700;white-space:pre}
+.ed-o img{display:block;pointer-events:none;user-select:none}
+.ed-h{position:absolute;width:22px;height:22px;border-radius:50%;background:#fff;border:2px solid #111;box-shadow:0 2px 6px rgba(0,0,0,.35);transform:scale(var(--inv,1));touch-action:none}
+.ed-h.rot{left:50%;top:-38px;margin-left:-11px}
+.ed-h.rot::after{content:'';position:absolute;left:50%;top:20px;width:2px;height:14px;background:#fff;margin-left:-1px}
+.ed-h.sc{right:-16px;bottom:-16px;border-radius:6px}
+.ed-tools{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:10px}
+.ed-tools>button,.ed-tools>label{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 2px;border-radius:14px;background:var(--surface);box-shadow:var(--shadow);font-size:.68rem;font-weight:700;color:var(--text);border:0;cursor:pointer}
+.ed-tools .ic{width:22px;height:22px;color:var(--brand)}
+.ed-panel label{margin-top:8px}
+.ed-panel input[type=range]{width:100%}
+.ed-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px}
+.ed-row .ap-check{margin:0}
+.ed-cols{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.ed-cols button{width:30px;height:30px;border-radius:50%;border:2px solid var(--border)}
+.ed-cols button.on{box-shadow:0 0 0 3px var(--brand)}
+.ed-cols input[type=color]{width:36px;height:32px;border:0;background:none;padding:0}
+.ed-acts .btn{flex:1;min-width:0}
+.ed-acts .btn .ic{width:16px;height:16px}
+.ed-foot{display:grid;grid-template-columns:1fr 2fr;gap:8px;margin:12px 0 20px}
+.as-follow{display:flex;flex-direction:column;gap:4px;margin:6px 0 4px;font-size:.8rem;font-weight:600;color:var(--text-2)}
+.as-follow select{padding:8px 10px;font-size:.84rem}
+.bc-h{margin:12px 0 4px;font-size:.8rem}

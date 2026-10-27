@@ -115,25 +115,29 @@ Si vous aviez déjà exécuté `imo.sql`, relancez-le : il ajoute les clés num�
 - **Preuves** : chaque étape est inscrite dans un journal ineffaçable (date, auteur, position arrondie). Les présences au logement sont vérifiées par GPS (± 100 m, à 150 m au plus de la position vérifiée de l'annonce).
 - **Garde-fous** : 8 codes erronés par heure et par téléphone au plus ; les tables des clés ne sont lisibles que par les fonctions du serveur, et chacun ne voit que ses propres clés.
 
-## Régie publicitaire — version pilote (`regie.sql`)
+## Publicité des commerçants — démo (`regie.sql`)
 
-Exécutez-le une fois dans **SQL Editor**, après `v2.sql` (il utilise vos codes administrateur). Vous pouvez le relancer sans risque.
+Exécutez-le une fois dans **SQL Editor**. Vous pouvez le relancer sans risque : il remplace aussi la première version avec commerciaux et administrateur.
 
-**Créer un commercial :** dans l'application, Profil › **Espace régie publicitaire** › code administrateur › **Commerciaux** › Ajouter. Vous pouvez aussi le faire en SQL :
+**Créer une publicité :** chaque utilisateur passe par Profil › **Faire la publicité de mon commerce**.
+1. Il localise son point de vente par GPS, sur place.
+2. Il crée le visuel : modèle rapide, éditeur (textes, images PNG, déplacement, rotation, taille) ou visuel prêt au gabarit 1000 × 800 px.
+3. Il choisit le rayon et la durée, puis publie.
+
+**Démo :** la diffusion est immédiate et gratuite.
+
+**Vérifier les publicités avant diffusion (plus tard) :**
 
 ```sql
-select public.commercial_ajouter('VOTRE-CODE-ADMIN', 'Koffi Yao', 'KOFFI-2026');
+update public.regie_config set valeur = 'oui' where cle = 'validation';   -- les nouvelles campagnes passent « en vérification »
+update public.campagnes set statut = 'active' where id = '…';            -- autoriser une campagne
+update public.campagnes set statut = 'refusee' where id = '…';           -- la refuser
 ```
-
-**Parcours d'une campagne :**
-1. Le commercial, au point de vente, crée la campagne : le GPS du point de vente est obligatoire (± 60 m). Il choisit le rayon, la formule, le modèle, les textes et la photo, puis note le paiement Mobile Money.
-2. L'administrateur la valide, ou la refuse avec un motif.
-3. Elle est diffusée seulement si elle est validée, payée et dans ses dates.
 
 **Règles de diffusion (sur le téléphone) :**
 - Dans le rayon d'un point de vente, seules ses pubs s'affichent ; une campagne exclusive passe avant les autres.
 - Ailleurs, les campagnes « toute la ville » et celles à moins de 3 km s'affichent, 3 vues par jour au plus par campagne.
 
-**Tarifs :** tables `regie_tarifs` (formules, prix, durée) et `regie_options` (majorations en % : rayon 1 km, exclusivité ; réduction rayon 200 m), modifiables dans Table Editor.
+**Statistiques :** totaux anonymes par jour. Aucune position ni aucun identifiant n'est envoyé.
 
-**Statistiques :** vues, touchers, appels et messages, itinéraires, passages à moins de 60 m du point de vente dans les 2 h après une vue. Ce sont des totaux anonymes par jour : aucune position ni aucun identifiant n'est envoyé.
+**Tarifs prévus** (affichés à titre indicatif pendant la démo) : tables `regie_tarifs` et `regie_options`.
