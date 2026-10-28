@@ -5830,20 +5830,6 @@
 
   // Publicités de la bulle : EXEMPLES FICTIFS (marques inventées) en attendant la régie publicitaire.
   // Chaque offre est placée à quelques mètres de l'arrêt le plus proche pour montrer le rendu « près de vous ».
-  var DEMO_ADS = [
-    { id: 'paint', brand: 'Zolikolor', dx: 4, dy: 3, cls: 'zad-paint', cat: 'shop',
-      html: `<div class="zad-art"><svg viewBox="0 0 120 120" aria-hidden="true"><ellipse cx="60" cy="104" rx="42" ry="8" fill="rgba(0,0,0,.18)"/><path d="M22 34h76l-7 66a8 8 0 0 1-8 7H37a8 8 0 0 1-8-7z" fill="#fff"/><path d="M26 52h68l-4 40H30z" fill="#ffd400"/><ellipse cx="60" cy="34" rx="38" ry="9" fill="#222"/><ellipse cx="60" cy="32" rx="34" ry="6" fill="#e11d48"/><path d="M40 70c6-10 14-14 20-9s14 2 20-6" stroke="#e11d48" stroke-width="7" fill="none" stroke-linecap="round"/><text x="60" y="88" text-anchor="middle" font-size="11" font-weight="900" fill="#1f2937">ZOLIKOLOR</text></svg></div>
-        <div class="zad-txt"><b class="zad-big">BIG</b><b class="zad-red">PROMO</b><b class="zad-pct">-35%</b><small>sur vos pots de peinture</small><span class="zad-cta">Savoir plus ›</span></div>` },
-    { id: 'garba', brand: 'Chez Tantie Zouzou', dx: -25, dy: 18, cls: 'zad-garba', cat: 'maquis',
-      html: `<div class="zad-txt"><small class="zad-kick">Garba du midi</small><b class="zad-big">Garba + alloco</b><b class="zad-price">1 000 F</b><small>Thon frais · piment à volonté · prêt en 5 min</small><span class="zad-cta">Je passe commande ›</span></div>
-        <div class="zad-art"><svg viewBox="0 0 120 120" aria-hidden="true"><ellipse cx="60" cy="74" rx="50" ry="22" fill="#fff"/><ellipse cx="60" cy="70" rx="44" ry="17" fill="#fde68a"/>${[[38,66],[48,62],[58,70],[70,64],[80,70],[46,74],[66,76]].map(([x,y]) => `<circle cx="${x}" cy="${y}" r="3" fill="#f5f5dc" stroke="#e5d9a8"/>`).join('')}<path d="M70 58c8-6 20-6 26 2-8 4-18 4-26-2z" fill="#9ca3af"/><rect x="28" y="58" width="14" height="7" rx="3" fill="#f59e0b" transform="rotate(-20 35 61)"/><rect x="82" y="72" width="14" height="7" rx="3" fill="#f59e0b" transform="rotate(15 89 75)"/><circle cx="54" cy="58" r="3.5" fill="#dc2626"/></svg></div>` },
-    { id: 'data', brand: 'Lagunet (exemple)', dx: 40, dy: -30, cls: 'zad-data', cat: 'shop',
-      html: `<div class="zad-txt"><small class="zad-kick">Pass internet</small><b class="zad-big zad-go">5 Go</b><b class="zad-price">1 000 F · 7 jours</b><small>Activez avec le code *000#</small><span class="zad-cta">J'active ›</span></div>
-        <div class="zad-art"><svg viewBox="0 0 120 120" aria-hidden="true"><rect x="38" y="14" width="44" height="88" rx="9" fill="#111827"/><rect x="42" y="22" width="36" height="70" rx="4" fill="#a78bfa"/><g fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"><path d="M46 52a20 20 0 0 1 28 0"/><path d="M51 59a12 12 0 0 1 18 0"/></g><circle cx="60" cy="67" r="4" fill="#fff"/><circle cx="96" cy="30" r="10" fill="#fde047"/><text x="96" y="34" text-anchor="middle" font-size="10" font-weight="900" fill="#4c1d95">+</text></svg></div>` },
-    { id: 'pressing', brand: 'Pressing Linge d\'Or', dx: -12, dy: -45, cls: 'zad-press', cat: 'shop',
-      html: `<div class="zad-art"><svg viewBox="0 0 120 120" aria-hidden="true"><path d="M30 34l18-12h24l18 12-8 14-8-4v52H46V44l-8 4z" fill="#fff"/><path d="M48 22c3 8 21 8 24 0" fill="none" stroke="#93c5fd" stroke-width="3"/>${[[24,84],[96,40],[100,90]].map(([x,y]) => `<circle cx="${x}" cy="${y}" r="7" fill="none" stroke="#bfdbfe" stroke-width="2.5"/>`).join('')}</svg></div>
-        <div class="zad-txt"><small class="zad-kick">Le lundi seulement</small><b class="zad-pct">-20%</b><b class="zad-big">sur tout le linge</b><small>Repassage inclus · prêt en 24 h</small><span class="zad-cta">Voir l'adresse ›</span></div>` }
-  ];
   /* =====================================================================
      RÉGIE — panneaux publicitaires virtuels
      À moins de rayon_m d'un point de vente : uniquement ses pubs (l'exclusivité passe avant tout).
@@ -5952,19 +5938,13 @@
     pubVisits();
     if (!on) { clearTimeout(lads.timer); lads.timer = null; lads.key = ''; return; }
     const pick = campsFor(state.pos);
-    let items;
+    let items = [];
     if (pick.list.length) items = pick.list.map(({ c, w, z }) => {
       let cc = c;
       if (c.img) { const im = zpImg.get(c.id + ':' + (c.v || 0)); if (im) cc = { ...c, image: im }; else zpVisuel(c); }
       return { id: c.id + (cc.image ? ':i' : ''), cid: c.id, c: cc, w: w || 1, z, brand: c.commerce, lat: c.lat, lon: c.lon };
     });
-    else if ((regie.data.rows || []).length) { // la régie a démarré : plus d'exemples fictifs, mais l'offre aux commerçants du quartier
-      const s = tg.stop;
-      items = [{ id: 'house', house: true, brand: 'ZUPA Pub', lat: s.lat, lon: s.lon, c: { commerce: 'ZUPA', cat: 'shop', modele: 'service', couleur: 'noir', titre: 'Votre panneau ici', accroche: '', sous_titre: 'Commerçants : bientôt sur la plateforme web ZUPA', cta: 'whatsapp' } }];
-    } else { // pas encore de campagne réelle ici : exemples fictifs autour de l'arrêt
-      const s = tg.stop, cosL = Math.cos(s.lat * Math.PI / 180);
-      items = DEMO_ADS.map((a, k) => ({ id: 'demo' + k, demo: a, brand: a.brand, lat: s.lat + a.dy / 111320, lon: s.lon + a.dx / (111320 * cosL) }));
-    }
+    if (!items.length) { box.hidden = true; clearTimeout(lads.timer); lads.timer = null; lads.key = ''; lads.items = []; return; }
     const key = items.map(x => x.id).join('|');
     if (lads.key !== key) {
       const prev = lads.items[lads.i] && (lads.items[lads.i].cid || lads.items[lads.i].id);
@@ -5973,9 +5953,7 @@
       // une pub prioritaire (zone B, emplacement Géopub@city) qui vient d'apparaître passe devant
       if (items[0] && items[0].w > 1 && !oldIds.has(items[0].cid || items[0].id)) lads.i = 0;
       lads.key = key; lads.items = items;
-      $('lads-rail').innerHTML = items.map((it, k) => it.house ? `<button type="button" class="zad-btn" data-ad="${k}" aria-label="Votre publicité ici">${campHtml(it.c, 'ZUPA Pub')}</button>` : it.demo
-        ? `<button type="button" class="zad ${it.demo.cls}" data-ad="${k}" aria-label="${esc(it.brand)} — publicité fictive"><span class="zad-tag">Pub fictive</span>${it.demo.html}</button>`
-        : `<button type="button" class="zad-btn" data-ad="${k}" aria-label="${esc(it.brand)} — publicité">${campHtml(it.c)}</button>`).join('');
+      $('lads-rail').innerHTML = items.map((it, k) => `<button type="button" class="zad-btn" data-ad="${k}" aria-label="${esc(it.brand)} — publicité">${campHtml(it.c)}</button>`).join('');
       $('lads-dots').innerHTML = items.length > 1 ? items.map((_, k) => `<i class="${k === lads.i ? 'on' : ''}"></i>`).join('') : '';
       requestAnimationFrame(() => { const r = $('lads-rail'); r.scrollLeft = r.clientWidth * lads.i; });
       pubViewSoon(items[lads.i]);
@@ -6012,8 +5990,6 @@
   $('lads-rail').addEventListener('click', e => {
     const b = e.target.closest('[data-ad]'); if (!b) return;
     const it = lads.items[+b.dataset.ad]; if (!it) return;
-    if (it.demo) { toast(`« ${it.brand} » est une publicité fictive : les vraies offres des commerces près de vous arrivent bientôt.`, 'info', 5000); return; }
-    if (it.house) { toast('Bientôt : les commerçants pourront créer leur publicité sur la plateforme web ZUPA.', 'info', 5000); return; }
     campOpen(it.c);
   });
   // toucher une pub : les actions du commerce (chaque action est comptée, sans savoir qui l'a faite)
@@ -6032,13 +6008,7 @@
   setTimeout(() => fetchRegie(false), 5000);
   setInterval(() => { if (document.visibilityState === 'visible') fetchRegie(false); }, 10 * 60e3);
 
-  // les anciens emplacements « Espace publicitaire » montrent aussi des exemples fictifs
-  document.querySelectorAll('.ad-slot').forEach((el, k) => {
-    const a = DEMO_ADS[(k + 1) % DEMO_ADS.length];
-    el.classList.add('filled');
-    el.innerHTML = `<button type="button" class="zad ${a.cls}" data-ad="${DEMO_ADS.indexOf(a)}" aria-label="${esc(a.brand)} — publicité fictive"><span class="zad-tag">Pub fictive</span>${a.html}</button>`;
-    el.addEventListener('click', e => { const bt = e.target.closest('[data-ad]'); if (bt) toast(`« ${DEMO_ADS[+bt.dataset.ad].brand} » est une publicité fictive : les vraies offres arrivent bientôt.`, 'info', 5000); });
-  });
+
 
   // La création des publicités se fera sur une plateforme web dédiée (hors de l'application).
 
