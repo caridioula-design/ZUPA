@@ -91,6 +91,10 @@
   const MODS = [['promo', 'Promotion'], ['produit', 'Produit + photo'], ['resto', 'Plat / menu'], ['service', 'Service']];
   const CTA = { appel: 'Appeler', whatsapp: 'WhatsApp', itineraire: 'J’y vais' };
   const ST = { active: 'En ligne', pause: 'En pause', a_valider: 'À valider', refusee: 'Refusée', terminee: 'Terminée' };
+  const etabs = () => (st.moi && st.moi.etablissements) || [];
+  const etabOf = id => etabs().find(e => e.id === id) || etabs()[0] || null;
+  const etabName = id => { const e = etabOf(id); return e ? e.nom : (st.moi.profil ? st.moi.profil.nom : ''); };
+  const etabIc = e => e && e.logo ? `<img src="${e.logo}" alt="">` : `<span class="etab-ic">${ic(CAT_IC[(e && e.cat) || 'shop'] || 'shop')}</span>`;
   const tarif = code => ((st.moi && st.moi.tarifs) || []).find(t => t.code === code) || { siege: { prix: 25000 }, city: { prix: 15000 }, pack5: { prix: 60000 } }[code];
 
   function campHtml(c, commerce) {
@@ -162,7 +166,7 @@
   /* ---------- tableau de bord ---------- */
   async function viewTableau() {
     const V = $('view');
-    V.innerHTML = `<div class="view-h"><div><h1>Mes campagnes</h1><p class="muted">${esc(st.moi.profil.nom)}</p></div><button class="btn primary" data-go="nouvelle">${ic('plus')}Nouvelle campagne</button></div>${demoBand()}<div id="tb-body" class="loading-page" style="min-height:30vh">Chargement…</div>`;
+    V.innerHTML = `<div class="view-h"><div><h1>Mes campagnes</h1><p class="muted">${esc(st.moi.profil.nom)}${etabs().length > 1 ? ` · ${etabs().length} établissements` : ''}</p></div><button class="btn primary" data-go="nouvelle">${ic('plus')}Nouvelle campagne</button></div>${demoBand()}<div id="tb-body" class="loading-page" style="min-height:30vh">Chargement…</div>`;
     const r = await rpc('zp_mes_campagnes');
     if (st.view !== 'tableau') return;
     if (!r.ok) { $('tb-body').innerHTML = `<p class="muted">${esc(errTxt(r))}</p>`; return; }
@@ -172,11 +176,14 @@
   function campStatut(c) { const today = new Date().toISOString().slice(0, 10); return c.statut === 'active' && String(c.fin).slice(0, 10) < today ? 'terminee' : c.statut; }
   function renderTableau() {
     const B = $('tb-body'); if (!B) return; B.className = '';
-    const cs = st.camps;
-    if (!cs.length) { B.innerHTML = `<div class="empty"><h2>Aucune campagne pour l'instant</h2><p class="muted">Placez votre point de vente sur la carte, choisissez votre visuel : votre publicité s'affiche aussitôt dans ZUPA autour de votre commerce.</p><button class="btn primary" data-go="nouvelle">${ic('plus')}Créer ma première campagne</button></div>`; return; }
+    const all = st.camps, ES = etabs();
+    if (st.filtre && !ES.some(e => e.id === st.filtre)) st.filtre = null;
+    const cs = st.filtre ? all.filter(c => c.etablissement_id === st.filtre) : all;
+    const filt = ES.length > 1 && all.length ? `<div class="filters chips" id="tb-filt"><button type="button" data-f="" class="${!st.filtre ? 'on' : ''}">Tous les établissements</button>${ES.map(e => `<button type="button" data-f="${esc(e.id)}" class="${st.filtre === e.id ? 'on' : ''}">${esc(e.nom)} · ${all.filter(c => c.etablissement_id === e.id).length}</button>`).join('')}</div>` : '';
+    if (!all.length) { B.innerHTML = `<div class="empty"><h2>Aucune campagne pour l'instant</h2><p class="muted">Placez votre point de vente sur la carte, choisissez votre visuel : votre publicité s'affiche aussitôt dans ZUPA autour de votre commerce.</p><button class="btn primary" data-go="nouvelle">${ic('plus')}Créer ma première campagne</button></div>`; return; }
     const tot = k => cs.reduce((a, c) => a + ((c.stats && c.stats[k]) || 0), 0);
     const actives = cs.filter(c => campStatut(c) === 'active').length;
-    B.innerHTML = `<div class="kpis">
+    B.innerHTML = filt + `<div class="kpis">
         <div class="kpi"><small>Campagnes en ligne</small><b>${actives}</b></div>
         <div class="kpi"><small>Vues</small><b>${F(tot('vues'))}</b></div>
         <div class="kpi"><small>Touchers et appels</small><b>${F(tot('touchers') + tot('appels'))}</b></div>
@@ -186,10 +193,10 @@
         const s = campStatut(c), pn = c.panneaux || [], city = pn.filter(p => p.type === 'city'), siege = pn.find(p => p.type === 'siege');
         const x = c.stats || {};
         return `<article class="camp" data-c="${esc(c.id)}">
-          <div class="camp-prev">${campHtml({ ...c, cat: st.moi.profil.cat }, st.moi.profil.nom)}</div>
+          <div class="camp-prev">${campHtml({ ...c, cat: (etabOf(c.etablissement_id) || st.moi.profil).cat }, etabName(c.etablissement_id))}</div>
           <div class="camp-b">
             <div class="camp-t"><h3>${esc(c.nom)}</h3><span class="st ${s}">${ST[s] || s}</span></div>
-            <div class="camp-meta"><span>${ic('pin')}${esc(c.siege_nom)}</span><span>${ic('clock')}jusqu'au ${fmtD(c.fin)}</span><span>${ic('map')}${siege ? esc(siege.code) : ''}${city.length ? ` + ${city.length} emplacement${city.length > 1 ? 's' : ''}` : ''}</span><span>${c.portee === 'pays' ? 'Zone C : tout le pays' : 'Zone C : la ville'}</span></div>
+            <div class="camp-meta"><span>${ic('shop')}<b>${esc(etabName(c.etablissement_id))}</b></span><span>${ic('pin')}${esc(c.siege_nom)}</span><span>${ic('clock')}jusqu'au ${fmtD(c.fin)}</span><span>${ic('map')}${siege ? esc(siege.code) : ''}${city.length ? ` + ${city.length} emplacement${city.length > 1 ? 's' : ''}` : ''}</span><span>${c.portee === 'pays' ? 'Zone C : tout le pays' : 'Zone C : la ville'}</span></div>
             <div class="camp-stats"><div><small>Vues</small><b>${F(x.vues)}</b></div><div><small>Touchers</small><b>${F(x.touchers)}</b></div><div><small>Appels</small><b>${F(x.appels)}</b></div><div><small>Visites</small><b>${F(x.visites)}</b></div></div>
             <div class="camp-acts">
               <button class="btn sm ghost" data-a="carte">${ic('map')}Carte</button>
@@ -204,6 +211,7 @@
       }).join('')}</div>`;
   }
   $('view').addEventListener('click', async e => {
+    const f = e.target.closest('#tb-filt [data-f]'); if (f) { st.filtre = f.dataset.f || null; renderTableau(); return; }
     const b = e.target.closest('[data-a]'); if (!b) return;
     const card = b.closest('[data-c]'); if (!card) return;
     const c = (st.camps || []).find(x => x.id === card.dataset.c); if (!c) return;
@@ -301,38 +309,45 @@
   /* ---------- nouvelle campagne ---------- */
   const cityPrice = (n, sem) => n <= 0 ? 0 : sem * Math.min(n * tarif('city').prix, Math.floor(n / 5) * tarif('pack5').prix + (n % 5) * tarif('city').prix);
   function draftFrom(c) {
-    return { nom: c.nom, portee: c.portee, siege: { nom: c.siege_nom, lat: c.siege_lat, lon: c.siege_lon }, mode: c.modele === 'visuel' ? 'visuel' : 'modele', modele: c.modele === 'visuel' ? 'promo' : c.modele,
+    return { etab: c.etablissement_id || (etabs()[0] && etabs()[0].id), layout: null, aLayout: !!c.a_layout, nom: c.nom, portee: c.portee, siege: { nom: c.siege_nom, lat: c.siege_lat, lon: c.siege_lon }, mode: c.a_layout ? 'editeur' : c.modele === 'visuel' ? 'visuel' : 'modele', modele: c.modele === 'visuel' ? 'promo' : c.modele,
       titre: c.titre || '', accroche: c.accroche || '', sous_titre: c.sous_titre || '', cta: c.cta, couleur: c.couleur, photo: c.modele !== 'visuel' ? c.image : null, visuel: c.modele === 'visuel' ? c.image : null, cat: st.moi.profil.cat,
       panneaux: [], mois: 1, semaines: 1, imgChanged: false };
   }
   function newDraft() {
-    const p = st.moi.profil;
-    return { nom: '', portee: 'ville', siege: null, mode: 'modele', modele: 'promo', titre: '', accroche: '', sous_titre: '', cta: p.whatsapp && p.tel ? 'whatsapp' : 'appel', couleur: 'jaune', photo: null, visuel: null, cat: p.cat, panneaux: [], mois: 1, semaines: 1, dirty: false };
+    const p = st.moi.profil, e = etabs()[0] || {};
+    return { etab: e.id, layout: null, nom: '', portee: 'ville', siege: e.lat ? { nom: e.nom, lat: e.lat, lon: e.lon } : null, mode: 'modele', modele: 'promo', titre: '', accroche: '', sous_titre: '', cta: (e.whatsapp ?? p.whatsapp) && (e.tel || p.tel) ? 'whatsapp' : 'appel', couleur: 'jaune', photo: null, visuel: null, cat: e.cat || p.cat, panneaux: [], mois: 1, semaines: 1, dirty: false };
   }
   let wz = { map: null, siegeMk: null, zones: null, cityLayer: null };
   function viewNouvelle() {
+    if (wz.ed && st.draft) { try { st.draft.layout = wz.ed.get(); } catch (_) {} }
     if (!st.draft || (!st.draft.editId && st.draft.done)) st.draft = newDraft();
-    const d = st.draft, ed = !!d.editId;
+    const d = st.draft, ed = !!d.editId, E = etabOf(d.etab);
     $('view').innerHTML = `<div class="view-h"><div><h1>${ed ? 'Modifier la campagne' : 'Nouvelle campagne'}</h1><p class="muted">${ed ? 'Visuel, nom et portée. Les panneaux restent en place.' : 'Votre panneau Géopub@siège est inclus. Ajoutez des emplacements si vous voulez.'}</p></div></div>${demoBand()}
     <div class="wiz">
       <div class="wiz-l">
+        <section class="card">
+          <div class="step-h"><i>${ed ? '·' : 1}</i><h2>Établissement</h2></div>
+          <p class="muted" style="margin:0">La publicité s'affiche au nom de cet établissement, avec son téléphone.</p>
+          <div class="etab-pick" id="wz-etab">${etabs().map(x => `<button type="button" data-e="${esc(x.id)}" class="${x.id === d.etab ? 'on' : ''}">${etabIc(x)}${esc(x.nom)}</button>`).join('')}<button type="button" data-go="profil" class="btn sm ghost">${ic('plus')}Ajouter un établissement</button></div>
+        </section>
         <section class="card"${ed ? ' hidden' : ''}>
-          <div class="step-h"><i>1</i><h2>Votre point de vente</h2></div>
+          <div class="step-h"><i>2</i><h2>Le point de vente</h2></div>
           <p class="muted" style="margin:0">Cherchez l'adresse ou touchez la carte à l'endroit exact du commerce : c'est là que se trouve votre panneau Géopub@siège.</p>
           <div class="map-tools"><div class="search"><input class="input" id="wz-q" placeholder="Quartier, rue, repère… (ex. Treichville avenue 16)" autocomplete="off"><div class="sug" id="wz-sug" hidden></div></div><button class="btn ghost" id="wz-gps" type="button" title="Ma position">${ic('locate')}</button></div>
           <div class="map" id="wz-map"></div>
           <div class="zones-mini"><span><i style="background:var(--za)"></i>Zone A · 200 m : vos pubs uniquement</span><span><i style="background:var(--zb)"></i>Zone B · 500 m : affichage ×3</span><span><i style="background:var(--zc)"></i>Zone C : ${d.portee === 'pays' ? 'tout le pays' : 'toute la ville'}</span></div>
-          <label for="wz-snom">Nom du point de vente</label><input class="input" id="wz-snom" maxlength="80" value="${esc(d.siege ? d.siege.nom : '')}" placeholder="ex. ${esc(st.moi.profil.nom)} Treichville">
+          <label for="wz-snom">Nom du point de vente</label><input class="input" id="wz-snom" maxlength="80" value="${esc(d.siege ? d.siege.nom : '')}" placeholder="ex. ${esc(E ? E.nom : st.moi.profil.nom)} Treichville">
         </section>
         <section class="card">
-          <div class="step-h"><i>${ed ? 1 : 2}</i><h2>Portée de la zone C</h2></div>
+          <div class="step-h"><i>${ed ? 1 : 3}</i><h2>Portée de la zone C</h2></div>
           <p class="muted" style="margin:0">Au-delà de 500 m, votre publicité tourne avec les autres, durée d'affichage normale.</p>
           <div class="chips" id="wz-portee" style="margin-top:10px"><button type="button" data-v="ville" class="${d.portee === 'ville' ? 'on' : ''}">Toute la ville</button><button type="button" data-v="pays" class="${d.portee === 'pays' ? 'on' : ''}">Tout le pays</button></div>
         </section>
         <section class="card">
-          <div class="step-h"><i>${ed ? 2 : 3}</i><h2>Votre publicité</h2></div>
+          <div class="step-h"><i>${ed ? 2 : 4}</i><h2>Votre publicité</h2></div>
           <label for="wz-nom">Nom de la campagne <small>(visible par vous seul)</small></label><input class="input" id="wz-nom" maxlength="60" value="${esc(d.nom)}" placeholder="ex. Promo de rentrée">
-          <div class="mode-sw" id="wz-mode"><button type="button" data-m="modele" class="${d.mode === 'modele' ? 'on' : ''}"><b>Modèle rapide</b><small>Titre, prix, couleurs, photo</small></button><button type="button" data-m="visuel" class="${d.mode === 'visuel' ? 'on' : ''}"><b>Mon visuel</b><small>Affiche prête, 1000 × 800 px</small></button></div>
+          <div class="mode-sw three" id="wz-mode"><button type="button" data-m="modele" class="${d.mode === 'modele' ? 'on' : ''}"><b>Modèle rapide</b><small>Titre, prix, couleurs, photo</small></button><button type="button" data-m="editeur" class="${d.mode === 'editeur' ? 'on' : ''}"><b>Éditeur</b><small>Déplacez textes, images, couleurs</small></button><button type="button" data-m="visuel" class="${d.mode === 'visuel' ? 'on' : ''}"><b>Mon visuel</b><small>Affiche prête, 1000 × 800 px</small></button></div>
+          <div id="wz-editeur" ${d.mode !== 'editeur' ? 'hidden' : ''}></div>
           <div id="wz-modele" ${d.mode !== 'modele' ? 'hidden' : ''}>
             <label>Mise en page</label><div class="chips" id="wz-mod">${MODS.map(([k, l]) => `<button type="button" data-v="${k}" class="${d.modele === k ? 'on' : ''}">${l}</button>`).join('')}</div>
             <label for="wz-ti">Titre <small>(40 caractères)</small></label><input class="input" id="wz-ti" maxlength="40" value="${esc(d.titre)}" placeholder="ex. BIG PROMO">
@@ -352,7 +367,7 @@
           </div>
         </section>
         <section class="card"${ed ? ' hidden' : ''}>
-          <div class="step-h"><i>4</i><h2>Emplacements supplémentaires <small class="muted" style="font-weight:500;font-size:.85rem">(facultatif)</small></h2></div>
+          <div class="step-h"><i>5</i><h2>Emplacements supplémentaires <small class="muted" style="font-weight:500;font-size:.85rem">(facultatif)</small></h2></div>
           <p class="muted" style="margin:0">Panneaux Géopub@city sur un itinéraire ou près d'un autre point de vente : 100 m, affichage 2 fois plus long. Activez l'ajout puis touchez la carte.</p>
           <div class="map-tools"><button class="btn ghost" id="wz-city-on" type="button">${ic('plus')}Poser des emplacements sur la carte</button></div>
           <ul class="city-list" id="wz-city"></ul>
@@ -360,15 +375,39 @@
         </section>
       </div>
       <aside class="wiz-r">
-        <section class="card prev-card"><h2>Aperçu dans ZUPA</h2><div class="phone"><p class="cap">${ic('pin')}<span>120 m · <b>${esc(st.moi.profil.nom)}</b></span></p><div id="wz-prev"></div></div></section>
+        <section class="card prev-card"><h2>Aperçu dans ZUPA</h2><div class="phone"><p class="cap">${ic('pin')}<span>120 m · <b>${esc(E ? E.nom : st.moi.profil.nom)}</b></span></p><div id="wz-prev"></div></div></section>
         <section class="card recap" id="wz-recap"></section>
       </aside>
     </div>`;
-    wz = { map: null, siegeMk: null, zones: null, cityLayer: null, cityOn: false };
+    wz = { map: null, siegeMk: null, zones: null, cityLayer: null, cityOn: false, ed: null };
     if (!ed) initWizMap();
     bindWiz();
     renderPrev(); renderRecap(); renderCity();
+    if (d.mode === 'editeur') mountEditor();
   }
+  // éditeur : à partir de la mise en page enregistrée, du visuel importé ou du modèle rapide
+  async function mountEditor() {
+    const d = st.draft, box = $('wz-editeur'); if (!box || wz.ed) return;
+    let init = d.layout;
+    if (!init && d.editId && d.aLayout) {
+      box.innerHTML = '<p class="muted">Chargement de la mise en page…</p>';
+      const r = await rpc('zp_campagne_layout', { p_id: d.editId });
+      if (st.draft !== d || d.mode !== 'editeur') return;
+      if (r.ok && r.data && r.data.objs) init = d.layout = r.data;
+    }
+    if (!init) {
+      init = d.visuel && !d.aLayout ? { v: 1, bg: { k: 'img', src: d.visuel }, objs: [] }
+        : ZPEditor.fromTemplate({ couleur: d.couleur, titre: d.titre, accroche: d.accroche, sous_titre: d.sous_titre || etabName(d.etab), cta: CTA[d.cta] });
+    }
+    const E = etabOf(d.etab);
+    wz.ed = ZPEditor.mount(box, init, { logo: E && E.logo, toast: m => toast(m, 'error'), onChange: () => { d.dirty = true; d.edDirty = true; prevSoon(); } });
+    prevSoon();
+  }
+  const prevSoon = debounce(async () => {
+    if (!wz.ed || !$('wz-prev')) return;
+    const d = st.draft; d.edImage = await wz.ed.export(400000);
+    renderPrev();
+  }, 450);
   function initWizMap() {
     const d = st.draft;
     const m = wz.map = mkMap('wz-map', d.siege ? [d.siege.lat, d.siege.lon] : [5.33, -4.02], d.siege ? 16 : 12);
@@ -376,7 +415,7 @@
     m.on('click', e => {
       const p = { lat: +e.latlng.lat.toFixed(6), lon: +e.latlng.lng.toFixed(6) };
       if (wz.cityOn) { if (d.panneaux.length >= 50) { toast('50 emplacements au maximum.', 'error'); return; } d.panneaux.push({ ...p, nom: '' }); d.dirty = true; renderCity(); renderRecap(); return; }
-      setSiege(p.lat, p.lon); reverse(p.lat, p.lon);
+      d.siegeManual = true; setSiege(p.lat, p.lon); reverse(p.lat, p.lon);
     });
     if (d.siege) setSiege(d.siege.lat, d.siege.lon, true);
   }
@@ -401,7 +440,7 @@
     try {
       const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=17&accept-language=fr&lat=${lat}&lon=${lon}`);
       const j = r.ok ? await r.json() : null; const a = j && j.address;
-      if (a && !$('wz-snom').value.trim()) { const q = a.suburb || a.neighbourhood || a.quarter || a.city_district || a.town || a.city || ''; if (q) { $('wz-snom').value = `${st.moi.profil.nom} ${q}`.slice(0, 80); st.draft.siege.nom = $('wz-snom').value; renderRecap(); } }
+      if (a && !$('wz-snom').value.trim()) { const q = a.suburb || a.neighbourhood || a.quarter || a.city_district || a.town || a.city || ''; if (q) { $('wz-snom').value = `${etabName(st.draft.etab)} ${q}`.slice(0, 80); st.draft.siege.nom = $('wz-snom').value; renderRecap(); } }
     } catch (_) {}
   }
   function bindWiz() {
@@ -428,9 +467,24 @@
       $('wz-city').addEventListener('input', e => { const i = e.target.dataset.i; if (i != null) d.panneaux[i].nom = e.target.value; });
       $('wz-city').addEventListener('click', e => { const b = e.target.closest('[data-del]'); if (b) { d.panneaux.splice(+b.dataset.del, 1); renderCity(); renderRecap(); } });
     }
+    $('wz-etab').onclick = e => {
+      const b = e.target.closest('[data-e]'); if (!b) return;
+      d.etab = b.dataset.e; d.dirty = true;
+      const E = etabOf(d.etab);
+      if (!d.editId && E && E.lat && (!d.siege || !d.siegeManual)) { d.siege = { nom: E.nom, lat: E.lat, lon: E.lon }; }
+      if (E) d.cat = E.cat;
+      viewNouvelle();
+    };
     $('wz-portee').onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; d.portee = b.dataset.v; $('wz-portee').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); const z = document.querySelector('.zones-mini span:last-child'); if (z) z.lastChild.textContent = 'Zone C : ' + (d.portee === 'pays' ? 'tout le pays' : 'toute la ville'); upd(); };
     $('wz-nom').oninput = () => { d.nom = $('wz-nom').value; d.dirty = true; renderRecap(); };
-    $('wz-mode').onclick = e => { const b = e.target.closest('[data-m]'); if (!b) return; d.mode = b.dataset.m; $('wz-mode').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); $('wz-modele').hidden = d.mode !== 'modele'; $('wz-visuel').hidden = d.mode !== 'visuel'; upd(); };
+    $('wz-mode').onclick = e => {
+      const b = e.target.closest('[data-m]'); if (!b) return;
+      if (wz.ed) { d.layout = wz.ed.get(); }
+      d.mode = b.dataset.m; $('wz-mode').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+      $('wz-modele').hidden = d.mode !== 'modele'; $('wz-visuel').hidden = d.mode !== 'visuel'; $('wz-editeur').hidden = d.mode !== 'editeur';
+      if (d.mode === 'editeur') mountEditor();
+      upd();
+    };
     $('wz-mod').onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; d.modele = b.dataset.v; $('wz-mod').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); upd(); };
     $('wz-col').onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; d.couleur = b.dataset.v; $('wz-col').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); upd(); };
     [['wz-ti', 'titre'], ['wz-ac', 'accroche'], ['wz-st', 'sous_titre']].forEach(([id, k]) => { $(id).oninput = () => { d[k] = $(id).value; upd(); }; });
@@ -450,9 +504,11 @@
   }
   function draftCamp() {
     const d = st.draft;
-    return { modele: d.mode === 'visuel' ? 'visuel' : d.modele, titre: d.titre, accroche: d.accroche, sous_titre: d.sous_titre, cta: d.cta, couleur: d.couleur, cat: st.moi.profil.cat, image: d.mode === 'visuel' ? d.visuel : d.photo };
+    const cat = (etabOf(d.etab) || st.moi.profil).cat;
+    if (d.mode === 'editeur') return { modele: 'visuel', cta: d.cta, couleur: d.couleur, cat, image: d.edImage || null };
+    return { modele: d.mode === 'visuel' ? 'visuel' : d.modele, titre: d.titre, accroche: d.accroche, sous_titre: d.sous_titre, cta: d.cta, couleur: d.couleur, cat, image: d.mode === 'visuel' ? d.visuel : d.photo };
   }
-  function renderPrev() { $('wz-prev').innerHTML = campHtml(draftCamp(), st.moi.profil.nom); }
+  function renderPrev() { if ($('wz-prev')) $('wz-prev').innerHTML = campHtml(draftCamp(), etabName(st.draft.etab)); }
   function renderCity() {
     const d = st.draft, ul = $('wz-city'); if (!ul) return;
     ul.innerHTML = d.panneaux.map((p, i) => `<li><code>#${i + 1}</code><input value="${esc(p.nom)}" data-i="${i}" placeholder="Nom de l'emplacement (ex. Gare Sud)" maxlength="80"><button type="button" data-del="${i}" aria-label="Retirer l'emplacement ${i + 1}">${ic('close')}</button></li>`).join('');
@@ -466,6 +522,7 @@
       if (!d.siege || d.siege.lat == null) return 'Placez votre point de vente sur la carte.';
       if (!d.siege.nom || d.siege.nom.trim().length < 2) return 'Donnez un nom au point de vente.';
     }
+    if (!d.etab && etabs().length) return 'Choisissez l\u2019établissement.';
     if (d.mode === 'visuel' && !d.visuel) return 'Importez votre visuel.';
     if (d.mode === 'modele' && !d.titre.trim()) return 'Écrivez le titre de la publicité.';
     return '';
@@ -494,8 +551,11 @@
   }
   async function publish() {
     const d = st.draft, pb = problem(); if (pb) { toast(pb, 'error'); return; }
-    const c = draftCamp(), b = $('wz-go'); b.classList.add('loading');
-    const body = { nom: (d.nom || d.titre || (d.siege && d.siege.nom) || 'Ma campagne').trim(), portee: d.portee, modele: c.modele, titre: c.titre, accroche: c.accroche, sous_titre: c.sous_titre, cta: c.cta, couleur: c.couleur };
+    const b = $('wz-go'); b.classList.add('loading');
+    if (d.mode === 'editeur' && wz.ed) { d.layout = wz.ed.get(); d.edImage = await wz.ed.export(); d.imgChanged = true; }
+    const c = draftCamp();
+    const body = { nom: (d.nom || d.titre || (d.siege && d.siege.nom) || 'Ma campagne').trim(), etablissement_id: d.etab || null, portee: d.portee, modele: c.modele, titre: c.titre, accroche: c.accroche, sous_titre: c.sous_titre, cta: c.cta, couleur: c.couleur };
+    if (d.mode === 'editeur') body.layout = d.layout; else if (d.editId && d.aLayout) body.layout = null;
     let r;
     if (d.editId) { if (d.imgChanged) body.image = c.image || ''; r = await rpc('zp_campagne_modifier', { p_id: d.editId, p: body }); }
     else { Object.assign(body, { image: c.image || '', siege: d.siege, mois: d.mois, semaines: d.semaines, panneaux: d.panneaux }); r = await rpc('zp_campagne_creer', { p: body }); }
@@ -532,38 +592,111 @@
   }
 
   /* ---------- profil ---------- */
+  function etabForm(e, neuf) {
+    e = e || { nom: '', cat: 'shop', tel: '', whatsapp: true, adresse: '', logo: null };
+    return `<label for="ef-nom">Nom de l'établissement</label><input class="input" id="ef-nom" required minlength="2" maxlength="60" value="${esc(e.nom)}" placeholder="ex. Quincaillerie du Port">
+      <div class="row"><div><label for="ef-cat">Activité</label><select class="input" id="ef-cat">${CATS.map(([k, l]) => `<option value="${k}"${e.cat === k ? ' selected' : ''}>${l}</option>`).join('')}</select></div>
+      <div><label for="ef-tel">Téléphone</label><input class="input" id="ef-tel" inputmode="tel" value="${esc(e.tel || '')}" placeholder="07 07 07 07 07"></div></div>
+      <label style="display:flex;gap:10px;align-items:center;font-weight:500;color:var(--text)"><input type="checkbox" id="ef-wa" ${e.whatsapp !== false ? 'checked' : ''} style="width:18px;height:18px">Ce numéro reçoit les messages WhatsApp</label>
+      <label for="ef-adr">Adresse ou repère <small>(facultatif)</small></label><input class="input" id="ef-adr" maxlength="120" value="${esc(e.adresse || '')}" placeholder="ex. Treichville, avenue 16">
+      <div class="logo-pick" style="margin-top:14px"><div class="lp" id="ef-lp">${e.logo ? `<img src="${e.logo}" alt="">` : ic('image')}</div><div><button class="btn sm ghost" type="button" id="ef-logo-b">${e.logo ? 'Changer le logo' : 'Ajouter un logo'}</button><p class="hint" style="margin-top:4px">Carré, 256 × 256 px. Il sert aussi dans l'éditeur de visuel.</p></div><input type="file" id="ef-logo" accept="image/*" hidden></div>
+      ${neuf ? '' : `<label>Emplacement <small>(facultatif : il servira de point de vente par défaut)</small></label><div class="map" id="ef-map" style="height:220px"></div><p class="hint" id="ef-pos">${e.lat ? 'Touchez la carte pour déplacer le repère.' : 'Touchez la carte à l’endroit de l’établissement.'}</p>`}`;
+  }
+  function bindEtabForm(e, root) {
+    const f = { logo: e ? e.logo : null, logoChanged: false, lat: e && e.lat, lon: e && e.lon };
+    root.querySelector('#ef-logo-b').onclick = () => root.querySelector('#ef-logo').click();
+    root.querySelector('#ef-logo').onchange = async () => { try { const r = await loadImage(root.querySelector('#ef-logo').files[0], 256, 256, 150000); f.logo = r.data; f.logoChanged = true; root.querySelector('#ef-lp').innerHTML = `<img src="${f.logo}" alt="">`; } catch (x) { toast(x.message, 'error'); } };
+    if (root.querySelector('#ef-map')) {
+      const m = mkMap('ef-map', f.lat ? [f.lat, f.lon] : [5.33, -4.02], f.lat ? 16 : 12);
+      let mk = f.lat ? L.marker([f.lat, f.lon], { icon: pinIcon('#d93a2b') }).addTo(m) : null;
+      m.on('click', ev => { f.lat = +ev.latlng.lat.toFixed(6); f.lon = +ev.latlng.lng.toFixed(6); if (mk) mk.setLatLng(ev.latlng); else mk = L.marker(ev.latlng, { icon: pinIcon('#d93a2b') }).addTo(m); root.querySelector('#ef-pos').textContent = 'Emplacement enregistré avec l’établissement.'; });
+    }
+    return () => {
+      const tel = root.querySelector('#ef-tel').value.replace(/\D/g, '').replace(/^225(?=\d{10}$)/, '');
+      const nom = root.querySelector('#ef-nom').value.trim();
+      if (nom.length < 2) { toast('Indiquez le nom de l’établissement.', 'error'); return null; }
+      if (tel && !/^\d{8,12}$/.test(tel)) { toast('Numéro de téléphone invalide.', 'error'); return null; }
+      const body = { nom, cat: root.querySelector('#ef-cat').value, tel, whatsapp: root.querySelector('#ef-wa').checked, adresse: root.querySelector('#ef-adr').value.trim() };
+      if (e && e.id) body.id = e.id;
+      if (f.logoChanged) body.logo = f.logo || '';
+      if (f.lat) { body.lat = f.lat; body.lon = f.lon; }
+      return body;
+    };
+  }
+  function openEtab(e) {
+    modal(`<h2>${e ? 'Modifier l’établissement' : 'Nouvel établissement'}</h2><p class="muted" style="margin:0">Quincaillerie, boulangerie, restaurant… chaque établissement a ses propres campagnes.</p>${etabForm(e)}
+      <div class="modal-acts">${e ? '<button class="btn ghost danger" id="ef-del" type="button">Supprimer</button><span style="flex:1"></span>' : ''}<button class="btn ghost" data-close>Annuler</button><button class="btn primary" id="ef-ok" type="button">Enregistrer</button></div>`, (m, close) => {
+      const read = bindEtabForm(e, m);
+      m.querySelector('#ef-ok').onclick = async () => {
+        const body = read(); if (!body) return;
+        const b = m.querySelector('#ef-ok'); b.classList.add('loading');
+        const r = await rpc('zp_etab_enregistrer', { p: body }); b.classList.remove('loading');
+        if (!r.ok) { toast(errTxt(r), 'error', 6000); return; }
+        close(); await loadMoi(); toast(e ? 'Établissement modifié.' : 'Établissement ajouté.', 'success'); viewProfil();
+      };
+      if (m.querySelector('#ef-del')) m.querySelector('#ef-del').onclick = async () => {
+        if (etabs().length <= 1) { toast('Gardez au moins un établissement.', 'error'); return; }
+        if (!confirm(`Supprimer « ${e.nom} » ?`)) return;
+        const r = await rpc('zp_etab_supprimer', { p_id: e.id });
+        if (!r.ok) { toast(errTxt(r), 'error', 7000); return; }
+        close(); await loadMoi(); toast('Établissement supprimé.', 'success'); viewProfil();
+      };
+    });
+  }
   function viewProfil() {
-    const p = st.moi.profil || { nom: '', cat: 'shop', tel: '', whatsapp: true, adresse: '', description: '', logo: null }, neuf = !st.moi.profil;
-    let logo = p.logo, logoChanged = false;
-    $('view').innerHTML = `<div class="view-h"><div><h1>${neuf ? 'Bienvenue sur ZUPA PUB' : 'Profil du commerce'}</h1><p class="muted">${neuf ? 'Présentez votre commerce : ces informations accompagnent vos publicités dans l’application.' : 'Ces informations accompagnent vos publicités.'}</p></div></div>
-      ${neuf && st.moi.demo ? `<div class="demo-band">${ic('wallet')}<span><b>Démo :</b> un crédit de bienvenue est ajouté à votre solde dès l'enregistrement du profil.</span></div>` : ''}
+    const p = st.moi.profil, neuf = !p;
+    if (neuf) {
+      $('view').innerHTML = `<div class="view-h"><div><h1>Bienvenue sur ZUPA PUB</h1><p class="muted">Présentez-vous, puis votre premier établissement. Vous pourrez en ajouter d'autres ensuite (quincaillerie, boulangerie…).</p></div></div>
+        ${st.moi.demo ? `<div class="demo-band">${ic('wallet')}<span><b>Démo :</b> un crédit de bienvenue est ajouté à votre solde dès l'enregistrement.</span></div>` : ''}
+        <form class="card" id="pf" style="max-width:720px">
+          <h2>Vous</h2>
+          <div class="row"><div><label for="pf-nom">Nom de l'annonceur <small>(vous ou votre entreprise)</small></label><input class="input" id="pf-nom" required minlength="2" maxlength="60" value="${esc(ses.name || '')}" placeholder="ex. Groupe Koné"></div>
+          <div><label for="pf-tel">Votre téléphone</label><input class="input" id="pf-tel" inputmode="tel" placeholder="07 07 07 07 07"></div></div>
+          <h2 style="margin-top:22px">Votre premier établissement</h2>
+          ${etabForm(null, true)}
+          <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap"><button class="btn primary" type="submit" id="pf-ok">Enregistrer et continuer</button><button class="btn ghost" type="button" id="pf-out">Se déconnecter</button></div>
+        </form>`;
+      const read = bindEtabForm(null, $('pf'));
+      $('pf-out').onclick = () => logout();
+      $('pf').onsubmit = async ev => {
+        ev.preventDefault();
+        const eb = read(); if (!eb) return;
+        const nom = $('pf-nom').value.trim() || eb.nom, tel = $('pf-tel').value.replace(/\D/g, '').replace(/^225(?=\d{10}$)/, '') || eb.tel;
+        if (tel && !/^\d{8,12}$/.test(tel)) { toast('Numéro de téléphone invalide.', 'error'); return; }
+        $('pf-ok').classList.add('loading');
+        const r = await rpc('zp_profil', { p: { nom, tel, cat: eb.cat, whatsapp: eb.whatsapp, adresse: eb.adresse, etablissement: eb } });
+        $('pf-ok').classList.remove('loading');
+        if (!r.ok) { toast(errTxt(r), 'error', 6000); return; }
+        st.moi = r.data; renderSolde();
+        toast(`Compte créé.${st.moi.demo ? ` ${F(st.moi.profil.solde)} F de crédit de démonstration offerts.` : ''}`, 'success', 6000);
+        go('nouvelle');
+      };
+      return;
+    }
+    $('view').innerHTML = `<div class="view-h"><div><h1>Profil</h1><p class="muted">Votre compte annonceur et vos établissements.</p></div></div>
+      <section class="card" style="margin-bottom:16px"><div class="view-h" style="margin:0"><div><h2>Mes établissements</h2><p class="muted" style="margin:2px 0 0">Chaque publicité s'affiche au nom d'un établissement, avec son téléphone.</p></div><button class="btn primary" type="button" id="et-add">${ic('plus')}Ajouter</button></div>
+        <div class="etabs">${etabs().map(e => `<button type="button" class="etab" data-et="${esc(e.id)}" style="border:0;text-align:left;cursor:pointer"><span class="lp">${e.logo ? `<img src="${e.logo}" alt="">` : ic(CAT_IC[e.cat] || 'shop')}</span><div><b>${esc(e.nom)}</b><small>${esc((CATS.find(c => c[0] === e.cat) || ['', ''])[1])}${e.tel ? ' · ' + esc(e.tel) : ''}</small><small>${(st.camps || []).filter(c => c.etablissement_id === e.id).length} campagne(s)</small></div>${ic('edit')}</button>`).join('')}<button type="button" class="etab-add" id="et-add2">${ic('plus')} Nouvel établissement</button></div>
+      </section>
       <form class="card" id="pf" style="max-width:720px">
-        <div class="logo-pick"><div class="lp" id="pf-lp">${logo ? `<img src="${logo}" alt="">` : ic('image')}</div><div><button class="btn sm ghost" type="button" id="pf-logo-b">${logo ? 'Changer le logo' : 'Ajouter un logo'}</button><p class="hint" style="margin-top:4px">Carré, 256 × 256 px conseillé.</p></div><input type="file" id="pf-logo" accept="image/*" hidden></div>
-        <label for="pf-nom">Nom du commerce</label><input class="input" id="pf-nom" required minlength="2" maxlength="60" value="${esc(p.nom)}" placeholder="ex. Chez Tantie Zouzou">
-        <div class="row"><div><label for="pf-cat">Activité</label><select class="input" id="pf-cat">${CATS.map(([k, l]) => `<option value="${k}"${p.cat === k ? ' selected' : ''}>${l}</option>`).join('')}</select></div>
-        <div><label for="pf-tel">Téléphone</label><input class="input" id="pf-tel" inputmode="tel" value="${esc(p.tel || '')}" placeholder="07 07 07 07 07"></div></div>
-        <label style="display:flex;gap:10px;align-items:center;font-weight:500;color:var(--text)"><input type="checkbox" id="pf-wa" ${p.whatsapp ? 'checked' : ''} style="width:18px;height:18px">Ce numéro reçoit les messages WhatsApp</label>
-        <label for="pf-adr">Adresse ou repère <small>(facultatif)</small></label><input class="input" id="pf-adr" maxlength="120" value="${esc(p.adresse || '')}" placeholder="ex. Treichville, avenue 16, face à la pharmacie">
-        <label for="pf-desc">Présentation <small>(facultatif)</small></label><textarea class="input" id="pf-desc" maxlength="400" placeholder="Ce que vous proposez, vos horaires…">${esc(p.description || '')}</textarea>
-        <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap"><button class="btn primary" type="submit" id="pf-ok">${neuf ? 'Enregistrer et continuer' : 'Enregistrer'}</button>${neuf ? '<button class="btn ghost" type="button" id="pf-out">Se déconnecter</button>' : ''}</div>
+        <h2>Compte annonceur</h2>
+        <div class="row"><div><label for="pf-nom">Nom de l'annonceur</label><input class="input" id="pf-nom" required minlength="2" maxlength="60" value="${esc(p.nom)}"></div>
+        <div><label for="pf-tel">Téléphone</label><input class="input" id="pf-tel" inputmode="tel" value="${esc(p.tel || '')}"></div></div>
+        <label>E-mail de connexion</label><input class="input" value="${esc(p.email || ses.email || '')}" disabled>
+        <label for="pf-desc">Présentation <small>(facultatif)</small></label><textarea class="input" id="pf-desc" maxlength="400">${esc(p.description || '')}</textarea>
+        <div style="margin-top:16px"><button class="btn primary" type="submit" id="pf-ok">Enregistrer</button></div>
       </form>`;
-    $('pf-logo-b').onclick = () => $('pf-logo').click();
-    $('pf-logo').onchange = async () => { try { const r = await loadImage($('pf-logo').files[0], 256, 256, 150000); logo = r.data; logoChanged = true; $('pf-lp').innerHTML = `<img src="${logo}" alt="">`; } catch (e) { toast(e.message, 'error'); } };
-    if ($('pf-out')) $('pf-out').onclick = () => logout();
-    $('pf').onsubmit = async e => {
-      e.preventDefault();
+    $('et-add').onclick = $('et-add2').onclick = () => openEtab(null);
+    $('view').querySelectorAll('[data-et]').forEach(b => b.onclick = () => openEtab(etabs().find(e => e.id === b.dataset.et)));
+    $('pf').onsubmit = async ev => {
+      ev.preventDefault();
       const tel = $('pf-tel').value.replace(/\D/g, '').replace(/^225(?=\d{10}$)/, '');
-      if ($('pf-nom').value.trim().length < 2) { toast('Indiquez le nom du commerce.', 'error'); return; }
+      if ($('pf-nom').value.trim().length < 2) { toast('Indiquez votre nom.', 'error'); return; }
       if (tel && !/^\d{8,12}$/.test(tel)) { toast('Numéro de téléphone invalide.', 'error'); return; }
-      const body = { nom: $('pf-nom').value.trim(), cat: $('pf-cat').value, tel, whatsapp: $('pf-wa').checked, adresse: $('pf-adr').value.trim(), description: $('pf-desc').value.trim() };
-      if (logoChanged) body.logo = logo || '';
       $('pf-ok').classList.add('loading');
-      const r = await rpc('zp_profil', { p: body });
+      const r = await rpc('zp_profil', { p: { nom: $('pf-nom').value.trim(), tel, cat: p.cat, whatsapp: p.whatsapp, adresse: p.adresse, description: $('pf-desc').value.trim() } });
       $('pf-ok').classList.remove('loading');
       if (!r.ok) { toast(errTxt(r), 'error', 6000); return; }
-      st.moi = r.data; renderSolde();
-      toast(neuf ? `Profil enregistré.${st.moi.demo ? ` ${F(st.moi.profil.solde)} F de crédit de démonstration offerts.` : ''}` : 'Profil enregistré.', 'success', 6000);
-      go(neuf ? 'nouvelle' : 'tableau');
+      st.moi = r.data; renderSolde(); toast('Profil enregistré.', 'success');
     };
   }
 
