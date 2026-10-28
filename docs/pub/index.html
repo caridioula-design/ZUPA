@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ZUPA PUB</title>
+<meta name="description" content="ZUPA PUB : vos panneaux publicitaires virtuels sur la carte d'Abidjan et de la Côte d'Ivoire, vus par les utilisateurs de l'application ZUPA autour de votre commerce.">
+<meta name="theme-color" content="#E97234">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23E97234'/%3E%3Ccircle cx='32' cy='32' r='18' fill='none' stroke='%23fff' stroke-width='4' opacity='.55'/%3E%3Ccircle cx='32' cy='32' r='8' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="lib/leaflet/leaflet.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="boot" class="loading-page">Chargement…</div>
+
+<!-- ================= ACCUEIL (non connecté) ================= -->
+<div id="v-public" hidden>
+  <header class="hero">
+    <div class="wrap">
+      <div class="top"><a class="logo" href="./">ZUPA <span>PUB</span></a><a href="../" style="color:#fff;font-weight:600;font-size:.9rem">L'application ZUPA</a></div>
+      <div class="hero-grid">
+        <div>
+          <h1>Votre panneau publicitaire, là où passent vos clients.</h1>
+          <p class="lead">Posez des panneaux virtuels sur la carte d'Abidjan ou de toute la Côte d'Ivoire. Les utilisateurs de ZUPA voient votre publicité en cherchant leur bus, une pharmacie ou un logement près de chez vous.</p>
+          <div class="login-card" id="login-card">
+            <h2>Espace annonceurs</h2>
+            <p class="muted" style="margin:4px 0 0;font-size:.9rem">Créez votre compte en un instant, sans mot de passe.</p>
+            <button class="btn g-btn" id="login-google" type="button"><svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>Continuer avec Google</button>
+            <div class="or">ou par e-mail</div>
+            <form class="mail-row" id="login-mail"><input class="input" type="email" id="login-email" required placeholder="votre@email.com" autocomplete="email"><button class="btn primary" type="submit">Recevoir le lien</button></form>
+            <p class="note">En continuant, vous acceptez la <a href="../confidentialite.html">politique de confidentialité</a>.</p>
+          </div>
+        </div>
+        <div class="hero-rings" aria-hidden="true">
+          <i style="--in:0;--c:rgba(255,255,255,.14);--d:0s"></i>
+          <i style="--in:19%;--c:rgba(255,236,120,.35);--d:.4s"></i>
+          <i style="--in:29%;--c:rgba(255,120,110,.5);--d:.8s"></i>
+          <b></b>
+          <em style="left:50%;top:41%;transform:translateX(-50%)">A · 200 m</em>
+          <em style="left:50%;top:24%;transform:translateX(-50%)">B · 500 m</em>
+          <em style="left:50%;top:6%;transform:translateX(-50%)">C · ville ou pays</em>
+        </div>
+      </div>
+    </div>
+  </header>
+  <section class="offers"><div class="wrap">
+    <div class="offer-grid">
+      <div class="offer">
+        <h3>Géopub@siège</h3>
+        <div class="price">25 000 F <small>/ mois · un point de vente</small></div>
+        <p class="muted" style="margin:0;font-size:.9rem">Posé sur votre point de vente, avec trois zones d'influence :</p>
+        <div class="zone-legend">
+          <div><i style="background:var(--za)"></i><span><b>Zone A, 200 m</b> : les passants ne voient que vos publicités.</span></div>
+          <div><i style="background:var(--zb)"></i><span><b>Zone B, 500 m</b> : vos publicités et d'autres, mais la vôtre reste affichée 3 fois plus longtemps.</span></div>
+          <div><i style="background:var(--zc)"></i><span><b>Zone C</b> : toute la ville ou tout le pays, avec la durée d'affichage normale.</span></div>
+        </div>
+      </div>
+      <div class="offer">
+        <h3>Géopub@city</h3>
+        <div class="price">15 000 F <small>/ semaine · un emplacement</small></div>
+        <p class="muted" style="margin:0;font-size:.9rem">Un panneau supplémentaire où vous voulez : sur un itinéraire, devant une gare, près d'un autre point de vente.</p>
+        <ul><li>Rayon de 100 m</li><li>Affichage 2 fois plus long que les autres pubs</li><li>Ajoutez-en à votre campagne quand vous voulez</li></ul>
+      </div>
+      <div class="offer">
+        <h3>Pack 5 emplacements</h3>
+        <div class="price">60 000 F <small>/ semaine · réseau de commerces</small></div>
+        <p class="muted" style="margin:0;font-size:.9rem">Cinq panneaux Géopub@city au prix de quatre : idéal pour une chaîne de magasins ou une tournée de quartiers.</p>
+        <ul><li>Appliqué automatiquement par groupe de 5</li><li>Chaque emplacement à 100 m, affichage ×2</li></ul>
+      </div>
+    </div>
+    <div class="how">
+      <h2>Comment ça marche</h2>
+      <div class="steps">
+        <div><b>Votre profil</b>Nom du commerce, téléphone, WhatsApp, logo.</div>
+        <div><b>Votre point de vente</b>Placez-le sur la carte : il devient votre panneau Géopub@siège.</div>
+        <div><b>Votre visuel</b>Un modèle rapide, ou votre affiche prête au format 1000 × 800.</div>
+        <div><b>En ligne</b>Payez avec votre solde : la campagne s'affiche aussitôt dans ZUPA. Vues, appels et visites sont comptés.</div>
+      </div>
+    </div>
+  </div></section>
+  <footer><div class="wrap">ZUPA PUB · <a href="../confidentialite.html">Confidentialité</a> · Contact : caridioula@gmail.com</div></footer>
+</div>
+
+<!-- ================= ESPACE ANNONCEUR ================= -->
+<div id="v-app" hidden>
+  <div class="bar"><div class="wrap">
+    <a class="logo" href="#tableau">ZUPA <span>PUB</span></a>
+    <nav class="tabs" id="tabs">
+      <button type="button" data-go="tableau">Mes campagnes</button>
+      <button type="button" data-go="nouvelle">Nouvelle campagne</button>
+      <button type="button" data-go="compte">Mon solde</button>
+      <button type="button" data-go="profil">Profil</button>
+    </nav>
+    <div class="bar-r">
+      <button class="solde" id="solde-chip" type="button" data-go="compte"><span class="ic-wallet"></span><span id="solde-v">—</span><small>F</small></button>
+      <button class="av" id="av" type="button" aria-label="Mon compte"></button>
+    </div>
+  </div></div>
+  <div class="menu" id="menu" hidden>
+    <div class="who" id="menu-who"></div>
+    <button type="button" data-go="profil"><span class="ic-user"></span>Profil du commerce</button>
+    <button type="button" data-go="compte"><span class="ic-wallet"></span>Solde et paiements</button>
+    <button type="button" id="logout"><span class="ic-logout"></span>Se déconnecter</button>
+  </div>
+  <main><div class="wrap" id="view"></div></main>
+  <nav class="bottom-tabs" id="btabs">
+    <button type="button" data-go="tableau"><span class="ic-map"></span>Campagnes</button>
+    <button type="button" data-go="nouvelle"><span class="ic-plus"></span>Nouvelle</button>
+    <button type="button" data-go="compte"><span class="ic-wallet"></span>Solde</button>
+    <button type="button" data-go="profil"><span class="ic-user"></span>Profil</button>
+  </nav>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<div class="modal" id="modal" hidden><div class="modal-in" id="modal-in" role="dialog" aria-modal="true"></div></div>
+
+<script src="lib/leaflet/leaflet.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

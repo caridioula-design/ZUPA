@@ -36,6 +36,9 @@ const rgc = await call('/rest/v1/campagnes?select=id');
 out.push(rgt.s === 200 && rgc.s === 200 ? 'Régie OK' : rgt.s === 404 || rgc.s === 404 ? 'RÉGIE NON INSTALLÉE : exécutez supabase/regie.sql' : 'Régie : ' + rgt.s + '/' + rgc.s);
 const lmod = await call('/rest/v1/rpc/ligne_modifier', { method: 'POST', body: JSON.stringify({ p_id: '00000000-0000-4000-8000-0000000000aa', p_device: '00000000-0000-4000-8000-0000000000ab', p: { arrets: [] } }) });
 out.push(lmod.s === 404 ? 'NOUVEAUX BUS NON INSTALLÉS : exécutez supabase/lignes-bus.sql' : 'nouveaux bus OK');
+const zp = await call('/rest/v1/rpc/zp_diffusion', { method: 'POST', body: '{}' });
+let zpn = ''; try { zpn = zp.s === 200 ? ` (${JSON.parse((await (await fetch(url + '/rest/v1/rpc/zp_diffusion', { method: 'POST', headers: H, body: '{}' })).text())).length} campagnes en ligne)` : ''; } catch (_) {}
+out.push(zp.s === 404 ? 'ZUPA PUB NON INSTALLÉ : exécutez supabase/zupapub.sql' : zp.s === 200 ? 'ZUPA PUB OK' + zpn : 'ZUPA PUB : ' + zp.s);
 const cpt = await call('/rest/v1/rpc/compte_lire', { method: 'POST', body: '{}' });
 const aset = await call('/auth/v1/settings');
 let prov = ''; try { const e = JSON.parse((await (await fetch(url + '/auth/v1/settings', { headers: H })).text())).external || {}; prov = ['google', 'facebook'].map(k => k + (e[k] ? ' activé' : ' NON ACTIVÉ')).join(', '); } catch (_) { prov = 'fournisseurs : ' + aset.s; }

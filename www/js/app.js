@@ -5864,29 +5864,47 @@
     const txt = `<div class="cz-txt">${c.modele === 'service' ? `<small class="cz-kick">${esc(c.commerce)}</small>` : ''}<b class="cz-t">${esc(c.titre || 'Votre titre')}</b>${c.accroche ? `<b class="cz-acc">${esc(c.accroche)}</b>` : ''}${c.sous_titre ? `<small class="cz-sub">${esc(c.sous_titre)}</small>` : ''}<span class="cz-cta">${CTA_TXT[c.cta] || 'Appeler'} ›</span></div>`;
     return `<div class="zad cz cz-${c.modele || 'promo'}" style="--z1:${c1};--z2:${c2};--zi:${ink};--za:${acc}"><span class="zad-tag">${tag || 'Publicité'}</span>${c.modele === 'produit' ? art + txt : c.modele === 'resto' ? txt + art : art + txt}</div>`;
   }
+  // campagnes de la plateforme ZUPA PUB (sans les visuels, chargés seulement à l'affichage)
   async function fetchRegie(force) {
-    if (!sbOn() || regie.busy || (!force && Date.now() - regie.data.t < 30 * 60e3)) return;
+    if (!sbOn() || regie.busy || (!force && Date.now() - regie.data.t < 20 * 60e3)) return;
     regie.busy = true;
-    const r = await sb('/rest/v1/campagnes?select=id,commerce,cat,tel,whatsapp,lat,lon,rayon_m,exclusif,formule,debut,fin,modele,titre,sous_titre,accroche,cta,couleur,image&limit=400', { timeout: 20000 });
+    const r = await sb('/rest/v1/rpc/zp_diffusion', { method: 'POST', body: {}, timeout: 20000 });
     regie.busy = false;
-    if (r.ok && Array.isArray(r.data)) { regie.data = { t: Date.now(), rows: r.data }; try { store.set('regie', regie.data); } catch (_) {} lads.key = ''; if (current === 'screen-home') renderLive(); }
+    if (r.ok && Array.isArray(r.data)) { regie.data = { t: Date.now(), rows: r.data, src: 'zp' }; try { store.set('regie', regie.data); } catch (_) {} lads.key = ''; if (current === 'screen-home') renderLive(); }
+  }
+  const zpImg = new Map(); // id → visuel (mémoire seulement)
+  async function zpVisuel(c) {
+    const k = c.id + ':' + (c.v || 0);
+    if (zpImg.has(k)) return zpImg.get(k);
+    zpImg.set(k, null);
+    const r = await sb('/rest/v1/rpc/zp_visuel', { method: 'POST', body: { p_id: c.id }, timeout: 20000 });
+    if (r.ok && typeof r.data === 'string') { zpImg.set(k, r.data); lads.key = ''; if (current === 'screen-home') renderLive(); }
+    else zpImg.delete(k);
+    return null;
   }
   function regieDay() { if (regie.day.d !== todayStr()) regie.day = { d: todayStr(), v: {}, p: {} }; return regie.day; }
+  /* Règles ZUPA PUB :
+     - Géopub@siège, zone A (200 m) : uniquement les publicités de ce point de vente ;
+     - zone B (500 m) : avec les autres, affichage 3 × plus long ;
+     - zone C (la ville à 30 km, ou tout le pays) : affichage normal ;
+     - Géopub@city (100 m) : avec les autres, affichage 2 × plus long. */
   function campsFor(pos) {
     const t = todayStr();
-    const rows = (regie.data.rows || []).filter(c => String(c.debut).slice(0, 10) <= t && String(c.fin).slice(0, 10) >= t);
-    if (!rows.length || !pos) return { list: rows.length ? rows.filter(c => /^ville/.test(c.formule)).slice(0, 5) : [], zone: false };
-    const withD = rows.map(c => ({ c, d: Core.haversine(pos[0], pos[1], c.lat, c.lon) }));
-    const inZone = withD.filter(x => x.d * 1000 <= x.c.rayon_m).sort((a, b) => a.d - b.d);
-    if (inZone.length) {
-      const ex = inZone.filter(x => x.c.exclusif);
-      return { list: (ex.length ? [ex[0]] : inZone).map(x => x.c), zone: true };
+    const rows = (regie.data.rows || []).filter(c => Number.isFinite(c.lat) && String(c.debut).slice(0, 10) <= t && String(c.fin).slice(0, 10) >= t);
+    if (!rows.length) return { list: [], zone: false };
+    if (!pos) return { list: rows.filter(c => c.portee === 'pays').slice(0, 6).map(c => ({ c, w: 1 })), zone: false };
+    const withD = rows.map(c => ({ c, d: Core.haversine(pos[0], pos[1], c.lat, c.lon) * 1000 }));
+    const a = withD.filter(x => x.d <= 200).sort((p, q) => p.d - q.d);
+    if (a.length) return { list: [{ c: a[0].c, w: 1, z: 'A' }], zone: 'A' };
+    const out = [];
+    for (const x of withD) {
+      const cityNear = (x.c.city || []).some(p => Core.haversine(pos[0], pos[1], +p[0], +p[1]) * 1000 <= 100);
+      if (x.d <= 500) out.push({ c: x.c, w: 3, z: 'B', d: x.d });
+      else if (cityNear) out.push({ c: x.c, w: 2, z: 'city', d: x.d });
+      else if (x.c.portee === 'pays' || x.d <= 30000) out.push({ c: x.c, w: 1, z: 'C', d: x.d });
     }
-    const day = regieDay(), dest = state.tracking && state.tracking.destObj;
-    const out = withD.filter(x => (regie.day.v[x.c.id] || 0) < 3 && (/^ville/.test(x.c.formule) || x.d <= 3 || (dest && Number.isFinite(dest.lat) && Core.haversine(dest.lat, dest.lon, x.c.lat, x.c.lon) <= 1)))
-      .sort((a, b) => (/^ville/.test(b.c.formule) - /^ville/.test(a.c.formule)) || a.d - b.d).slice(0, 6);
-    void day;
-    return { list: out.map(x => x.c), zone: false };
+    out.sort((p, q) => (q.w - p.w) || (p.d - q.d));
+    return { list: out.slice(0, 10), zone: false };
   }
   // compteurs anonymes, envoyés additionnés toutes les 2 minutes
   function pubCount(id, k) {
@@ -5897,7 +5915,7 @@
   async function pubFlush() {
     const arr = Object.entries(regie.ctr).filter(([, e]) => e.v + e.t + e.a + e.i + e.p).map(([id, e]) => ({ id, ...e }));
     if (!arr.length || !sbOn() || !navigator.onLine) return;
-    const r = await sb('/rest/v1/rpc/pub_compter', { method: 'POST', body: { p: arr.slice(0, 40) } });
+    const r = await sb('/rest/v1/rpc/zp_compter', { method: 'POST', body: { p: arr.slice(0, 40) } });
     if (r.ok) { arr.slice(0, 40).forEach(x => delete regie.ctr[x.id]); store.set('pubCtr', regie.ctr); }
   }
   setInterval(pubFlush, 120e3);
@@ -5908,11 +5926,11 @@
     if (!it || it.demo || it.house) return;
     viewT = setTimeout(() => {
       if (current !== 'screen-home' || !live.open || document.visibilityState !== 'visible' || lads.items[lads.i] !== it) return;
-      const last = regie.seen[it.id] || 0;
+      const id = it.cid || it.id, last = regie.seen[id] || 0;
       if (Date.now() - last < 10 * 60e3) return;
-      regie.seen[it.id] = Date.now(); store.set('pubSeen', regie.seen);
-      const d = regieDay(); d.v[it.id] = (d.v[it.id] || 0) + 1; store.set('pubDay', d);
-      pubCount(it.id, 'v');
+      regie.seen[id] = Date.now(); store.set('pubSeen', regie.seen);
+      const d = regieDay(); d.v[id] = (d.v[id] || 0) + 1; store.set('pubDay', d);
+      pubCount(id, 'v');
     }, 1500);
   }
   // une visite = passer à moins de 60 m du point de vente dans les 2 h qui suivent une vue (une par jour)
@@ -5932,10 +5950,14 @@
     const on = current === 'screen-home' && tg && tg.act === 'origin' && tg.stop;
     box.hidden = !on;
     pubVisits();
-    if (!on) { clearInterval(lads.timer); lads.timer = null; lads.key = ''; return; }
+    if (!on) { clearTimeout(lads.timer); lads.timer = null; lads.key = ''; return; }
     const pick = campsFor(state.pos);
     let items;
-    if (pick.list.length) items = pick.list.map(c => ({ id: c.id, c, brand: c.commerce, lat: c.lat, lon: c.lon }));
+    if (pick.list.length) items = pick.list.map(({ c, w, z }) => {
+      let cc = c;
+      if (c.img) { const im = zpImg.get(c.id + ':' + (c.v || 0)); if (im) cc = { ...c, image: im }; else zpVisuel(c); }
+      return { id: c.id + (cc.image ? ':i' : ''), cid: c.id, c: cc, w: w || 1, z, brand: c.commerce, lat: c.lat, lon: c.lon };
+    });
     else if ((regie.data.rows || []).length) { // la régie a démarré : plus d'exemples fictifs, mais l'offre aux commerçants du quartier
       const s = tg.stop;
       items = [{ id: 'house', house: true, brand: 'ZUPA Pub', lat: s.lat, lon: s.lon, c: { commerce: 'ZUPA', cat: 'shop', modele: 'service', couleur: 'noir', titre: 'Votre panneau ici', accroche: '', sous_titre: 'Commerçants : bientôt sur la plateforme web ZUPA', cta: 'whatsapp' } }];
@@ -5945,19 +5967,33 @@
     }
     const key = items.map(x => x.id).join('|');
     if (lads.key !== key) {
-      const prev = lads.items[lads.i] && lads.items[lads.i].id;
+      const prev = lads.items[lads.i] && (lads.items[lads.i].cid || lads.items[lads.i].id);
+      const oldIds = new Set(lads.items.map(x => x.cid || x.id));
+      lads.i = Math.max(0, items.findIndex(x => (x.cid || x.id) === prev));
+      // une pub prioritaire (zone B, emplacement Géopub@city) qui vient d'apparaître passe devant
+      if (items[0] && items[0].w > 1 && !oldIds.has(items[0].cid || items[0].id)) lads.i = 0;
       lads.key = key; lads.items = items;
-      lads.i = Math.max(0, items.findIndex(x => x.id === prev));
       $('lads-rail').innerHTML = items.map((it, k) => it.house ? `<button type="button" class="zad-btn" data-ad="${k}" aria-label="Votre publicité ici">${campHtml(it.c, 'ZUPA Pub')}</button>` : it.demo
         ? `<button type="button" class="zad ${it.demo.cls}" data-ad="${k}" aria-label="${esc(it.brand)} — publicité fictive"><span class="zad-tag">Pub fictive</span>${it.demo.html}</button>`
         : `<button type="button" class="zad-btn" data-ad="${k}" aria-label="${esc(it.brand)} — publicité">${campHtml(it.c)}</button>`).join('');
       $('lads-dots').innerHTML = items.length > 1 ? items.map((_, k) => `<i class="${k === lads.i ? 'on' : ''}"></i>`).join('') : '';
       requestAnimationFrame(() => { const r = $('lads-rail'); r.scrollLeft = r.clientWidth * lads.i; });
       pubViewSoon(items[lads.i]);
+      if (lads.timer) ladsArm(); // la durée repart pour la nouvelle pub affichée
     }
-    box.classList.toggle('zone', pick.zone);
+    box.classList.toggle('zone', !!pick.zone);
     ladsCaption();
-    if (!lads.timer) lads.timer = setInterval(() => { if (current === 'screen-home' && live.open && !lads.hold && document.visibilityState === 'visible' && lads.items.length > 1) ladsGo(lads.i + 1); }, 5000);
+    if (!lads.timer) ladsArm();
+  }
+  // durée d'affichage : 6 s, × 3 en zone B, × 2 sur un emplacement Géopub@city
+  function ladsArm() {
+    clearTimeout(lads.timer);
+    const it = lads.items[lads.i], ms = 6000 * ((it && it.w) || 1);
+    lads.timer = setTimeout(() => {
+      lads.timer = null;
+      if (current === 'screen-home' && live.open && !lads.hold && document.visibilityState === 'visible' && lads.items.length > 1) ladsGo(lads.i + 1);
+      if (!$('live-ads').hidden) ladsArm();
+    }, ms);
   }
   function ladsCaption() {
     const it = lads.items[lads.i]; if (!it || !state.pos) return;
@@ -5970,7 +6006,7 @@
     rail.scrollTo({ left: rail.clientWidth * lads.i, behavior: 'smooth' });
     ladsMark();
   }
-  function ladsMark() { $('lads-dots').querySelectorAll('i').forEach((d, k) => d.classList.toggle('on', k === lads.i)); ladsCaption(); pubViewSoon(lads.items[lads.i]); }
+  function ladsMark() { $('lads-dots').querySelectorAll('i').forEach((d, k) => d.classList.toggle('on', k === lads.i)); ladsCaption(); pubViewSoon(lads.items[lads.i]); if (lads.timer) ladsArm(); }
   $('lads-rail').addEventListener('scroll', debounce(() => { const r = $('lads-rail'); const k = Math.round(r.scrollLeft / Math.max(1, r.clientWidth)); if (k !== lads.i) { lads.i = k; ladsMark(); } }, 80), { passive: true });
   $('lads-rail').addEventListener('pointerdown', () => { lads.hold = true; clearTimeout(lads.holdT); lads.holdT = setTimeout(() => { lads.hold = false; }, 10000); }, { passive: true });
   $('lads-rail').addEventListener('click', e => {
