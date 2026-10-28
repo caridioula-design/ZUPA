@@ -98,8 +98,13 @@
       <div id="fav-board"></div>
     </section>
 
+    <section class="section ag-section" id="ag-section">
+      <div class="section-head"><h2>Agenda</h2><button class="link" id="ag-add" type="button">+ Ajouter</button></div>
+      <div class="ag-list" id="ag-list"></div>
+    </section>
+
     <section class="section lines-section" id="lines-section">
-      <div class="section-head"><h2>Gbaka, wôrô-wôrô, saloni</h2><button class="link" id="al-open" type="button">+ Ajouter une ligne</button></div>
+      <div class="section-head"><h2>Gbaka, wôrô-wôrô, saloni</h2><button class="link" id="al-open" type="button">+ Ajouter</button></div>
       <div class="lines-modes"><span class="lm" style="--c:#0f766e"><span data-icon="gbaka"></span>Gbaka</span><span class="lm" style="--c:#b45309"><span data-icon="taxi"></span>Wôrô-wôrô</span><span class="lm" style="--c:#7c3aed"><span data-icon="saloni"></span>Saloni</span></div>
       <p class="muted" id="lines-sub"></p>
     </section>
@@ -109,7 +114,7 @@
       <div class="chips" id="recents"></div>
     </section>
 
-    <button class="cta-card" id="cta-addstop"><span class="sg-ic"><span data-icon="addPin"></span></span><span><b>Un arrêt manque ?</b><small>Ajoutez-le avec votre position : il sera utilisé dans vos itinéraires.</small></span></button>
+    <button class="cta-card" id="cta-addstop"><span class="sg-ic"><span data-icon="addPin"></span></span><span><b>Un arrêt ou une ligne manque ?</b><small>Arrêt, nouveau bus, gbaka, wôrô-wôrô ou saloni : ajoutez-le, il sert aussitôt dans les itinéraires.</small></span></button>
 
     <div class="ad-slot">Espace publicitaire</div>
     <p class="foot-note" id="data-note"></p>
@@ -386,16 +391,47 @@
   </section>
 
   <!-- ================= NOUVELLE LIGNE (gbaka, wôrô-wôrô, saloni) ================= -->
+  <!-- ================= AGENDA : rappels selon le lieu ================= -->
+  <section class="screen" id="screen-agenda" aria-label="Rappel de l'agenda">
+    <div class="topbar">
+      <button class="icon-btn" id="ag-back" aria-label="Retour"></button>
+      <div class="topbar-text"><div class="title" id="ag-title">Nouveau rappel</div><div class="subtitle">ZUPA vous le rappelle quand vous passez dans le coin</div></div>
+    </div>
+    <div class="card form ag-form">
+      <label for="ag-txt">À faire</label>
+      <input class="input" id="ag-txt" maxlength="80" autocomplete="off" placeholder="ex. Acheter le pain, retirer le colis…">
+      <label for="ag-q">Où ?</label>
+      <div class="ag-q-wrap">
+        <input class="input" id="ag-q" type="text" autocomplete="off" placeholder="Arrêt, quartier, marché, lieu…" role="combobox" aria-autocomplete="list" aria-controls="ag-suggest" aria-expanded="false">
+        <div class="suggest" id="ag-suggest" role="listbox" hidden></div>
+      </div>
+      <div class="map-wrap ag-map-wrap">
+        <div class="map" id="ag-map"></div>
+        <svg class="center-pin" viewBox="0 0 24 34" width="30" height="43" aria-hidden="true"><path d="M12 0C5.4 0 0 5.3 0 11.9 0 20.6 12 34 12 34s12-13.4 12-22.1C24 5.3 18.6 0 12 0z" fill="#7c3aed" stroke="rgba(0,0,0,.35)"/><circle cx="12" cy="12" r="4.3" fill="#fff"/></svg>
+      </div>
+      <button class="btn ghost block" id="ag-here" type="button"><span data-icon="locate"></span>Ici, à ma position</button>
+      <p class="ag-where" id="ag-where"></p>
+      <label>Me le rappeler à moins de</label>
+      <div class="ap-chips" id="ag-rad" role="radiogroup" aria-label="Distance du rappel"></div>
+      <label>Quand ?</label>
+      <div class="ap-chips" id="ag-when" role="radiogroup" aria-label="Quand"></div>
+      <input class="input" type="date" id="ag-date" hidden aria-label="Date du rappel">
+    </div>
+    <button class="btn primary block" id="ag-save" type="button">Enregistrer le rappel</button>
+    <button class="btn ghost block ag-del" id="ag-del" type="button" hidden>Supprimer ce rappel</button>
+    <p class="foot-note">Le lieu de vos rappels reste sur votre téléphone. Le rappel fonctionne quand ZUPA est ouvert ou pendant le suivi d'un trajet.</p>
+  </section>
+
   <section class="screen" id="screen-addline" aria-label="Ajouter une ligne">
     <div class="topbar">
       <button class="icon-btn" id="al-back" aria-label="Retour"></button>
-      <div class="topbar-text"><div class="title">Nouvelle ligne</div><div class="subtitle">Visible par tous et utilisée dans les itinéraires</div></div>
+      <div class="topbar-text"><div class="title" id="al-title">Nouvelle ligne</div><div class="subtitle">Visible par tous et utilisée dans les itinéraires</div></div>
     </div>
     <div class="al-types" id="al-types" role="radiogroup" aria-label="Moyen de transport"></div>
     <div class="card form">
-      <label for="al-gare">Gare de départ</label>
+      <label for="al-gare" id="al-gare-l">Gare de départ</label>
       <input class="input" id="al-gare" maxlength="60" autocomplete="off" placeholder="ex. Gare d'Adjamé Liberté">
-      <label for="al-nom">Trajet <small>(facultatif)</small></label>
+      <label for="al-nom" id="al-nom-l">Trajet <small>(facultatif)</small></label>
       <input class="input" id="al-nom" maxlength="80" autocomplete="off" placeholder="ex. Adjamé – Yopougon Selmer">
       <label for="al-tarif">Tarif <small>(FCFA, facultatif)</small></label>
       <input class="input" id="al-tarif" type="number" inputmode="numeric" min="0" max="10000" placeholder="ex. 300">
@@ -544,14 +580,6 @@
   </section>
 
   <!-- régie publicitaire : espace des commerciaux et de l'administrateur -->
-  <section class="screen" id="screen-regie" aria-label="Régie publicitaire">
-    <div class="topbar">
-      <button class="icon-btn" id="rg-back" type="button" aria-label="Retour"><span data-icon="back"></span></button>
-      <div class="topbar-text"><div class="title" id="rg-title">Ma publicité</div><div class="subtitle" id="rg-sub">Panneaux virtuels près des points de vente</div></div>
-    </div>
-    <div id="rg-body"></div>
-  </section>
-
   <!-- clés numériques : remise, restitution, perte, réémission -->
   <section class="screen imo" id="screen-cle" aria-label="Clés numériques">
     <div class="topbar">
@@ -658,7 +686,6 @@
     </div>
     <div class="card">
       <h3>À propos</h3>
-      <button class="btn ghost block rg-open" id="rg-open" type="button"><span data-icon="star"></span>Faire la publicité de mon commerce</button>
       <p class="muted"><b>ZUPA</b> — Bouge. Trouve. Vis.<br>Version <span id="app-version">1.0.0</span>. Données © contributeurs OpenStreetMap (ODbL). Météo : <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0).</p>
     </div>
     <div class="card">

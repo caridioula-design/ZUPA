@@ -34,6 +34,8 @@ out.push(imo.s === 200 ? `Imo OK${imoGps && imoGps.s >= 400 && /GPS/.test(imoGps
 const rgt = await call('/rest/v1/regie_tarifs?select=formule');
 const rgc = await call('/rest/v1/campagnes?select=id');
 out.push(rgt.s === 200 && rgc.s === 200 ? 'Régie OK' : rgt.s === 404 || rgc.s === 404 ? 'RÉGIE NON INSTALLÉE : exécutez supabase/regie.sql' : 'Régie : ' + rgt.s + '/' + rgc.s);
+const lmod = await call('/rest/v1/rpc/ligne_modifier', { method: 'POST', body: JSON.stringify({ p_id: '00000000-0000-4000-8000-0000000000aa', p_device: '00000000-0000-4000-8000-0000000000ab', p: { arrets: [] } }) });
+out.push(lmod.s === 404 ? 'NOUVEAUX BUS NON INSTALLÉS : exécutez supabase/lignes-bus.sql' : 'nouveaux bus OK');
 const cpt = await call('/rest/v1/rpc/compte_lire', { method: 'POST', body: '{}' });
 const aset = await call('/auth/v1/settings');
 let prov = ''; try { const e = JSON.parse((await (await fetch(url + '/auth/v1/settings', { headers: H })).text())).external || {}; prov = ['google', 'facebook'].map(k => k + (e[k] ? ' activé' : ' NON ACTIVÉ')).join(', '); } catch (_) { prov = 'fournisseurs : ' + aset.s; }
