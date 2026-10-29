@@ -334,3 +334,14 @@ main{padding:24px 0 80px}
 .etab-add:hover{border-color:var(--brand);color:var(--brand-600)}
 .filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
 @media (max-width:520px){.mode-sw.three{grid-template-columns:1fr}.ze-bar button{min-width:54px}}
+.occ-note{display:flex;gap:8px;align-items:flex-start;margin:10px 0 0;padding:10px 12px;border-radius:12px;font-size:.85rem;background:color-mix(in srgb,var(--zb) 18%,var(--surface));color:var(--text)}
+.occ-note.bad{background:color-mix(in srgb,var(--za) 14%,var(--surface))}
+.occ-note .ic{width:18px;height:18px;flex:none;margin-top:1px}
+.ze-ph{display:grid;place-items:center;background:rgba(148,163,184,.38);border:2px dashed rgba(30,41,59,.65);color:#1e293b;font-weight:700;text-shadow:0 1px 0 rgba(255,255,255,.7);text-align:center;padding:4px}
+.ze-mini .ze-ph span{display:none}
+.ze-gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+.ze-gal button{border:1.5px solid var(--border);background:var(--surface);border-radius:14px;padding:6px;display:flex;flex-direction:column;gap:6px;align-items:center;font-weight:600;font-size:.84rem}
+.ze-gal button:hover{border-color:var(--brand)}
+.ze-thumb{border-radius:10px;overflow:hidden}
+.ze-mini{position:relative;overflow:hidden;pointer-events:none}
+.ze-mo{cursor:default}

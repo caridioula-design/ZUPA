@@ -139,7 +139,7 @@
     st.moi = r.data; renderSolde(); return true;
   }
   function renderSolde() { const p = st.moi && st.moi.profil; $('solde-v').textContent = p ? F(p.solde) : '—'; }
-  const VIEWS = ['tableau', 'nouvelle', 'compte', 'profil'];
+  const VIEWS = ['tableau', 'nouvelle', 'carte', 'compte', 'profil'];
   function go(v, replace) {
     if (!VIEWS.includes(v)) v = 'tableau';
     if (!st.moi) return;
@@ -150,7 +150,7 @@
     if (replace) history.replaceState(null, '', '#' + v); else history.pushState(null, '', '#' + v);
     document.querySelectorAll('[data-go]').forEach(b => b.classList.toggle('on', b.dataset.go === v && b.closest('.tabs,.bottom-tabs')));
     $('menu').hidden = true;
-    ({ tableau: viewTableau, nouvelle: viewNouvelle, compte: viewCompte, profil: viewProfil })[v]();
+    ({ tableau: viewTableau, nouvelle: viewNouvelle, carte: viewCarte, compte: viewCompte, profil: viewProfil })[v]();
     window.scrollTo({ top: 0 });
   }
   window.addEventListener('popstate', () => { if (/access_token=|error_description=/.test(location.hash)) return; if (ses && st.moi) { const v = location.hash.replace('#', '') || 'tableau'; st.view = v; go(v, true); } });
@@ -263,6 +263,7 @@
       <div class="modal-acts"><button class="btn ghost" data-close>Annuler</button><button class="btn primary" id="ap-ok">Payer et ajouter</button></div>`, (m, close) => {
       const map = mkMap('ap-map', [c.siege_lat, c.siege_lon], 14);
       zonesOn(map, c.siege_lat, c.siege_lon, true);
+      occOn(map, { filter: p => !p.moi });
       (c.panneaux || []).filter(p => p.type === 'city').forEach(p => L.circle([p.lat, p.lon], { radius: 100, color: '#7c3aed', weight: 1, fillOpacity: .08, dashArray: '4 4' }).addTo(map));
       const layer = L.layerGroup().addTo(map);
       const draw = () => {
@@ -274,7 +275,7 @@
         $('ap-tot').innerHTML = pts.length ? `<b>${F(t)} F</b> pour ${pts.length} emplacement${pts.length > 1 ? 's' : ''} × ${sem} semaine${sem > 1 ? 's' : ''}${pts.length >= 5 ? ' (tarif pack appliqué)' : ''} · solde ${F(solde)} F` : 'Aucun emplacement pour l’instant.';
         $('ap-ok').disabled = !pts.length || t > solde;
       };
-      map.on('click', e => { if (pts.length >= 50) return; pts.push({ lat: +e.latlng.lat.toFixed(6), lon: +e.latlng.lng.toFixed(6), nom: '' }); draw(); });
+      map.on('click', e => { if (pts.length >= 50) return; const o = occAt(e.latlng.lat, e.latlng.lng)[0]; if (o) toast(`Dans la zone A de « ${o.p.commerce} » (${Math.round(o.d)} m) : vos pubs ne s'y afficheront pas.`, 'error', 6000); pts.push({ lat: +e.latlng.lat.toFixed(6), lon: +e.latlng.lng.toFixed(6), nom: '' }); draw(); });
       $('ap-list').addEventListener('input', e => { const i = e.target.dataset.i; if (i != null) pts[i].nom = e.target.value; });
       $('ap-list').addEventListener('click', e => { const d = e.target.closest('[data-del]'); if (d) { pts.splice(+d.dataset.del, 1); draw(); } });
       $('ap-sem').oninput = () => { sem = Math.max(1, Math.min(52, +$('ap-sem').value || 1)); draw(); };
@@ -306,16 +307,75 @@
     return g;
   }
 
+  /* ---------- panneaux déjà loués ---------- */
+  const occ = { t: 0, list: [] };
+  async function loadOcc(force) {
+    if (!force && Date.now() - occ.t < 3 * 60e3) return occ.list;
+    const r = await rpc('zp_occupation');
+    if (r.ok && Array.isArray(r.data)) { occ.list = r.data; occ.t = Date.now(); }
+    return occ.list;
+  }
+  // dessine les panneaux sur une carte : sièges (zone A 200 m) et emplacements city (100 m), les vôtres en orange
+  function occOn(map, opts = {}) {
+    const g = L.layerGroup().addTo(map);
+    loadOcc().then(list => {
+      list.filter(p => !opts.filter || opts.filter(p)).forEach(p => {
+        const col = p.moi ? '#E97234' : p.type === 'siege' ? '#64748b' : '#7c3aed';
+        const R = p.type === 'siege' ? 200 : 100;
+        L.circle([p.lat, p.lon], { radius: R, color: col, weight: 1.2, dashArray: p.moi ? null : '5 5', fillColor: col, fillOpacity: p.moi ? .12 : .1, interactive: false }).addTo(g);
+        if (p.type === 'siege' && opts.zoneB) L.circle([p.lat, p.lon], { radius: 500, color: col, weight: .8, dashArray: '2 6', fill: false, interactive: false }).addTo(g);
+        L.circleMarker([p.lat, p.lon], { radius: p.type === 'siege' ? 6 : 4.5, color: '#fff', weight: 2, fillColor: col, fillOpacity: 1 })
+          .bindTooltip(`<b>${esc(p.commerce)}</b>${p.moi ? ' (vous)' : ''}<br>${p.type === 'siege' ? 'Géopub@siège · zone A 200 m' : 'Géopub@city · 100 m'}<br>${esc(p.code)} · jusqu'au ${fmtD(p.fin)}`).addTo(g);
+      });
+      if (opts.done) opts.done(list);
+    });
+    return g;
+  }
+  // sièges d'autres annonceurs dont la zone A (200 m) couvre ce point
+  const occAt = (lat, lon, rad = 200) => occ.list.filter(p => !p.moi && p.type === 'siege').map(p => ({ p, d: hav(lat, lon, p.lat, p.lon) })).filter(x => x.d <= rad).sort((a, b) => a.d - b.d);
+
+  function viewCarte() {
+    $('view').innerHTML = `<div class="view-h"><div><h1>Carte des panneaux</h1><p class="muted">Panneaux déjà loués par les annonceurs : choisissez les emplacements libres pour être vu sans partage.</p></div><button class="btn primary" data-go="nouvelle">${ic('plus')}Nouvelle campagne</button></div>
+      <section class="card">
+        <div class="map-tools"><div class="search"><input class="input" id="cr-q" placeholder="Aller à un quartier, une rue… (ex. Cocody Angré)" autocomplete="off"><div class="sug" id="cr-sug" hidden></div></div></div>
+        <div class="chips" id="cr-f" style="margin-bottom:10px"><button type="button" data-f="all" class="on">Tous</button><button type="button" data-f="siege">Géopub@siège</button><button type="button" data-f="city">Géopub@city</button><button type="button" data-f="moi">Mes panneaux</button></div>
+        <div class="map" id="cr-map" style="height:min(70vh,620px)"></div>
+        <div class="zones-mini"><span><i style="background:#64748b"></i>Siège d'un autre annonceur : zone A 200 m (zone B 500 m en pointillés)</span><span><i style="background:#7c3aed"></i>Emplacement Géopub@city : 100 m</span><span><i style="background:#E97234"></i>Vos panneaux</span></div>
+        <p class="hint" id="cr-n"></p>
+      </section>`;
+    const m = mkMap('cr-map', [5.33, -4.02], 12);
+    let layer = null, f = 'all';
+    const draw = () => {
+      if (layer) layer.remove();
+      layer = occOn(m, { zoneB: true, filter: p => f === 'all' || (f === 'moi' ? p.moi : p.type === f), done: list => {
+        const s = list.filter(p => p.type === 'siege').length, c = list.length - s, mine = list.filter(p => p.moi).length;
+        $('cr-n').textContent = `${s} panneau${s > 1 ? 'x' : ''} siège et ${c} emplacement${c > 1 ? 's' : ''} city loués · dont ${mine} à vous.`;
+        const pts = list.filter(p => f === 'all' || (f === 'moi' ? p.moi : p.type === f)).map(p => [p.lat, p.lon]);
+        if (pts.length && !m._fitted) { m.fitBounds(L.latLngBounds(pts).pad(0.25), { maxZoom: 15 }); m._fitted = true; }
+      } });
+    };
+    loadOcc(true).then(draw);
+    $('cr-f').onclick = e => { const b = e.target.closest('[data-f]'); if (!b) return; f = b.dataset.f; $('cr-f').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); m._fitted = false; draw(); };
+    const q = $('cr-q');
+    q.addEventListener('input', debounce(async () => {
+      const v = q.value.trim(); if (v.length < 3) { $('cr-sug').hidden = true; return; }
+      const res = await geocode(v); $('cr-sug')._res = res;
+      $('cr-sug').innerHTML = res.length ? res.map((x, i) => `<button type="button" data-i="${i}">${esc(x.name || x.display_name.split(',')[0])}<small>${esc(x.display_name)}</small></button>`).join('') : '<button type="button" disabled>Aucun résultat</button>';
+      $('cr-sug').hidden = false;
+    }, 350));
+    $('cr-sug').onclick = e => { const b = e.target.closest('[data-i]'); if (!b) return; const x = $('cr-sug')._res[+b.dataset.i]; $('cr-sug').hidden = true; m.setView([+x.lat, +x.lon], 16); };
+  }
+
   /* ---------- nouvelle campagne ---------- */
   const cityPrice = (n, sem) => n <= 0 ? 0 : sem * Math.min(n * tarif('city').prix, Math.floor(n / 5) * tarif('pack5').prix + (n % 5) * tarif('city').prix);
   function draftFrom(c) {
-    return { etab: c.etablissement_id || (etabs()[0] && etabs()[0].id), layout: null, aLayout: !!c.a_layout, nom: c.nom, portee: c.portee, siege: { nom: c.siege_nom, lat: c.siege_lat, lon: c.siege_lon }, mode: c.a_layout ? 'editeur' : c.modele === 'visuel' ? 'visuel' : 'modele', modele: c.modele === 'visuel' ? 'promo' : c.modele,
+    return { etab: c.etablissement_id || (etabs()[0] && etabs()[0].id), layout: null, aLayout: !!c.a_layout, nom: c.nom, portee: c.portee, siege: { nom: c.siege_nom, lat: c.siege_lat, lon: c.siege_lon }, mode: 'editeur', modele: c.modele === 'visuel' ? 'promo' : c.modele,
       titre: c.titre || '', accroche: c.accroche || '', sous_titre: c.sous_titre || '', cta: c.cta, couleur: c.couleur, photo: c.modele !== 'visuel' ? c.image : null, visuel: c.modele === 'visuel' ? c.image : null, cat: st.moi.profil.cat,
       panneaux: [], mois: 1, semaines: 1, imgChanged: false };
   }
   function newDraft() {
     const p = st.moi.profil, e = etabs()[0] || {};
-    return { etab: e.id, layout: null, nom: '', portee: 'ville', siege: e.lat ? { nom: e.nom, lat: e.lat, lon: e.lon } : null, mode: 'modele', modele: 'promo', titre: '', accroche: '', sous_titre: '', cta: (e.whatsapp ?? p.whatsapp) && (e.tel || p.tel) ? 'whatsapp' : 'appel', couleur: 'jaune', photo: null, visuel: null, cat: e.cat || p.cat, panneaux: [], mois: 1, semaines: 1, dirty: false };
+    return { etab: e.id, layout: null, nom: '', portee: 'ville', siege: e.lat ? { nom: e.nom, lat: e.lat, lon: e.lon } : null, mode: 'editeur', modele: 'promo', titre: '', accroche: '', sous_titre: '', cta: (e.whatsapp ?? p.whatsapp) && (e.tel || p.tel) ? 'whatsapp' : 'appel', fresh: true, couleur: 'jaune', photo: null, visuel: null, cat: e.cat || p.cat, panneaux: [], mois: 1, semaines: 1, dirty: false };
   }
   let wz = { map: null, siegeMk: null, zones: null, cityLayer: null };
   function viewNouvelle() {
@@ -335,7 +395,8 @@
           <p class="muted" style="margin:0">Cherchez l'adresse ou touchez la carte à l'endroit exact du commerce : c'est là que se trouve votre panneau Géopub@siège.</p>
           <div class="map-tools"><div class="search"><input class="input" id="wz-q" placeholder="Quartier, rue, repère… (ex. Treichville avenue 16)" autocomplete="off"><div class="sug" id="wz-sug" hidden></div></div><button class="btn ghost" id="wz-gps" type="button" title="Ma position">${ic('locate')}</button></div>
           <div class="map" id="wz-map"></div>
-          <div class="zones-mini"><span><i style="background:var(--za)"></i>Zone A · 200 m : vos pubs uniquement</span><span><i style="background:var(--zb)"></i>Zone B · 500 m : affichage ×3</span><span><i style="background:var(--zc)"></i>Zone C : ${d.portee === 'pays' ? 'tout le pays' : 'toute la ville'}</span></div>
+          <p class="occ-note" id="wz-occ" hidden></p>
+          <div class="zones-mini"><span><i style="background:var(--za)"></i>Zone A · 200 m : vos pubs uniquement</span><span><i style="background:var(--zb)"></i>Zone B · 500 m : affichage ×3</span><span><i style="background:var(--zc)"></i>Zone C : ${d.portee === 'pays' ? 'tout le pays' : 'toute la ville'}</span><span><i style="background:#64748b"></i>Panneaux déjà loués</span></div>
           <label for="wz-snom">Nom du point de vente</label><input class="input" id="wz-snom" maxlength="80" value="${esc(d.siege ? d.siege.nom : '')}" placeholder="ex. ${esc(E ? E.nom : st.moi.profil.nom)} Treichville">
         </section>
         <section class="card">
@@ -346,25 +407,10 @@
         <section class="card">
           <div class="step-h"><i>${ed ? 2 : 4}</i><h2>Votre publicité</h2></div>
           <label for="wz-nom">Nom de la campagne <small>(visible par vous seul)</small></label><input class="input" id="wz-nom" maxlength="60" value="${esc(d.nom)}" placeholder="ex. Promo de rentrée">
-          <div class="mode-sw three" id="wz-mode"><button type="button" data-m="modele" class="${d.mode === 'modele' ? 'on' : ''}"><b>Modèle rapide</b><small>Titre, prix, couleurs, photo</small></button><button type="button" data-m="editeur" class="${d.mode === 'editeur' ? 'on' : ''}"><b>Éditeur</b><small>Déplacez textes, images, couleurs</small></button><button type="button" data-m="visuel" class="${d.mode === 'visuel' ? 'on' : ''}"><b>Mon visuel</b><small>Affiche prête, 1000 × 800 px</small></button></div>
-          <div id="wz-editeur" ${d.mode !== 'editeur' ? 'hidden' : ''}></div>
-          <div id="wz-modele" ${d.mode !== 'modele' ? 'hidden' : ''}>
-            <label>Mise en page</label><div class="chips" id="wz-mod">${MODS.map(([k, l]) => `<button type="button" data-v="${k}" class="${d.modele === k ? 'on' : ''}">${l}</button>`).join('')}</div>
-            <label for="wz-ti">Titre <small>(40 caractères)</small></label><input class="input" id="wz-ti" maxlength="40" value="${esc(d.titre)}" placeholder="ex. BIG PROMO">
-            <div class="row"><div><label for="wz-ac">Accroche <small>(14)</small></label><input class="input" id="wz-ac" maxlength="14" value="${esc(d.accroche)}" placeholder="ex. -35% ou 1 000 F"></div>
-            <div><label for="wz-cta">Bouton</label><select class="input" id="wz-cta">${Object.entries(CTA).map(([k, l]) => `<option value="${k}"${d.cta === k ? ' selected' : ''}>${l}</option>`).join('')}</select></div></div>
-            <label for="wz-st">Texte <small>(60 caractères)</small></label><input class="input" id="wz-st" maxlength="60" value="${esc(d.sous_titre)}" placeholder="ex. sur tous les pots de peinture">
-            <label>Couleurs</label><div class="chips colors" id="wz-col">${Object.entries(COLS).map(([k, c]) => `<button type="button" data-v="${k}" class="${d.couleur === k ? 'on' : ''}" style="background:linear-gradient(140deg,${c[0]},${c[1]})" aria-label="${k}"></button>`).join('')}</div>
-            <label>Photo <small>(facultative : produit, plat, vitrine)</small></label>
-            <div class="drop" id="wz-photo-drop">${ic('image')}<span><b>${d.photo ? 'Changer la photo' : 'Ajouter une photo'}</b> · JPG ou PNG</span></div>
-            ${d.photo ? '<button class="btn sm ghost" id="wz-photo-del" type="button" style="margin-top:8px">Retirer la photo</button>' : ''}
-            <input type="file" id="wz-photo" accept="image/*" hidden>
-          </div>
-          <div id="wz-visuel" ${d.mode !== 'visuel' ? 'hidden' : ''}>
-            <div class="drop" id="wz-vis-drop">${ic('image')}<span><b>${d.visuel ? 'Remplacer le visuel' : 'Importer mon visuel'}</b></span><small>Gabarit : 1000 × 800 pixels (format 5:4), JPG ou PNG. Une autre taille est recadrée au centre.</small></div>
-            <input type="file" id="wz-vis" accept="image/*" hidden>
-            <p class="hint">Gardez les textes importants loin des bords et du coin en haut à droite (étiquette « Publicité »).</p>
-          </div>
+          <div class="row"><div><label for="wz-cta">Quand on touche la pub</label><select class="input" id="wz-cta">${Object.entries({ appel: 'Appeler', whatsapp: 'Écrire sur WhatsApp', itineraire: 'Y aller (itinéraire)' }).map(([k, l]) => `<option value="${k}"${d.cta === k ? ' selected' : ''}>${l}</option>`).join('')}</select></div>
+          <div><label>Affiche déjà prête ?</label><button class="btn ghost block" type="button" id="wz-imp">${ic('image')}Importer (1000 × 800)</button><input type="file" id="wz-vis" accept="image/*" hidden></div></div>
+          <p class="hint">Choisissez un modèle (promotion, menu, catalogue de prix…) puis modifiez tout : textes, photos, couleurs, position des éléments. Une affiche importée devient le fond : vous pouvez encore y ajouter des textes et images.</p>
+          <div id="wz-editeur"></div>
         </section>
         <section class="card"${ed ? ' hidden' : ''}>
           <div class="step-h"><i>5</i><h2>Emplacements supplémentaires <small class="muted" style="font-weight:500;font-size:.85rem">(facultatif)</small></h2></div>
@@ -395,12 +441,15 @@
       if (st.draft !== d || d.mode !== 'editeur') return;
       if (r.ok && r.data && r.data.objs) init = d.layout = r.data;
     }
-    if (!init) {
-      init = d.visuel && !d.aLayout ? { v: 1, bg: { k: 'img', src: d.visuel }, objs: [] }
-        : ZPEditor.fromTemplate({ couleur: d.couleur, titre: d.titre, accroche: d.accroche, sous_titre: d.sous_titre || etabName(d.etab), cta: CTA[d.cta] });
-    }
     const E = etabOf(d.etab);
-    wz.ed = ZPEditor.mount(box, init, { logo: E && E.logo, toast: m => toast(m, 'error'), onChange: () => { d.dirty = true; d.edDirty = true; prevSoon(); } });
+    if (!init) {
+      // ancienne campagne : son visuel devient le fond, ou ses textes sont repris dans le modèle « Promotion »
+      if (d.editId && d.modele === 'visuel' || (d.editId && d.visuel)) init = { v: 1, bg: { k: 'img', src: d.visuel || d.photo }, objs: [] };
+      else init = ZPEditor.fromTemplate({ couleur: d.couleur, titre: d.titre, accroche: d.accroche, sous_titre: d.sous_titre || etabName(d.etab), cta: CTA[d.cta], photo: d.photo });
+    }
+    const data = { commerce: E ? E.nom : st.moi.profil.nom, tel: (E && E.tel) || st.moi.profil.tel, adresse: E && E.adresse, couleur: d.couleur, titre: d.titre, accroche: d.accroche, sous_titre: d.sous_titre };
+    wz.ed = ZPEditor.mount(box, init, { logo: E && E.logo, data, gallery: !!d.fresh && !d.layout, toast: m => toast(m, 'error'), onChange: () => { d.dirty = true; d.fresh = false; prevSoon(); renderRecap(); } });
+    renderRecap();
     prevSoon();
   }
   const prevSoon = debounce(async () => {
@@ -411,21 +460,37 @@
   function initWizMap() {
     const d = st.draft;
     const m = wz.map = mkMap('wz-map', d.siege ? [d.siege.lat, d.siege.lon] : [5.33, -4.02], d.siege ? 16 : 12);
+    occOn(m, { filter: p => !p.moi || !d.editId, done: () => { if (d.siege) occWarn(); } });
     wz.cityLayer = L.layerGroup().addTo(m);
     m.on('click', e => {
       const p = { lat: +e.latlng.lat.toFixed(6), lon: +e.latlng.lng.toFixed(6) };
-      if (wz.cityOn) { if (d.panneaux.length >= 50) { toast('50 emplacements au maximum.', 'error'); return; } d.panneaux.push({ ...p, nom: '' }); d.dirty = true; renderCity(); renderRecap(); return; }
+      if (wz.cityOn) {
+        if (d.panneaux.length >= 50) { toast('50 emplacements au maximum.', 'error'); return; }
+        const o = occAt(p.lat, p.lon)[0];
+        if (o) toast(`Attention : cet emplacement est dans la zone A de « ${o.p.commerce} » (${Math.round(o.d)} m). Là-bas, seules ses pubs s'affichent : choisissez un endroit libre.`, 'error', 7000);
+        d.panneaux.push({ ...p, nom: '' }); d.dirty = true; renderCity(); renderRecap(); return;
+      }
       d.siegeManual = true; setSiege(p.lat, p.lon); reverse(p.lat, p.lon);
     });
     if (d.siege) setSiege(d.siege.lat, d.siege.lon, true);
   }
+  function occWarn() {
+    const d = st.draft, el = $('wz-occ'); if (!el || !d.siege) return;
+    const near = occAt(d.siege.lat, d.siege.lon, 400);
+    const inA = near.filter(x => x.d <= 200);
+    el.hidden = !near.length;
+    el.className = 'occ-note' + (inA.length ? ' bad' : '');
+    el.innerHTML = near.length ? `${ic('info')}<span>${inA.length ? `<b>Zone déjà occupée :</b> ${inA.map(x => `« ${esc(x.p.commerce)} » à ${Math.round(x.d)} m`).join(', ')}. Vos zones A se chevauchent : déplacez le point de vente si possible, ou acceptez de partager ce secteur.` : `<b>Voisins :</b> ${near.map(x => `« ${esc(x.p.commerce)} » à ${Math.round(x.d)} m`).join(', ')}. Vos zones B (500 m) se croiseront, mais votre zone A reste à vous.`}</span>` : '';
+  }
   function setSiege(lat, lon, keep) {
     const d = st.draft, m = wz.map;
+    if (!$('wz-snom').value.trim()) $('wz-snom').value = etabName(d.etab);
     d.siege = { ...(d.siege || {}), lat, lon, nom: $('wz-snom').value.trim() || (d.siege && d.siege.nom) || '' }; d.dirty = true;
     if (wz.zones) wz.zones.remove(); wz.zones = zonesOn(m, lat, lon);
     if (!wz.siegeMk) { wz.siegeMk = L.marker([lat, lon], { icon: pinIcon('#d93a2b'), draggable: true }).addTo(m); wz.siegeMk.on('dragend', () => { const p = wz.siegeMk.getLatLng(); setSiege(+p.lat.toFixed(6), +p.lng.toFixed(6)); }); }
     else wz.siegeMk.setLatLng([lat, lon]);
     if (!keep) m.setView([lat, lon], Math.max(m.getZoom(), 16));
+    occWarn();
     renderRecap();
   }
   // recherche d'adresse (OpenStreetMap Nominatim, limitée à la Côte d'Ivoire)
@@ -436,11 +501,11 @@
     } catch (_) { return []; }
   }
   async function reverse(lat, lon) {
-    if ($('wz-snom').value.trim()) return;
+    const cur = $('wz-snom').value.trim(); if (cur && cur !== etabName(st.draft.etab)) return;
     try {
       const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=17&accept-language=fr&lat=${lat}&lon=${lon}`);
       const j = r.ok ? await r.json() : null; const a = j && j.address;
-      if (a && !$('wz-snom').value.trim()) { const q = a.suburb || a.neighbourhood || a.quarter || a.city_district || a.town || a.city || ''; if (q) { $('wz-snom').value = `${etabName(st.draft.etab)} ${q}`.slice(0, 80); st.draft.siege.nom = $('wz-snom').value; renderRecap(); } }
+      if (a && ($('wz-snom').value.trim() === etabName(st.draft.etab) || !$('wz-snom').value.trim())) { const q = a.suburb || a.neighbourhood || a.quarter || a.city_district || a.town || a.city || ''; if (q) { $('wz-snom').value = `${etabName(st.draft.etab)} ${q}`.slice(0, 80); st.draft.siege.nom = $('wz-snom').value; renderRecap(); } }
     } catch (_) {}
   }
   function bindWiz() {
@@ -454,7 +519,7 @@
         $('wz-sug').innerHTML = res.length ? res.map((x, i) => `<button type="button" data-i="${i}">${esc(x.name || x.display_name.split(',')[0])}<small>${esc(x.display_name)}</small></button>`).join('') : '<button type="button" disabled>Aucun résultat : touchez directement la carte.</button>';
         $('wz-sug').hidden = false; $('wz-sug')._res = res;
       }, 350));
-      $('wz-sug').addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (!b) return; const x = $('wz-sug')._res[+b.dataset.i]; $('wz-sug').hidden = true; q.value = x.name || x.display_name.split(',')[0]; setSiege(+(+x.lat).toFixed(6), +(+x.lon).toFixed(6)); wz.map.setView([+x.lat, +x.lon], 17); toast('Ajustez le repère rouge sur l’entrée exacte du commerce.', 'info', 5000); });
+      $('wz-sug').addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (!b) return; const x = $('wz-sug')._res[+b.dataset.i]; $('wz-sug').hidden = true; q.value = x.name || x.display_name.split(',')[0]; setSiege(+(+x.lat).toFixed(6), +(+x.lon).toFixed(6)); reverse(+x.lat, +x.lon); wz.map.setView([+x.lat, +x.lon], 17); toast('Ajustez le repère rouge sur l’entrée exacte du commerce.', 'info', 5000); });
       $('wz-gps').onclick = () => {
         if (!navigator.geolocation) return;
         $('wz-gps').classList.add('loading');
@@ -477,36 +542,18 @@
     };
     $('wz-portee').onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; d.portee = b.dataset.v; $('wz-portee').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); const z = document.querySelector('.zones-mini span:last-child'); if (z) z.lastChild.textContent = 'Zone C : ' + (d.portee === 'pays' ? 'tout le pays' : 'toute la ville'); upd(); };
     $('wz-nom').oninput = () => { d.nom = $('wz-nom').value; d.dirty = true; renderRecap(); };
-    $('wz-mode').onclick = e => {
-      const b = e.target.closest('[data-m]'); if (!b) return;
-      if (wz.ed) { d.layout = wz.ed.get(); }
-      d.mode = b.dataset.m; $('wz-mode').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
-      $('wz-modele').hidden = d.mode !== 'modele'; $('wz-visuel').hidden = d.mode !== 'visuel'; $('wz-editeur').hidden = d.mode !== 'editeur';
-      if (d.mode === 'editeur') mountEditor();
-      upd();
-    };
-    $('wz-mod').onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; d.modele = b.dataset.v; $('wz-mod').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); upd(); };
-    $('wz-col').onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; d.couleur = b.dataset.v; $('wz-col').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); upd(); };
-    [['wz-ti', 'titre'], ['wz-ac', 'accroche'], ['wz-st', 'sous_titre']].forEach(([id, k]) => { $(id).oninput = () => { d[k] = $(id).value; upd(); }; });
     $('wz-cta').onchange = () => { d.cta = $('wz-cta').value; upd(); };
-    const pick = (dropId, inputId, w, h, key) => {
-      const drop = $(dropId), inp = $(inputId);
-      drop.onclick = () => inp.click();
-      drop.ondragover = e => { e.preventDefault(); drop.classList.add('over'); };
-      drop.ondragleave = () => drop.classList.remove('over');
-      const take = async f => { if (!f) return; try { const r = await loadImage(f, w, h); d[key] = r.data; d.imgChanged = true; d.dirty = true; if (key === 'visuel' && !r.exact) toast(`Image de ${r.srcW} × ${r.srcH} px recadrée au gabarit 1000 × 800.`, 'info', 5000); viewNouvelle(); } catch (e) { toast(e.message, 'error'); } };
-      drop.ondrop = e => { e.preventDefault(); drop.classList.remove('over'); take(e.dataTransfer.files[0]); };
-      inp.onchange = () => take(inp.files[0]);
+    $('wz-imp').onclick = () => $('wz-vis').click();
+    $('wz-vis').onchange = async () => {
+      const f = $('wz-vis').files[0]; $('wz-vis').value = ''; if (!f || !wz.ed) return;
+      try { const r = await loadImage(f, 1000, 800); wz.ed.setBgImage(r.data); if (!r.exact) toast(`Image de ${r.srcW} × ${r.srcH} px recadrée au format 1000 × 800.`, 'info', 5000); else toast('Affiche importée : ajoutez des textes ou des images si vous voulez.', 'success'); }
+      catch (x) { toast(x.message, 'error'); }
     };
-    pick('wz-photo-drop', 'wz-photo', 600, 600, 'photo');
-    pick('wz-vis-drop', 'wz-vis', 1000, 800, 'visuel');
-    if ($('wz-photo-del')) $('wz-photo-del').onclick = () => { d.photo = null; d.imgChanged = true; viewNouvelle(); };
   }
   function draftCamp() {
     const d = st.draft;
     const cat = (etabOf(d.etab) || st.moi.profil).cat;
-    if (d.mode === 'editeur') return { modele: 'visuel', cta: d.cta, couleur: d.couleur, cat, image: d.edImage || null };
-    return { modele: d.mode === 'visuel' ? 'visuel' : d.modele, titre: d.titre, accroche: d.accroche, sous_titre: d.sous_titre, cta: d.cta, couleur: d.couleur, cat, image: d.mode === 'visuel' ? d.visuel : d.photo };
+    return { modele: 'visuel', cta: d.cta, couleur: d.couleur, cat, image: d.edImage || null };
   }
   function renderPrev() { if ($('wz-prev')) $('wz-prev').innerHTML = campHtml(draftCamp(), etabName(st.draft.etab)); }
   function renderCity() {
@@ -523,8 +570,7 @@
       if (!d.siege.nom || d.siege.nom.trim().length < 2) return 'Donnez un nom au point de vente.';
     }
     if (!d.etab && etabs().length) return 'Choisissez l\u2019établissement.';
-    if (d.mode === 'visuel' && !d.visuel) return 'Importez votre visuel.';
-    if (d.mode === 'modele' && !d.titre.trim()) return 'Écrivez le titre de la publicité.';
+    if (!wz.ed) return 'Préparez votre visuel.';
     return '';
   }
   function renderRecap() {
@@ -540,7 +586,7 @@
         ${n ? `<tr><td>${n} emplacement${n > 1 ? 's' : ''} Géopub@city × ${d.semaines} sem.${packs ? `<br><small class="muted">dont ${packs} pack${packs > 1 ? 's' : ''} de 5</small>` : ''}</td><td>${F(pc)} F</td></tr>` : ''}
         <tr class="tot"><td>Total</td><td>${F(tot)} F</td></tr></table>
         <p class="after${after < 0 ? ' bad' : ''}">Solde : ${F(p.solde)} F → ${after < 0 ? `il manque ${F(-after)} F` : `${F(after)} F après paiement`}</p>
-        ${pb ? `<p class="after bad">${esc(pb)}</p>` : ''}
+        ${pb ? `<p class="after bad">${esc(pb)}</p>` : ''}${wz.ed && wz.ed.empties() ? `<p class="after">${wz.ed.empties()} cadre${wz.ed.empties() > 1 ? 's' : ''} photo vide${wz.ed.empties() > 1 ? 's' : ''} : ${wz.ed.empties() > 1 ? 'ils n\u2019apparaîtront' : 'il n\u2019apparaîtra'} pas sur la pub (double-cliquez dessus pour ajouter la photo).</p>` : ''}
         <button class="btn primary block" id="wz-go" ${pb || after < 0 ? 'disabled' : ''}>Payer ${F(tot)} F et publier</button>
         ${after < 0 ? `<button class="btn ghost block" data-go="compte" style="margin-top:8px">Recharger mon solde</button>` : ''}
         <p class="hint">${st.moi.demo ? 'Démo : la campagne passe en ligne immédiatement.' : 'La campagne est vérifiée par ZUPA avant sa mise en ligne.'} Durée du siège : ${d.mois * 30} jours.</p>`;
@@ -552,10 +598,10 @@
   async function publish() {
     const d = st.draft, pb = problem(); if (pb) { toast(pb, 'error'); return; }
     const b = $('wz-go'); b.classList.add('loading');
-    if (d.mode === 'editeur' && wz.ed) { d.layout = wz.ed.get(); d.edImage = await wz.ed.export(); d.imgChanged = true; }
+    if (wz.ed) { d.layout = wz.ed.get(); d.edImage = await wz.ed.export(); d.imgChanged = true; }
     const c = draftCamp();
     const body = { nom: (d.nom || d.titre || (d.siege && d.siege.nom) || 'Ma campagne').trim(), etablissement_id: d.etab || null, portee: d.portee, modele: c.modele, titre: c.titre, accroche: c.accroche, sous_titre: c.sous_titre, cta: c.cta, couleur: c.couleur };
-    if (d.mode === 'editeur') body.layout = d.layout; else if (d.editId && d.aLayout) body.layout = null;
+    body.layout = d.layout;
     let r;
     if (d.editId) { if (d.imgChanged) body.image = c.image || ''; r = await rpc('zp_campagne_modifier', { p_id: d.editId, p: body }); }
     else { Object.assign(body, { image: c.image || '', siege: d.siege, mois: d.mois, semaines: d.semaines, panneaux: d.panneaux }); r = await rpc('zp_campagne_creer', { p: body }); }

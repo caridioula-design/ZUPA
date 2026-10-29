@@ -13,6 +13,41 @@
   const loadImg = src => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
   const readFile = f => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); });
 
+  // ---------- modèles prédéfinis (tout reste modifiable dans l'éditeur) ----------
+  const T = (text, x, y, size, color, o = {}) => ({ id: uid(), t: 'text', x, y, r: o.r || 0, s: 1, op: 1, text, font: o.font || 't', bold: o.bold !== false, color, size, stroke: !!o.stroke, strokeColor: o.sc || '#111111', shadow: !!o.shadow, align: 'center' });
+  const R = (x, y, w, h, fill, radius = 18, o = {}) => ({ id: uid(), t: 'shape', kind: 'rect', x, y, r: o.r || 0, s: 1, op: o.op || 1, w, h, fill, radius });
+  const C = (x, y, d, fill) => ({ id: uid(), t: 'shape', kind: 'circle', x, y, r: 0, s: 1, op: 1, w: d, h: d, fill, radius: 0 });
+  const P = (x, y, w, h, o = {}) => ({ id: uid(), t: 'img', x, y, r: o.r || 0, s: 1, op: 1, src: null, w, h, round: !!o.round, radius: o.radius ?? 16, label: o.label || 'Votre photo' });
+  const nm = d => d.commerce || 'Votre commerce', tel = d => d.tel ? String(d.tel).replace(/(\d{2})(?=\d)/g, '$1 ') : '07 00 00 00 00';
+  const TEMPLATES = [
+    { id: 'promo', nom: 'Promotion', build: d => fromTemplate(d) },
+    { id: 'fastfood', nom: 'Menu fast-food', build: d => ({ v: 1, bg: { k: 'grad', c1: '#dc2626', c2: '#7f1d1d', angle: 150 }, objs: [
+      T('MENU', 250, 95, 120, '#ffd000', { stroke: true, sc: '#7f1d1d', r: -3 }), T(nm(d), 690, 100, 44, '#ffffff', { font: 'b' }),
+      ...[['Burger maison', '2 500 F', 265], ['Chawarma poulet', '2 000 F', 445], ['Frites + boisson', '1 000 F', 625]].flatMap(([a, b, y], i) => [
+        R(500, y, 900, 150, 'rgba(0,0,0,.22)', 30), P(150, y, 150, 130, { round: true, label: 'Photo ' + (i + 1) }), T(a, 470, y, 52, '#ffffff', { font: 'b' }), C(830, y, 150, '#ffd000'), T(b, 830, y, 38, '#7f1d1d')]),
+      R(500, 752, 1000, 96, '#ffd000', 0), T('Livraison · ' + tel(d), 500, 752, 42, '#7f1d1d', { font: 'b' })] }) },
+    { id: 'resto', nom: 'Menu restaurant', build: d => ({ v: 1, bg: { k: 'grad', c1: '#1c1917', c2: '#0c0a09', angle: 160 }, objs: [
+      T('Menu du jour', 500, 100, 96, '#e3b55c'), T(nm(d), 500, 175, 38, '#f5f5f4', { font: 'b', bold: false }), R(500, 215, 260, 4, '#e3b55c', 2),
+      ...[['ENTRÉE', 'Salade d\u2019avocat', '1 500 F', 300], ['PLAT', 'Kedjenou de poulet, attiéké', '4 500 F', 450], ['DESSERT', 'Salade de fruits', '1 000 F', 600]].flatMap(([k, a, b, y]) => [
+        T(k, 500, y - 42, 28, '#e3b55c', { font: 'b' }), T(a + '  ·  ' + b, 500, y + 8, 46, '#ffffff', { font: 'b', bold: false })]),
+      T('Réservation : ' + tel(d), 500, 735, 36, '#e3b55c', { font: 'b' })] }) },
+    { id: 'catalogue', nom: 'Catalogue de prix', build: d => ({ v: 1, bg: { k: 'grad', c1: '#f1f5f9', c2: '#cbd5e1', angle: 180 }, objs: [
+      R(500, 60, 1000, 120, '#1d4ed8', 0), T('NOS PRIX', 330, 60, 76, '#ffffff'), T(nm(d), 760, 62, 36, '#dbeafe', { font: 'b' }),
+      ...[0, 1, 2, 3, 4, 5].flatMap(i => { const x = 180 + (i % 3) * 320, y = 290 + Math.floor(i / 3) * 300; return [
+        R(x, y, 290, 270, '#ffffff', 20), P(x, y - 45, 250, 140, { label: 'Article ' + (i + 1), radius: 12 }), T(['Ciment 50 kg', 'Peinture 20 L', 'Tôle bac', 'Fer de 10', 'Robinet', 'Brouette'][i], x, y + 52, 30, '#0f172a', { font: 'b' }),
+        R(x, y + 103, 170, 52, '#dc2626', 26), T(['5 500 F', '25 000 F', '4 000 F', '3 200 F', '6 500 F', '28 000 F'][i], x, y + 104, 30, '#ffffff', { font: 'b' })]; })] }) },
+    { id: 'nouveau', nom: 'Nouveauté produit', build: d => ({ v: 1, bg: { k: 'grad', c1: '#a855f7', c2: '#4c1d95', angle: 140 }, objs: [
+      P(270, 400, 420, 560, { label: 'Photo du produit', radius: 28 }), T('NOUVEAU', 720, 200, 92, '#ffd000', { r: -4, stroke: true, sc: '#4c1d95' }),
+      T(d.titre || 'Nom du produit', 720, 350, 56, '#ffffff'), T(d.sous_titre || 'Disponible maintenant', 720, 430, 34, '#ede9fe', { font: 'b', bold: false }),
+      C(720, 570, 190, '#ffd000'), T(d.accroche || '9 900 F', 720, 572, 46, '#4c1d95'), T(nm(d), 720, 730, 34, '#ffffff', { font: 'b' })] }) },
+    { id: 'ouverture', nom: 'Ouverture / événement', build: d => ({ v: 1, bg: { k: 'grad', c1: '#fb923c', c2: '#c2410c', angle: 135 }, objs: [
+      P(500, 140, 170, 170, { round: true, label: 'Logo' }), T('GRANDE\nOUVERTURE', 500, 375, 116, '#ffffff', { stroke: true, sc: '#7c2d12' }),
+      R(500, 560, 600, 96, '#ffd000', 48), T('Samedi 15 novembre', 500, 562, 50, '#7c2d12', { font: 'b' }), T(nm(d) + ' · ' + (d.adresse || 'Votre quartier'), 500, 690, 36, '#ffffff', { font: 'b' })] }) },
+    { id: 'service', nom: 'Service / contact', build: d => ({ v: 1, bg: { k: 'grad', c1: '#38bdf8', c2: '#075985', angle: 150 }, objs: [
+      P(500, 170, 220, 220, { round: true, label: 'Logo' }), T(nm(d), 500, 370, 80, '#ffffff'), T(d.sous_titre || 'Votre slogan en une phrase', 500, 460, 40, '#e0f2fe', { font: 'b', bold: false }),
+      R(500, 600, 520, 100, '#ffffff', 50), T('☎ ' + tel(d), 500, 602, 52, '#075985', { font: 'b' })] }) }
+  ];
+
   // état de départ à partir des champs du modèle rapide
   function fromTemplate(t) {
     const col = PRESETS[t.couleur] ? t.couleur : 'jaune';
@@ -25,6 +60,7 @@
       { id: uid(), t: 'shape', kind: 'rect', x: 500, y: 680, r: 0, s: 1, op: 1, w: 360, h: 84, fill: ink, radius: 18 },
       { id: uid(), t: 'text', x: 500, y: 682, r: 0, s: 1, op: 1, text: t.cta || 'Appelez-nous', font: 'b', bold: true, color: dark ? '#ffd000' : (PRESETS[col][1]), size: 44, stroke: false, strokeColor: '#111111', shadow: false, align: 'center' }
     ];
+    if (t.photo) objs.push({ id: uid(), t: 'img', x: 830, y: 400, r: 0, s: 1, op: 1, src: t.photo, w: 260, h: 260, round: true, radius: 0 });
     return { v: 1, bg: { k: 'grad', c1: PRESETS[col][0], c2: PRESETS[col][1], angle: 140 }, objs };
   }
   const bgCss = bg => bg.k === 'img' ? `center/cover no-repeat url("${bg.src}")` : bg.k === 'solid' ? bg.c1 : `linear-gradient(${bg.angle || 140}deg,${bg.c1},${bg.c2})`;
@@ -40,6 +76,7 @@
 
     root.innerHTML = `<div class="ze">
       <div class="ze-bar" role="toolbar" aria-label="Outils">
+        <button type="button" data-z="tpl"><svg viewBox="0 0 24 24"><path d="M3 3h8v8H3zm10 0h8v8h-8zM3 13h8v8H3zm10 0h8v8h-8z"/></svg><span>Modèles</span></button>
         <button type="button" data-z="text"><b>T</b><span>Texte</span></button>
         <button type="button" data-z="img"><svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg><span>Image</span></button>
         ${opts.logo ? '<button type="button" data-z="logo"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg><span>Logo</span></button>' : ''}
@@ -67,9 +104,17 @@
         const stroke = o.stroke ? `-webkit-text-stroke:${(o.size * kk * 0.07).toFixed(1)}px ${o.strokeColor};paint-order:stroke fill;` : '';
         const sh = o.shadow ? `text-shadow:0 ${(o.size * kk * 0.05).toFixed(1)}px ${(o.size * kk * 0.12).toFixed(1)}px rgba(0,0,0,.45);` : '';
         inner = `<span class="ze-txt" style="font-family:${FONTS[o.font]};font-weight:${o.bold ? 800 : 500};font-size:${(o.size * kk).toFixed(2)}px;color:${o.color};text-align:${o.align || 'center'};${stroke}${sh}">${esc(o.text).replace(/\n/g, '<br>')}</span>`;
-      } else if (o.t === 'img') inner = `<img src="${o.src}" alt="" draggable="false" style="width:${(o.w * kk).toFixed(1)}px;height:${(o.h * kk).toFixed(1)}px">`;
+      } else if (o.t === 'img') {
+        const br = o.round ? '50%' : ((o.radius || 0) * kk).toFixed(1) + 'px';
+        inner = o.src ? `<img src="${o.src}" alt="" draggable="false" style="width:${(o.w * kk).toFixed(1)}px;height:${(o.h * kk).toFixed(1)}px;border-radius:${br};object-fit:cover">`
+          : `<div class="ze-ph" style="width:${(o.w * kk).toFixed(1)}px;height:${(o.h * kk).toFixed(1)}px;border-radius:${br};font-size:${Math.max(9, 22 * kk).toFixed(1)}px"><span>＋ ${esc(o.label || 'Votre photo')}</span></div>`;
+      }
       else inner = `<i class="ze-shape" style="width:${(o.w * kk).toFixed(1)}px;height:${(o.h * kk).toFixed(1)}px;background:${o.fill};border-radius:${o.kind === 'circle' ? '50%' : (o.radius * kk).toFixed(1) + 'px'}"></i>`;
       return `<div class="ze-o${sel === o.id ? ' sel' : ''}" data-o="${o.id}" style="${tf}">${inner}${sel === o.id ? `<i class="ze-h rot" data-h="rot" style="transform:translate(-50%,0) scale(${(1 / o.s).toFixed(3)})"></i><i class="ze-h sc" data-h="sc" style="transform:scale(${(1 / o.s).toFixed(3)})"></i>` : ''}</div>`;
+    }
+    function thumb(lay, w) {
+      const kk = w / W;
+      return `<div class="ze-mini" style="width:${w}px;height:${w * H / W}px;background:${bgCss(lay.bg)}">${lay.objs.map(o => objHtml(o, kk).replace('class="ze-o', 'class="ze-o ze-mo')).join('')}</div>`;
     }
     function draw() {
       stage.style.background = bgCss(st.bg);
@@ -86,6 +131,7 @@
           <div class="chips"><button type="button" data-p-bold class="${o.bold ? 'on' : ''}"><b>G</b></button><button type="button" data-p-tog="stroke" class="${o.stroke ? 'on' : ''}">Contour</button><button type="button" data-p-tog="shadow" class="${o.shadow ? 'on' : ''}">Ombre</button></div></div>
           <label>Couleur du texte</label>${sw('data-p-color', o.color)}
           ${o.stroke ? `<label>Couleur du contour</label>${sw('data-p-stroke', o.strokeColor)}` : ''}`;
+        if (o.t === 'img') h += `<div class="ze-acts" style="margin-top:0"><button type="button" class="btn sm primary" data-a="photo">${o.src ? 'Changer la photo' : 'Choisir la photo'}</button>${o.src ? '<button type="button" class="btn sm ghost" data-a="nophoto">Retirer la photo</button>' : ''}<button type="button" class="btn sm ghost" data-a="round">${o.round ? 'Cadre carré' : 'Cadre rond'}</button></div>`;
         if (o.t === 'shape') h += `<label>Couleur</label>${sw('data-p-fill', o.fill)}
           <label>Largeur <small>${Math.round(o.w)} px</small></label><input type="range" data-p-num="w" min="20" max="1000" value="${o.w}">
           ${o.kind === 'rect' ? `<label>Hauteur <small>${Math.round(o.h)} px</small></label><input type="range" data-p-num="h" min="10" max="800" value="${o.h}"><label>Arrondi <small>${o.radius} px</small></label><input type="range" data-p-num="radius" min="0" max="200" value="${o.radius}">` : ''}`;
@@ -94,6 +140,8 @@
           <label>Opacité <small>${Math.round((o.op ?? 1) * 100)} %</small></label><input type="range" data-p-num="op" min="10" max="100" value="${Math.round((o.op ?? 1) * 100)}">
           <div class="ze-acts"><button type="button" class="btn sm ghost" data-a="center">Centrer</button><button type="button" class="btn sm ghost" data-a="front">Devant</button><button type="button" class="btn sm ghost" data-a="back">Derrière</button><button type="button" class="btn sm ghost" data-a="dup">Dupliquer</button><button type="button" class="btn sm ghost danger" data-a="del">Supprimer</button></div>`;
         panelEl.innerHTML = h;
+      } else if (panel === 'modeles') {
+        panelEl.innerHTML = `<label>Choisissez un modèle : tout reste modifiable ensuite</label><div class="ze-gal">${TEMPLATES.map(t => `<button type="button" data-tpl="${t.id}"><div class="ze-thumb">${thumb(t.build(opts.data || {}), 168)}</div><span>${t.nom}</span></button>`).join('')}</div>`;
       } else if (panel === 'bg') {
         const b = st.bg;
         panelEl.innerHTML = `<label>Fond en dégradé</label><div class="ze-pre">${Object.entries(PRESETS).map(([n, [a, c]]) => `<button type="button" data-bg="${n}" style="background:linear-gradient(140deg,${a},${c})" aria-label="${n}"></button>`).join('')}</div>
@@ -134,6 +182,7 @@
       draw();
     });
     const end = () => { if (!drag) return; if (!drag.moved) undo.pop(); drag = null; gx.hidden = gy.hidden = true; renderPanel(); if (opts.onChange) opts.onChange(); };
+    stage.addEventListener('dblclick', e => { const el = e.target.closest('.ze-o'); const o = el && st.objs.find(x => x.id === el.dataset.o); if (o && o.t === 'img') { photoTarget = o.id; fileIn.click(); } });
     stage.addEventListener('pointerup', end); stage.addEventListener('pointercancel', end);
     stage.addEventListener('keydown', e => {
       const o = cur();
@@ -153,20 +202,23 @@
       const o = cur();
       if (a === 'undo' && undo.length) { redo.push(JSON.stringify(st)); st = JSON.parse(undo.pop()); if (!cur()) sel = null; renderPanel(); changed(); }
       else if (a === 'redo' && redo.length) { undo.push(JSON.stringify(st)); st = JSON.parse(redo.pop()); if (!cur()) sel = null; renderPanel(); changed(); }
-      else if (!o && !['bgphoto'].includes(a)) return;
+      else if (!o && a !== 'bgphoto') return;
       else if (a === 'del') { snap(); st.objs = st.objs.filter(x => x !== o); sel = null; panel = 'aide'; renderPanel(); changed(); }
       else if (a === 'dup') { const n = { ...clone(o), id: uid(), x: o.x + 30, y: o.y + 30 }; add(n); }
       else if (a === 'front') { snap(); st.objs = st.objs.filter(x => x !== o).concat(o); changed(); }
       else if (a === 'back') { snap(); st.objs = [o].concat(st.objs.filter(x => x !== o)); changed(); }
       else if (a === 'center') { snap(); o.x = W / 2; o.y = H / 2; changed(); }
       else if (a === 'bgphoto') bgIn.click();
+      else if (a === 'photo') { photoTarget = o.id; fileIn.click(); }
+      else if (a === 'nophoto') { snap(); o.src = null; renderPanel(); changed(); }
+      else if (a === 'round') { snap(); o.round = !o.round; if (o.round) o.h = o.w = Math.min(o.w, o.h); renderPanel(); changed(); }
     }
     async function addImage(src, maxSide = 420) {
       const im = await loadImg(src);
       const kk = Math.min(1, 900 / Math.max(im.width, im.height));
       if (kk < 1 || src.length > 700000) { const c = document.createElement('canvas'); c.width = Math.round(im.width * kk); c.height = Math.round(im.height * kk); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); src = /png|webp/.test(src.slice(0, 30)) ? c.toDataURL('image/png') : c.toDataURL('image/jpeg', 0.86); }
       const f = Math.min(1, maxSide / Math.max(im.width * kk, im.height * kk));
-      add({ id: uid(), t: 'img', x: 500, y: 400, r: 0, s: 1, op: 1, src, w: Math.round(im.width * kk * f), h: Math.round(im.height * kk * f) });
+      add({ id: uid(), t: 'img', x: 500, y: 400, r: 0, s: 1, op: 1, src, w: Math.round(im.width * kk * f), h: Math.round(im.height * kk * f), radius: 0 });
     }
     root.querySelector('.ze-bar').addEventListener('click', async e => {
       const b = e.target.closest('[data-z]'); if (!b) return;
@@ -177,9 +229,22 @@
       else if (z === 'rect') add({ id: uid(), t: 'shape', kind: 'rect', x: 500, y: 400, r: 0, s: 1, op: 1, w: 420, h: 110, fill: '#e10e1e', radius: 20 });
       else if (z === 'circle') add({ id: uid(), t: 'shape', kind: 'circle', x: 760, y: 420, r: 0, s: 1, op: 1, w: 220, h: 220, fill: '#ffd000', radius: 0 });
       else if (z === 'bg') { sel = null; panel = panel === 'bg' ? 'aide' : 'bg'; draw(); renderPanel(); }
+      else if (z === 'tpl') { sel = null; panel = panel === 'modeles' ? 'aide' : 'modeles'; draw(); renderPanel(); }
       else act(z);
     });
-    fileIn.addEventListener('change', async () => { const f = fileIn.files[0]; fileIn.value = ''; if (!f) return; try { await addImage(await readFile(f)); } catch (_) { toast('Image illisible.'); } });
+    let photoTarget = null;
+    fileIn.addEventListener('change', async () => {
+      const f = fileIn.files[0]; fileIn.value = ''; const tgt = photoTarget; photoTarget = null; if (!f) return;
+      try {
+        const src = await readFile(f), o = tgt && st.objs.find(x => x.id === tgt);
+        if (o) { // le cadre garde sa taille : la photo est recadrée dedans
+          const im = await loadImg(src), c = document.createElement('canvas'), ow = Math.round(o.w * 1.5), oh = Math.round(o.h * 1.5);
+          c.width = ow; c.height = oh; const kk = Math.max(ow / im.width, oh / im.height);
+          c.getContext('2d').drawImage(im, (ow - im.width * kk) / 2, (oh - im.height * kk) / 2, im.width * kk, im.height * kk);
+          snap(); o.src = /png|webp/.test(src.slice(0, 30)) ? c.toDataURL('image/png') : c.toDataURL('image/jpeg', 0.86); renderPanel(); changed();
+        } else await addImage(src);
+      } catch (_) { toast('Image illisible.'); }
+    });
     bgIn.addEventListener('change', async () => {
       const f = bgIn.files[0]; bgIn.value = ''; if (!f) return;
       try {
@@ -209,6 +274,11 @@
     panelEl.addEventListener('focusin', e => { if (e.target.matches('input,textarea')) snap(); });
     panelEl.addEventListener('click', e => {
       const t = e.target.closest('button'); if (!t) return; const o = cur();
+      if (t.dataset.tpl) {
+        const tp = TEMPLATES.find(x => x.id === t.dataset.tpl); if (!tp) return;
+        if (st.objs.length && undo.length && !confirm('Remplacer le visuel actuel par ce modèle ? (Annuler permet de revenir en arrière.)')) return;
+        snap(); st = tp.build(opts.data || {}); sel = null; panel = 'aide'; renderPanel(); changed(); return;
+      }
       if (t.dataset.a) { act(t.dataset.a); return; }
       if (t.dataset.bg) { snap(); const [a, c] = PRESETS[t.dataset.bg]; st.bg = { k: 'grad', c1: a, c2: c, angle: st.bg.angle || 140 }; renderPanel(); changed(); return; }
       if (t.dataset.bgk) { snap(); st.bg = { k: t.dataset.bgk, c1: st.bg.c1 || '#ffe500', c2: st.bg.c2 || '#ffd000', angle: st.bg.angle || 140 }; renderPanel(); changed(); return; }
@@ -249,7 +319,17 @@
             if (o.stroke) { x.lineJoin = 'round'; x.lineWidth = o.size * 0.14; x.strokeStyle = o.strokeColor; x.strokeText(ln, ox, y); x.shadowColor = 'transparent'; }
             x.fillStyle = o.color; x.fillText(ln, ox, y); x.shadowColor = 'transparent';
           });
-        } else if (o.t === 'img') { const im = await loadImg(o.src); x.drawImage(im, -o.w / 2, -o.h / 2, o.w, o.h); }
+        } else if (o.t === 'img') {
+          if (o.src) {
+            const im = await loadImg(o.src);
+            x.save(); x.beginPath();
+            if (o.round) x.ellipse(0, 0, o.w / 2, o.h / 2, 0, 0, Math.PI * 2);
+            else { const r = Math.min(o.radius || 0, o.w / 2, o.h / 2), w2 = o.w / 2, h2 = o.h / 2; x.moveTo(-w2 + r, -h2); x.arcTo(w2, -h2, w2, h2, r); x.arcTo(w2, h2, -w2, h2, r); x.arcTo(-w2, h2, -w2, -h2, r); x.arcTo(-w2, -h2, w2, -h2, r); x.closePath(); }
+            x.clip();
+            const kk = Math.max(o.w / im.width, o.h / im.height); x.drawImage(im, -im.width * kk / 2, -im.height * kk / 2, im.width * kk, im.height * kk);
+            x.restore();
+          }
+        }
         else {
           x.fillStyle = o.fill; x.beginPath();
           if (o.kind === 'circle') x.ellipse(0, 0, o.w / 2, o.h / 2, 0, 0, Math.PI * 2);
@@ -262,8 +342,9 @@
       while (out.length > maxChars && q > 0.45) { q -= 0.07; out = c.toDataURL('image/jpeg', q); }
       return out;
     }
+    if (opts.gallery) panel = 'modeles';
     draw(); renderPanel();
-    return { get: () => clone(st), export: exportJpeg, setBgImage: src => { snap(); st.bg = { ...st.bg, k: 'img', src }; changed(); } };
+    return { empties: () => st.objs.filter(o => o.t === 'img' && !o.src).length, get: () => clone(st), export: exportJpeg, setBgImage: src => { snap(); st.bg = { ...st.bg, k: 'img', src }; changed(); } };
   }
-  window.ZPEditor = { mount, fromTemplate };
+  window.ZPEditor = { mount, fromTemplate, templates: TEMPLATES.map(t => ({ id: t.id, nom: t.nom })) };
 })();

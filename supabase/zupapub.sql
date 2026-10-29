@@ -449,6 +449,17 @@ language sql stable security definer set search_path = public as $$
   where c.statut = 'active' and current_date between c.debut and c.fin
 $$;
 
+-- panneaux déjà loués (tous annonceurs), pour choisir où poser les siens : aucune donnée privée
+create or replace function public.zp_occupation() returns jsonb
+language sql stable security definer set search_path = public as $$
+  select coalesce(jsonb_agg(jsonb_build_object(
+      'code', pn.code, 'type', pn.type, 'lat', round(pn.lat::numeric, 6), 'lon', round(pn.lon::numeric, 6),
+      'fin', least(pn.fin, c.fin), 'commerce', coalesce(e.nom, a.nom), 'cat', coalesce(e.cat, a.cat), 'moi', c.user_id = auth.uid())), '[]'::jsonb)
+  from zp_panneaux pn join zp_campagnes c on c.id = pn.campagne_id join zp_annonceurs a on a.user_id = c.user_id
+  left join zp_etablissements e on e.id = c.etablissement_id
+  where c.statut in ('active', 'pause', 'a_valider') and current_date <= least(pn.fin, c.fin)
+$$;
+
 create or replace function public.zp_visuel(p_id uuid) returns text
 language sql stable security definer set search_path = public as $$
   select image from zp_campagnes where id = p_id and statut = 'active'
@@ -480,7 +491,7 @@ begin
     execute format('revoke all on function public.%s from public, anon, authenticated', f);
   end loop;
   -- espace annonceur : connecté uniquement
-  foreach f in array array['zp_moi()', 'zp_profil(jsonb)', 'zp_etab_enregistrer(jsonb)', 'zp_etab_supprimer(uuid)', 'zp_campagne_layout(uuid)', 'zp_recharger_demo()', 'zp_mouvements_liste()', 'zp_campagne_creer(jsonb)',
+  foreach f in array array['zp_moi()', 'zp_profil(jsonb)', 'zp_etab_enregistrer(jsonb)', 'zp_etab_supprimer(uuid)', 'zp_campagne_layout(uuid)', 'zp_occupation()', 'zp_recharger_demo()', 'zp_mouvements_liste()', 'zp_campagne_creer(jsonb)',
     'zp_campagne_modifier(uuid, jsonb)', 'zp_panneaux_ajouter(uuid, jsonb)', 'zp_campagne_action(uuid, text)', 'zp_mes_campagnes()', 'zp_campagne_stats(uuid)'] loop
     execute format('revoke all on function public.%s from public, anon', f);
     execute format('grant execute on function public.%s to authenticated', f);
