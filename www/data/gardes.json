@@ -1,495 +1,536 @@
 {
  "source": "UNPPCI (Abidjan), UNPPCI (intérieur)",
- "maj": "2026-11-13",
- "du": "2026-11-07",
- "au": "2026-11-13",
+ "maj": "2026-11-14",
+ "du": "2026-11-14",
+ "au": "2026-11-20",
  "pharmacies": [
   {
-   "nom": "Pharmacie du Centre",
-   "responsable": "M. Ouattara Yacouba Marius",
-   "tel": "0747859009",
+   "nom": "Pharmacie Irys",
+   "responsable": "Mme Messou Kraidi A. Marie Merici",
+   "tel": "0712679765",
    "tels": [
-    "0747859009",
-    "0140275476",
-    "0585026152"
+    "0712679765"
    ],
-   "adresse": "Abobo Avocatier Voie Express Anyama près de l'Ho du Centre et de l'Église Universelle du Royaume de Dieu",
+   "adresse": "Abobo Anonkoua Koute en Face de l'Hôpital des Sœurs",
    "commune": "Abobo",
-   "quartier": "Abobo"
+   "quartier": null
   },
   {
-   "nom": "Pharmacie Abobo Santé",
-   "responsable": "M. Homawoo Kouame Charles",
-   "tel": "0749218312",
+   "nom": "Pharmacie de l'Étoile",
+   "responsable": "Mme Manouan A. Yolande",
+   "tel": "0102440688",
    "tels": [
-    "0749218312",
-    "2724391384"
+    "0102440688",
+    "0707790648"
    ],
-   "adresse": "En Face de l'Hôpital Général d'Abobo Sud, A Cote du Grand Marché",
+   "adresse": "Rond Point de la Brigade de Gendarmerie",
    "commune": "Abobo",
-   "quartier": "Abobo"
+   "quartier": null
   },
   {
-   "nom": "Pharmacie Divine Espérance",
-   "responsable": "Mme Apata Boglo Pelagie",
-   "tel": "2724397892",
+   "nom": "Pharmacie St Antoine",
+   "responsable": "Mme Niangoran Melanie Epse Bony",
+   "tel": "2720247747",
    "tels": [
-    "2724397892",
-    "0708694323",
-    "0102039090"
+    "2720247747",
+    "0707873147",
+    "0142366768",
+    "0102827587"
    ],
-   "adresse": "Abobo Sagbe entre Paroisse St Joseph Epoux et Commissariat du 21eme Arrondt.",
+   "adresse": "Abobo Sagbe Céleste / Derriere Rail Taxi Gare",
    "commune": "Abobo",
-   "quartier": "Abobo"
+   "quartier": null
   },
   {
-   "nom": "Pharmacie Amina",
-   "responsable": "M. Koissy Kpein Serge",
-   "tel": "0707903682",
+   "nom": "Pharmacie Avocatier Marché",
+   "responsable": "M. Diop Kouame Juste",
+   "tel": "2724497019",
    "tels": [
-    "0707903682",
-    "0757489447"
+    "2724497019",
+    "0709303852"
    ],
-   "adresse": "Abobo Avocatier / près Maternite Henriette Konan Bedie près du Marché Avocatier",
+   "adresse": "Abobo Avocatier / A Gauche Apres la CIE d'Abobo Nord / Apres Formation Sanitaire Henriette Konan Bedie / Carrefour Chateau près Groupe Scolaire les Angelots",
    "commune": "Abobo",
-   "quartier": "Abobo"
+   "quartier": null
   },
   {
-   "nom": "Pharmacie Quatre Étages",
-   "responsable": "Mme Traore Boni Desiree",
-   "tel": "2724390662",
+   "nom": "Pharmacie de la Cité",
+   "responsable": "Mme Egnankou Juliette",
+   "tel": "2724390333",
    "tels": [
-    "2724390662"
+    "2724390333",
+    "0749368279"
    ],
-   "adresse": "En Face des 4 Étages et A 100 M de l'Hôpital Général d'Abobo Nord",
+   "adresse": "Quartier SOGEFIHA N'Tanoua près de la Cité Universitaire et Terminus Bus SOTRA 49",
    "commune": "Abobo",
-   "quartier": "Abobo"
+   "quartier": null
   },
   {
-   "nom": "Pharmacie St Francois Xavier",
-   "responsable": "M. Yapi Honore",
-   "tel": "0576516564",
+   "nom": "Pharmacie de la Plaque II",
+   "responsable": "Mme Sanoh Coulibaly Berthe",
+   "tel": "0709899444",
    "tels": [
-    "0576516564"
+    "0709899444",
+    "0546638413"
    ],
-   "adresse": "Abobo SOGEFIHA / 300 M du 15 Eme Arrondissement",
+   "adresse": "Abobo Plaque II / entre le Marché de Nuit et le Carrefour de la Plaque II",
    "commune": "Abobo",
-   "quartier": "Abobo"
+   "quartier": null
   },
   {
-   "nom": "Pharmacie du Marché Akéikoi",
-   "responsable": "Mme Konate Aramatou",
-   "tel": "2724390035",
+   "nom": "Pharmacie Plaque Anador",
+   "responsable": "M. Azagoh K. Guillaume",
+   "tel": "0712498138",
    "tels": [
-    "2724390035",
-    "0749682322",
-    "0155596398"
+    "0712498138"
    ],
-   "adresse": "Abobo Akéikoi / Zone du Marché",
+   "adresse": "Abobo Banco sur la Voie Express entre le Carrefour Coco Service et le Rond Point Banco",
    "commune": "Abobo",
-   "quartier": "Abobo"
+   "quartier": null
   },
   {
-   "nom": "Pharmacie Abobo Clouetcha",
-   "responsable": "M. Tea Bouchou Gerard",
-   "tel": "0757485389",
+   "nom": "Pharmacie d'Abobotè",
+   "responsable": "M. Ake Amafin Nicodeme",
+   "tel": "0506927845",
    "tels": [
-    "0757485389",
-    "0757123313"
+    "0506927845",
+    "0757489468"
    ],
-   "adresse": "Abobo Kennedy Quartier Clouetcha Carrefour Ancienne Boulangerie Non Loin du Marché",
+   "adresse": "Route du Zoo/ Carrefour Menuiserie près de la Clinique Centrale d'Abobo",
    "commune": "Abobo",
-   "quartier": "Abobo"
+   "quartier": null
   },
   {
-   "nom": "Pharmacie Principale d'Abobotè",
-   "responsable": "Mme Kouame Linda Epse Ouraga",
-   "tel": "0709846891",
+   "nom": "Pharmacie les 4 Saisons",
+   "responsable": "Mme Badini Mariame",
+   "tel": "0758609030",
    "tels": [
-    "0709846891",
-    "0102370615"
+    "0758609030",
+    "0153423081",
+    "2721788435"
    ],
-   "adresse": "Petit Marché d'Abobotè / près de la Gare des Taxis Woro Woro",
+   "adresse": "Carrefour du Lycee Adama Sanogo / A l'Intersection de la Voie Église Ste Monique-Marché d'Abobotè et de la Voie Sodeci (Dokui)-Lycee Adama Sanogo",
    "commune": "Abobo",
-   "quartier": "Abobo"
+   "quartier": null
   },
   {
-   "nom": "Pharmacie Azur",
-   "responsable": "M. Chintoh Armstrong",
-   "tel": "0759851059",
+   "nom": "Pharmacie Abobo Belleville",
+   "responsable": "M. Beugre Guy Claver",
+   "tel": "0709879265",
    "tels": [
-    "0759851059",
-    "0140275002"
+    "0709879265",
+    "0778988717"
    ],
-   "adresse": "Route du Zoo Plateau Dokui Azur / Carrefour Policier",
+   "adresse": "Abobo Baoule / Route d'Alépé / au Quartier Belleville",
    "commune": "Abobo",
-   "quartier": "Abobo"
+   "quartier": null
   },
   {
-   "nom": "Pharmacie la Providence",
-   "responsable": "Mme Doh Jocelyne",
-   "tel": "0709862638",
+   "nom": "Pharmacie Route du Zoo",
+   "responsable": "M. Anoma Anoma",
+   "tel": "0101140434",
    "tels": [
-    "0709862638",
-    "0707523527"
+    "0101140434",
+    "0789731356"
    ],
-   "adresse": "Quartier Banco / 1er Arret SOTRA / Debut Autoroute Anyama",
+   "adresse": "Axe Dokui-Zoo / A 200 M des Stations Petroci et Vidange / Entrée du Quartier Dokui Olympe",
    "commune": "Abobo",
-   "quartier": "Abobo"
+   "quartier": null
   },
   {
-   "nom": "Pharmacie Racines",
-   "responsable": "M. Brou Komenan Martin",
-   "tel": "0788773767",
+   "nom": "Pharmacie du Monastere",
+   "responsable": "M. Kouame Christophe",
+   "tel": "0707201161",
    "tels": [
-    "0788773767"
+    "0707201161",
+    "0140340910"
    ],
-   "adresse": "Situee entre Coopec Samanke et Hôpital Abobo Banco Sud",
+   "adresse": "Route d'Abobo Baoule / près du Monastere des Sœurs Claristes",
    "commune": "Abobo",
-   "quartier": "Abobo"
+   "quartier": null
   },
   {
-   "nom": "Pharmacie Zanon Pierre",
-   "responsable": "Mme Zanon Gisele",
-   "tel": "0748059189",
+   "nom": "Pharmacie Marché Valentin",
+   "responsable": "M. Emieme Daniel",
+   "tel": "0700449449",
    "tels": [
-    "0748059189",
-    "0748059076"
+    "0700449449",
+    "0101061101",
+    "2722267673"
    ],
-   "adresse": "Abobo Baoule Route d'Alépé Carrefour Mosquee en Face du Supermarche Bon Prix",
+   "adresse": "Angre Extension Dans le Quartier Derriere le Chateau d'Eau d'Angre, Non Loin du Marché Valentin, du Commissariat 40ème Arrondissement et du FSU Com d'Abobo Baoule.\"",
    "commune": "Abobo",
-   "quartier": "Abobo"
+   "quartier": null
   },
   {
-   "nom": "Pharmacie Milie Hevie",
-   "responsable": "M. Kouao Aka",
-   "tel": "2724526738",
+   "nom": "Pharmacie Yandi",
+   "responsable": "M. Kone Ladji",
+   "tel": "0554317212",
    "tels": [
-    "2724526738",
-    "0778983552",
-    "0564719691"
+    "0554317212",
+    "0709841402"
    ],
-   "adresse": "Route d'Anyama / PK 18 / Terminus Bus 76",
+   "adresse": "Abobo Akéikoi Carrefour Destin",
    "commune": "Abobo",
-   "quartier": "Abobo PK 18"
+   "quartier": null
   },
   {
-   "nom": "Pharmacie Olympique",
-   "responsable": "M. Coulibaly Kafana Daniel",
-   "tel": "0102275613",
+   "nom": "Pharmacie Safir",
+   "responsable": "Mlle Tolo Awa",
+   "tel": "0709862635",
    "tels": [
-    "0102275613",
-    "0707899944"
+    "0709862635",
+    "0505835483"
    ],
-   "adresse": "Abobo Ndotre A 300 M du Carrefour Ndotre Route de Yopougon",
-   "commune": "Abobo",
-   "quartier": "Abobo PK 18"
-  },
-  {
-   "nom": "Pharmacie Espérance",
-   "responsable": "M. Gohean Doho Bertin",
-   "tel": "0778181859",
-   "tels": [
-    "0778181859",
-    "2724529501"
-   ],
-   "adresse": "PK 18 Agoueto Carrefour CMA",
+   "adresse": "PK 18 / Route d'Anyama / Derriere Pont / Place Ancienne Boulangerie Route N'Dotre",
    "commune": "Abobo",
    "quartier": "Abobo PK 18"
   },
   {
-   "nom": "Pharmacie N'Dotre Palmeraie 2",
-   "responsable": "M. Tagoua Augustin",
-   "tel": "0555475355",
+   "nom": "Pharmacie N'Dotre",
+   "responsable": "M. Diby N'Guessan Firmin",
+   "tel": "0777104714",
    "tels": [
-    "0555475355",
-    "0102139396"
+    "0777104714"
    ],
-   "adresse": "Abobo N'Dotre Derriere le Groupe Scolaire Grace Jeanne Non Loin de la Nouvelle Formation Sanitaire en Construction",
+   "adresse": "Abobo Axe Ndotre Anyama / Environ 600 M Carrefour Ndotre",
    "commune": "Abobo",
    "quartier": "Abobo PK 18"
   },
   {
-   "nom": "Pharmacie Concorde PK 18",
-   "responsable": "Mme Koumare Fatoumata Epse Bamba",
-   "tel": "2724332387",
+   "nom": "Pharmacie St Alexandre",
+   "responsable": "Mme Koffi Affouo Dominique-Elisabeth",
+   "tel": "0759043542",
    "tels": [
-    "2724332387",
-    "0779760428",
-    "0574133722"
+    "0759043542",
+    "0140296984"
    ],
-   "adresse": "Abobo Pk18 en Face de la Cité SICOGI Concorde 2 en Allant A Bois Sec",
+   "adresse": "En Allant au Bois Sec/ A l'Entrée Principale de la Cité SICOGI Concorde.",
    "commune": "Abobo",
    "quartier": "Abobo PK 18"
   },
   {
-   "nom": "Pharmacie Carrefour Kobakro",
-   "responsable": "M. Bassa Kouadio Martial",
-   "tel": "0712386831",
+   "nom": "Pharmacie Synovie",
+   "responsable": "M. Assamoi Boitrin Pascal",
+   "tel": "0103910854",
    "tels": [
-    "0712386831"
+    "0103910854",
+    "0798746189",
+    "2736857524"
    ],
-   "adresse": "Carrefour Kobakro/ Route Ebimpe",
+   "adresse": "Abobo N'Dotre en Face Marché Gouro",
    "commune": "Abobo",
    "quartier": "Abobo PK 18"
   },
   {
-   "nom": "Pharmacie d'Anyama",
-   "responsable": "M. Affi Koffi Amon Herve",
-   "tel": "2723559418",
+   "nom": "Pharmacie Elie Faustine",
+   "responsable": "M. Aboya Yapi Jean Paul",
+   "tel": "0544112612",
    "tels": [
-    "2723559418"
+    "0544112612",
+    "0140306954"
    ],
-   "adresse": null,
+   "adresse": "Anyama N'Dotre-Blankro",
+   "commune": "Abobo",
+   "quartier": "Abobo PK 18"
+  },
+  {
+   "nom": "Pharmacie Agnitio",
+   "responsable": "M. Brou Rene Wilfried",
+   "tel": "0140431010",
+   "tels": [
+    "0140431010",
+    "0501073030"
+   ],
+   "adresse": "Abobo Anonkoua Koute Extension / A 50 M",
+   "commune": "Abobo",
+   "quartier": "Abobo PK 18"
+  },
+  {
+   "nom": "Pharmacie du Marché d'Anyama",
+   "responsable": "Mme Dah Olga Moussokoro Epse Dosso",
+   "tel": "2723558230",
+   "tels": [
+    "2723558230",
+    "0506246365"
+   ],
+   "adresse": "31",
    "commune": "Anyama",
    "quartier": "Anyama"
   },
   {
-   "nom": "Pharmacie Meydeba",
-   "responsable": "Mme Medeba Yovossi Evelyne",
-   "tel": "2723556244",
+   "nom": "Pharmacie Eliel",
+   "responsable": "M. atse Assi Rodrigue",
+   "tel": "2733737356",
    "tels": [
-    "2723556244",
-    "0101052644",
-    "0789950090"
+    "2733737356",
+    "0769742269"
    ],
-   "adresse": "Anyama en Face du Carrefour Cisse (Carrefour Policier) A Cote de Boni Auto École",
+   "adresse": "Anyama Quartier Ran Face A la Gare",
    "commune": "Anyama",
    "quartier": "Anyama"
   },
   {
-   "nom": "Pharmacie Belleville",
-   "responsable": "M. Touhon Moise",
-   "tel": "0585416161",
+   "nom": "Pharmacie du Carrefour Ancienne Gendarmerie",
+   "responsable": "M. Konan Firmin Daniel",
+   "tel": "2722556426",
    "tels": [
-    "0585416161",
-    "0151566565"
+    "2722556426"
    ],
-   "adresse": "Quartier Adjamé Sinaï, Belleville 2",
+   "adresse": "Batiment Ancienne Gendarmerie entre Usine Unicafe et la Morgue d'Anyama",
    "commune": "Anyama",
    "quartier": "Anyama"
   },
   {
-   "nom": "Pharmacie d'Alépé",
-   "responsable": "M. Mourad Oussenou",
-   "tel": "0709863383",
+   "nom": "Pharmacie des Generations de Montezo",
+   "responsable": "M. Boni Alex",
+   "tel": "0757493847",
    "tels": [
-    "0709863383"
+    "0757493847",
+    "0707404708"
    ],
    "adresse": null,
    "commune": "Alépé",
    "quartier": "Alépé / Montezo / Brofodoume"
   },
   {
-   "nom": "Pharmacie du Rocher",
-   "responsable": null,
-   "tel": "2720377063",
+   "nom": "Pharmacie d'Attécoubé",
+   "responsable": "M. Dosso Ganouho",
+   "tel": "2720380774",
    "tels": [
-    "2720377063"
+    "2720380774",
+    "0101468485"
    ],
-   "adresse": "Adjamé Nord / Marché Bramakote",
+   "adresse": "Grand Carrefour d'Attécoubé Face Feux Tricolores / Entrée Bus 04",
    "commune": "Adjamé",
    "quartier": "Adjamé Centre"
   },
   {
-   "nom": "Pharmacie de la Mairie",
-   "responsable": "Mme Koffi Sylvia Epse Yangni",
-   "tel": "2720379999",
+   "nom": "Pharmacie du Forum",
+   "responsable": "M. boguifo Charles",
+   "tel": "2720381364",
    "tels": [
-    "2720379999",
-    "0757485392"
+    "2720381364",
+    "2720381386"
    ],
-   "adresse": "Près de la Mairie d'Adjamé",
+   "adresse": "A l'Interieur du Forum des Marches d'Adjamé",
    "commune": "Adjamé",
    "quartier": "Adjamé Centre"
   },
   {
-   "nom": "Pharmacie du Banco",
-   "responsable": "M. Kone Dramane",
-   "tel": "0758176126",
+   "nom": "Pharmacie des Gares",
+   "responsable": "M. Kire Kouadio Noel",
+   "tel": "2720372624",
    "tels": [
-    "0758176126",
-    "0747754710",
-    "2720370312"
+    "2720372624"
    ],
-   "adresse": "Face Service Social",
+   "adresse": "Bd Nangui Abrogoua / entre la Ran et Ci- Com",
    "commune": "Adjamé",
    "quartier": "Adjamé Centre"
   },
   {
-   "nom": "Pharmacie le Belier",
-   "responsable": "Mme Ly Somali Awa",
-   "tel": "2720371216",
+   "nom": "Pharmacie de l'Espoir",
+   "responsable": "Mme Savane Aminata Hassane",
+   "tel": "2720390831",
    "tels": [
-    "2720371216",
-    "0777987778"
+    "2720390831",
+    "0707886575"
    ],
-   "adresse": "Arret de Bus du Grand Bloc 220 Lgts / entre Liberté & Fraternité",
+   "adresse": "Adjamé 220 Lgts Rue Passant Devant Edipresse et Imst Face Cité de l'Enfance Croix Rouge 200 M Marché Gouro Derriere la Maternite Thérèse Houphouet Boigny",
    "commune": "Adjamé",
    "quartier": "Adjamé Centre"
   },
   {
-   "nom": "Pharmacie du Manguier (Grde)",
-   "responsable": "M. Konan Peyhmond Joachim",
-   "tel": "2720372036",
+   "nom": "Pharmacie Kana",
+   "responsable": "Mme Anzouan Kacou Epse Djedji",
+   "tel": "0506239096",
    "tels": [
-    "2720372036",
-    "0797606511"
+    "0506239096",
+    "0757146309"
    ],
-   "adresse": "Adjamé 220 Lgts Quartier Ebrie en Face de l'Église Methodiste Unie.",
+   "adresse": "Adjamé Habitat Extension près du Petit Marché",
    "commune": "Adjamé",
    "quartier": "Adjamé Centre"
   },
   {
-   "nom": "Pharmacie du Triomphe",
-   "responsable": "M. Bikpo Simplice Adahi",
-   "tel": "0707011418",
+   "nom": "Pharmacie des 220 Logements",
+   "responsable": "Mme Kone Safiatou Epse Agnini Bile",
+   "tel": "2720375826",
    "tels": [
-    "0707011418",
-    "0142754456"
+    "2720375826"
    ],
-   "adresse": "Près de la Gare Utb Adjamé",
+   "adresse": "Avenue Général de Gaulle / Face Station Texaco",
    "commune": "Adjamé",
    "quartier": "Adjamé Centre"
   },
   {
-   "nom": "Pharmacie Ste Marie d'Adjamé",
-   "responsable": "M. Digbohou Stephane",
-   "tel": "2720375444",
+   "nom": "Pharmacie Adjamé Santé",
+   "responsable": "Mme Diop Diane",
+   "tel": "2520001126",
    "tels": [
-    "2720375444",
-    "2720375446"
+    "2520001126",
+    "0758094701"
    ],
-   "adresse": "Centre Commercial de la Poste 03 / Rue Harriste Cote Parking Payant Derriere 3eme Arrdt",
+   "adresse": "Bd Nangui Abrogoua entre la Maire et l'Institut de Santé Publique (Insp)",
    "commune": "Adjamé",
    "quartier": "Adjamé Centre"
   },
   {
-   "nom": "Pharmacie Montana",
-   "responsable": "Mme Andoble Yao Brigitte",
-   "tel": "0707365730",
+   "nom": "Pharmacie Marie Thérèse d'Adjamé Sarl.u.",
+   "responsable": "M. Konan Jules Stephane",
+   "tel": "0789084489",
    "tels": [
-    "0707365730"
+    "0789084489"
    ],
-   "adresse": "Attécoubé vers Terminus Bus 09 / Face École Faidherbe",
+   "adresse": "Adjamé Prolongement Ho Banfora Derriere Fraternité Matin Non Loin de la Maternite Marie Thérèse Houphouet Boigny",
+   "commune": "Adjamé",
+   "quartier": "Adjamé Centre"
+  },
+  {
+   "nom": "Pharmacie Agoua",
+   "responsable": "M. Akre Mobio Christophe",
+   "tel": "0709312751",
+   "tels": [
+    "0709312751",
+    "0140213273"
+   ],
+   "adresse": "Attécoubé Face Boulangerie Bbco",
    "commune": "Attécoubé",
    "quartier": "Attécoubé"
   },
   {
-   "nom": "Pharmacie Rehoboth",
-   "responsable": "M. Seka Y. Claude Richard",
-   "tel": "0101030629",
+   "nom": "Pharmacie Fatima",
+   "responsable": "M. Yao Kouame Appolinaire",
+   "tel": "0102561010",
    "tels": [
-    "0101030629"
+    "0102561010",
+    "0554891773"
    ],
-   "adresse": "Attécoubé Quartier Ciscom près de la Maternite",
+   "adresse": "Attécoubé Carrefour du Pont",
    "commune": "Attécoubé",
    "quartier": "Attécoubé"
   },
   {
-   "nom": "Pharmacie d'Agban",
-   "responsable": "Mme Seri-Gnoleba Fawzillatou",
-   "tel": "2720372230",
+   "nom": "Pharmacie Christ Stella",
+   "responsable": "M. Tai Raymond.",
+   "tel": "0171561817",
    "tels": [
-    "2720372230",
-    "2720372167"
+    "0171561817",
+    "2720286296"
    ],
-   "adresse": "Carrefour Cité Fairmont / Village Agban\"",
+   "adresse": "Cité Fairmond Attécoubé Apres Nouvelle Gendarmerie",
    "commune": "Attécoubé",
    "quartier": "Attécoubé"
   },
   {
-   "nom": "Pharmacie Santé Plus Williamsville",
-   "responsable": "M. Aka Jean Patrice",
-   "tel": "0100014636",
+   "nom": "Pharmacie Sainte Rosalie",
+   "responsable": "M. Allali Justin",
+   "tel": "0594699501",
    "tels": [
-    "0100014636",
-    "0704982744"
+    "0594699501"
    ],
-   "adresse": "Vers Macaci / Face Boulangerie Bmw",
+   "adresse": "Adjamé Williamsville / Macaci Quartier Sodeci A Cote de la Station Total",
    "commune": "Adjamé",
    "quartier": "Williamsville"
   },
   {
-   "nom": "Pharmacie l'Emmanuel",
-   "responsable": "M. Adou Assoikou Alexis",
-   "tel": "2720384017",
+   "nom": "Pharmacie St Uriel",
+   "responsable": "Mme Affro Akpah J.",
+   "tel": "0748831066",
    "tels": [
-    "2720384017"
+    "0748831066",
+    "0102297272"
    ],
-   "adresse": "Carrefour des II Plateaux entre Station Shell & Depot SOTRA",
+   "adresse": "Carrefour de la Residence Paillet Extension (A l'Entrée) Route du Zoo-Williamsville",
    "commune": "Adjamé",
    "quartier": "Williamsville"
   },
   {
-   "nom": "Pharmacie Panacea",
-   "responsable": "M. N'Guessan-Zekre Fabrice",
-   "tel": "0711848345",
+   "nom": "Pharmacie Nissi",
+   "responsable": "M. sika Kouassi Charles",
+   "tel": "2722401904",
    "tels": [
-    "0711848345",
-    "0546539595"
+    "2722401904",
+    "0787316648",
+    "0758338848"
    ],
-   "adresse": "Bingerville Blvd Dominique Ouattara Apres Cité les Fougeres A Cote du Supermarche Smart Buy Market",
-   "commune": "Cocody",
-   "quartier": "Cité Palma / Face Restaurant Coup de Frein"
+   "adresse": "Cité Feh Kesse sur la Nouvelle Voie Goudronnee / 300 M Apres l'École Maternelle la Prunelle",
+   "commune": "Bingerville",
+   "quartier": "Bingerville"
   },
   {
-   "nom": "Pharmacie Notre Dame de la Nativite",
-   "responsable": "M. Djama Roger",
-   "tel": "2121805185",
+   "nom": "Pharmacie Motto",
+   "responsable": "M. Motto Armand",
+   "tel": "0505101311",
    "tels": [
-    "2121805185"
+    "0505101311",
+    "0709537688",
+    "2722536235"
    ],
-   "adresse": "Akouai Santé A 100 M du Carrefour CIE sur la Route d'Akandje",
-   "commune": "Cocody",
-   "quartier": "Cité Palma / Face Restaurant Coup de Frein"
+   "adresse": "Bingerville, Blvd Dominique Ouattara, près de l'Ho Free World, Face au Quartier Paris Village A Proximite de la Cité Bnedt",
+   "commune": "Bingerville",
+   "quartier": "Bingerville"
   },
   {
-   "nom": "Pharmacie Havila",
-   "responsable": "M. Oussou Koffi Germain",
-   "tel": "0768704546",
+   "nom": "Pharmacie les Colombes",
+   "responsable": "Mme Henri Koblan-Huberson",
+   "tel": "0715975559",
    "tels": [
-    "0768704546"
+    "0715975559",
+    "2724364562"
    ],
-   "adresse": "Bingerville Blvd Dominique Ouattara en Face du Foyer des Jeunes et du Lycee Moderne entre Nsia Banque et Bni",
-   "commune": "Cocody",
-   "quartier": "Cité Palma / Face Restaurant Coup de Frein"
+   "adresse": "Bingerville, Av Konan Kouassi Lambert, Non Loin de la Paroisse St Marcel, Akouai-Santai.",
+   "commune": "Bingerville",
+   "quartier": "Bingerville"
   },
   {
-   "nom": "Pharmacie Benedictions Bingerville",
-   "responsable": "Mme Bile Assemlan Hélène",
-   "tel": "0705076205",
+   "nom": "Pharmacie de Gbagba (Gde)",
+   "responsable": "M. Tanoh Djindou Thimothee",
+   "tel": "2724381074",
    "tels": [
-    "0705076205",
-    "0554995361"
+    "2724381074",
+    "0787738984",
+    "0153053954"
    ],
-   "adresse": "Route Allant de la Pharmacie Akre Albert Assamoi A la Cité Addoha A100m de Anader Dans les Environs du Chateau d'Eau et les Lauriers 18",
-   "commune": "Cocody",
-   "quartier": "Cité Palma / Face Restaurant Coup de Frein"
+   "adresse": "Gbagba Petit Paris / Face Église Presbyterienne",
+   "commune": "Bingerville",
+   "quartier": "Bingerville"
   },
   {
-   "nom": "Pharmacie Villeneuve",
-   "responsable": "Mme Bella-Mihe Anne Marie",
-   "tel": "0100513737",
+   "nom": "Pharmacie Saints Andre et Marthe",
+   "responsable": "M. Towa Ghislain Stephane",
+   "tel": "2724316050",
    "tels": [
-    "0100513737",
-    "0713135021"
+    "2724316050",
+    "0700778016"
    ],
-   "adresse": "21 50 0 3 97 36 / . Bingerville Carrefour Anan A Cote de la Station Shell",
-   "commune": "Cocody",
-   "quartier": "Cité Palma / Face Restaurant Coup de Frein"
+   "adresse": "Adjamé-Bingerville / Face Complexe Sportif A 100 M de Sococe",
+   "commune": "Bingerville",
+   "quartier": "Bingerville"
   },
   {
-   "nom": "Pharmacie Ste Marie de la Celle",
-   "responsable": "Mme Sahue Zady Marie Francoise Epse N'Doua",
-   "tel": "0702952431",
+   "nom": "Pharmacie du Palais de Justice Bingerville",
+   "responsable": "Mme Kocola Claude",
+   "tel": "2722557907",
    "tels": [
-    "0702952431",
-    "0151922591"
+    "2722557907",
+    "0720203483"
    ],
-   "adresse": "Bingerville Derriere Empt /Cité Promogim Olympique (Mtnkro)",
-   "commune": "Cocody",
-   "quartier": "Cité Palma / Face Restaurant Coup de Frein"
+   "adresse": "Bingerville Av. M'Batto Bouaké Route du Palais de Justice (Nanmoue Residentiel)",
+   "commune": "Bingerville",
+   "quartier": "Bingerville"
+  },
+  {
+   "nom": "Pharmacie Amaryllis",
+   "responsable": "Mme Nasredine Epse Abadjinan Marie-Laure",
+   "tel": "0141178292",
+   "tels": [
+    "0141178292",
+    "2724308608"
+   ],
+   "adresse": "Bingerville Derriere le Jardin Botanique. Cites Spiac, Opes 1, S 3 I, Gare de Taxi",
+   "commune": "Bingerville",
+   "quartier": "Bingerville"
   },
   {
    "nom": "Pharmacie Akandje",
@@ -501,8 +542,8 @@
     "0700779670"
    ],
    "adresse": "Bingerville Akandje 2 en Face du Marché Non Loin des Societes Promotions Performers",
-   "commune": "Cocody",
-   "quartier": "Cité Palma / Face Restaurant Coup de Frein"
+   "commune": "Bingerville",
+   "quartier": "Bingerville"
   },
   {
    "nom": "Pharmacie Idureil",
@@ -513,195 +554,203 @@
     "0749379573"
    ],
    "adresse": "Bingerville Koffikro Carrefour Bassamoise Non Loin de Cote d'Ivoire Energie",
-   "commune": "Cocody",
-   "quartier": "Cité Palma / Face Restaurant Coup de Frein"
+   "commune": "Bingerville",
+   "quartier": "Bingerville"
   },
   {
-   "nom": "Pharmacie Caducee Moderne",
-   "responsable": "M. Cakou Kipre Guillaume",
-   "tel": "0585663535",
+   "nom": "Pharmacie du Futur",
+   "responsable": "M. Toure Issouf",
+   "tel": "2722474157",
    "tels": [
-    "0585663535"
+    "2722474157",
+    "0777337902",
+    "0143339975"
    ],
-   "adresse": "Akouédo Palmeraie Zone Atci Carrefour du Nouveau Camp Route de Bingerville A 150 M de la Voie Principale",
-   "commune": "Cocody",
-   "quartier": "Zone Akouédo – Palmeraie Extension – Abatta"
-  },
-  {
-   "nom": "Pharmacie St Georges d'Akouédo",
-   "responsable": "Mme Konate Niagna",
-   "tel": "2722472238",
-   "tels": [
-    "2722472238"
-   ],
-   "adresse": "Riviera III Apres Barrage / Tout Droit Autoroute de Bingerville / Quartier Genie 2000 1 Er Carrefour",
+   "adresse": "Bd Mitterrand / Immeuble Mariam /A Cote Socoprix Riviera Palmeraie Triangle Zone des Impots",
    "commune": "Cocody",
    "quartier": "Zone Akouédo – Palmeraie Extension – Abatta"
   },
   {
-   "nom": "Pharmacie les Hortensias",
-   "responsable": "Mme Pillah-Niali Epse N'Zi Jacqueline",
-   "tel": "2722267588",
+   "nom": "Pharmacie Livie",
+   "responsable": "Mme Bouabre E. Annick",
+   "tel": "2722474878",
    "tels": [
-    "2722267588",
-    "0749494933"
+    "2722474878",
+    "0101832484",
+    "0749508478"
    ],
-   "adresse": "Riviera Akouédo Extension Face A la Cité Atci, Ancienne Route de Bingerville",
+   "adresse": "Akouédo Village entre Dispensaire et Gare des Woro Woro / Non Loin de la Cité Atci",
    "commune": "Cocody",
    "quartier": "Zone Akouédo – Palmeraie Extension – Abatta"
   },
   {
-   "nom": "Pharmacie Ste Anne d'Abatta",
-   "responsable": "Prof Ake Michele",
-   "tel": "0505208911",
+   "nom": "Pharmacie Laurier 9",
+   "responsable": "M. Ouraga Casimir",
+   "tel": "0787167309",
    "tels": [
-    "0505208911",
-    "2724556683"
+    "0787167309",
+    "0140387878"
    ],
-   "adresse": "Akouédo Extension / Route d'Abatta 400 M Avant le Carrefour Mondial Beton au Carrefour ''Cyber''",
+   "adresse": "A Cote des Groupes Scolaires Laurier 8 et 9 / Ancienne Route de Bingerville sur l'Axe Allant du Supermarchhe Bon Prix de Faya vers l'Église Winners Chapel",
    "commune": "Cocody",
    "quartier": "Zone Akouédo – Palmeraie Extension – Abatta"
   },
   {
-   "nom": "Pharmacie Kannien",
-   "responsable": "Mme M'Bimbe Adeline Doffonsou",
-   "tel": "0787618761",
+   "nom": "Pharmacie le Rocher",
+   "responsable": "M. Seri Zoko Ambroise",
+   "tel": "0798182893",
    "tels": [
-    "0787618761",
-    "0142292955"
+    "0798182893",
+    "0759484049",
+    "0788681993",
+    "0576803296"
    ],
-   "adresse": "Face Jules Verne / Route de Bingerville - Syatresor / Fin Goudron",
+   "adresse": "Route d'Abatta, près de la Direction Générale des Impots d'Abatta",
    "commune": "Cocody",
    "quartier": "Zone Akouédo – Palmeraie Extension – Abatta"
   },
   {
-   "nom": "Pharmacie la Bénédiction",
-   "responsable": "M. Gbey Sigui Diomande",
-   "tel": "2722304240",
+   "nom": "Pharmacie Jules Verne",
+   "responsable": "M. Guei Eugene",
+   "tel": "2722523063",
    "tels": [
-    "2722304240",
-    "0161066100"
+    "2722523063",
+    "0797038344",
+    "0566483756"
    ],
-   "adresse": "Zone de la Cité Sir / en Venant du CHU Tourner A Gauche aux Feux Tricolores / en Venant du Carrefour Nouveau Goudron Aller Tout Droit aux Feux Tricolores.",
+   "adresse": "Riviera Palmeraie Route Bingerville Face au College Français Jules Verne et la Cité Synatresor",
    "commune": "Cocody",
    "quartier": "Zone Akouédo – Palmeraie Extension – Abatta"
   },
   {
-   "nom": "Pharmacie Ephrata",
-   "responsable": "Mme Doumatey Sylvie Epse Soppi",
-   "tel": "0575379407",
+   "nom": "Pharmacie St Martin de Faya",
+   "responsable": "M. Sounan Koni Eloye Ghislain",
+   "tel": "2722556939",
    "tels": [
-    "0575379407",
-    "0777369010"
+    "2722556939",
+    "0103453888",
+    "0759822115"
    ],
-   "adresse": "Prolongement Mission Ephrata Riviera Carrefour / Abatta A Gauche sur la Route de la Cité Sir",
+   "adresse": "Riviera Faya Prolongement Cloture Nouveau Camp Militaire d'Akouédo Apres Cité Genie 2000",
    "commune": "Cocody",
    "quartier": "Zone Akouédo – Palmeraie Extension – Abatta"
   },
   {
-   "nom": "Pharmacie les Elias",
-   "responsable": "Mme Emmou Dioumency Angele",
-   "tel": "2722432885",
+   "nom": "Pharmacie Keliam",
+   "responsable": "Mme Ahanin Marie Stella Epse Assagou",
+   "tel": "0704730435",
    "tels": [
-    "2722432885",
-    "0708089693"
+    "0704730435"
    ],
-   "adresse": "Riviera Golf- Carrefour Elias Jardins de la Riviera près du Grand Terrain des Tours SICOGI, Elias et Jardins / 3, Rue D 46",
+   "adresse": "Carrefour Abatta / A Gauche Route Cité Sir en Bordure du Nouveau Goudron",
+   "commune": "Cocody",
+   "quartier": "Zone Akouédo – Palmeraie Extension – Abatta"
+  },
+  {
+   "nom": "Pharmacie St Athanase",
+   "responsable": "Mme Allah Kouadio Anne Marie",
+   "tel": "2722435587",
+   "tels": [
+    "2722435587"
+   ],
+   "adresse": "Riviera II / Route d'Anono / Carrefour Garage Face Miesa (Mission Evangelique du Saint Esprit en Action)",
    "commune": "Cocody",
    "quartier": "Riviera"
   },
   {
-   "nom": "Pharmacie St Bernard",
-   "responsable": "Mme Adouko Aka Marie",
-   "tel": "2722436546",
+   "nom": "Pharmacie St Ange",
+   "responsable": "Mme Yapi Sopie Mathilde",
+   "tel": "2722432205",
    "tels": [
-    "2722436546",
-    "0778995251",
-    "0708449037"
+    "2722432205",
+    "0101625360"
    ],
-   "adresse": "Cité Attoban/ près de Cipharm / Par Carrefour Riviera II /Tourner vers Groupe Scolaire Andre Malraux et Tout Droit Ou/ Par la Rue des II Plateaux Voie d'Acces Face Restaurant Nuit du Saîgon",
+   "adresse": "Riviera II Route d'Attoban / près du College Andre Malraux",
    "commune": "Cocody",
    "quartier": "Riviera"
   },
   {
-   "nom": "Pharmacie Ste Agathe",
-   "responsable": "Mme Detoh Epse Kone Isabelle",
-   "tel": "2722474819",
+   "nom": "Pharmacie Riviera III",
+   "responsable": "M. Kangah Felix",
+   "tel": "2722475616",
    "tels": [
-    "2722474819"
+    "2722475616",
+    "0709010184"
    ],
-   "adresse": "Riviera III Route du Lycee Français",
+   "adresse": "Route du Lycee Français Face Lycee Americain (Base Onuci)",
    "commune": "Cocody",
    "quartier": "Riviera"
   },
   {
-   "nom": "Pharmacie Boaz",
-   "responsable": "Mme Kablan Ndaffo Epse Opoumba",
-   "tel": "0787293753",
+   "nom": "Pharmacie M'Pouto",
+   "responsable": "M. Traore Adama",
+   "tel": "2520001634",
    "tels": [
-    "0787293753",
-    "0102884043"
+    "2520001634",
+    "0787725006"
    ],
-   "adresse": "Mpouto Village près du Marché et A Cote du Terrain de Foot en Face du Jardin",
+   "adresse": "Riviera 4 M'Pouto / Ciad Promo",
    "commune": "Cocody",
    "quartier": "Riviera"
   },
   {
-   "nom": "Pharmacie les Rosiers",
-   "responsable": "Mme Yipo Yolande",
-   "tel": "2722492167",
+   "nom": "Pharmacie du Bonheur",
+   "responsable": "M. Diby Joseph",
+   "tel": "2722471070",
    "tels": [
-    "2722492167"
+    "2722471070",
+    "2722470288",
+    "0502130818",
+    "0143965824"
    ],
-   "adresse": "66 / Riviera Palmeraie / Rosiers Programme 3 / Rond Point École Kouadio Assahore Terminus Bus 210",
+   "adresse": "Riviera Palmeraie-Marché/ Rue I 127 / Rue Marie Rose Guiraud",
    "commune": "Cocody",
    "quartier": "Riviera"
   },
   {
-   "nom": "Pharmacie Marthe Robin",
-   "responsable": "M. Assouakon J. Claude",
-   "tel": "2722492479",
+   "nom": "Pharmacie Nouvelle Vie",
+   "responsable": "Mme Kaudjhis Regina Claude",
+   "tel": "2120804161",
    "tels": [
-    "2722492479",
-    "0758171614"
+    "2120804161",
+    "0101033534"
    ],
-   "adresse": "Riviera Palmeraie Cité Sipim 3 / Face Espace Vert / Route St Viateur",
+   "adresse": "Riviera Palmeraie Apres l'Ho Fraicheur en Allant vers Promogim",
    "commune": "Cocody",
    "quartier": "Riviera"
   },
   {
-   "nom": "Pharmacie Mont Carmel",
-   "responsable": "Mme Assamoi Aya Jacqueline",
-   "tel": "2722500758",
+   "nom": "Pharmacie Notre Dame de l'Incarnation",
+   "responsable": "Mme Sanga Ekra Basilide",
+   "tel": "2722592039",
    "tels": [
-    "2722500758",
-    "0103424283"
+    "2722592039",
+    "0708945853",
+    "0789009854"
    ],
-   "adresse": "Riviera les Rosiers 5eme Programme A Proximite de l'Ho Bellecote",
+   "adresse": "Riviera Palmeraie Non Loin du Centre de Santé A Base Communautaire",
    "commune": "Cocody",
    "quartier": "Riviera"
   },
   {
-   "nom": "Pharmacie Lothe",
-   "responsable": "M. Kouassi Konan Raphael",
-   "tel": "2722466724",
+   "nom": "Pharmacie St Viateur",
+   "responsable": "Mme Kissiedou Rachiel Epse Kouame",
+   "tel": "0788880480",
    "tels": [
-    "2722466724",
-    "0710420688"
+    "0788880480"
    ],
-   "adresse": "Cocody Bessikoi Djorogobite 1 Carrefour Golgotha Derriere la Station Swann Oil",
+   "adresse": "Riviera Palmeraie / 200 M du Rond Point St Viateur Route Hôpital Général d'Angre",
    "commune": "Cocody",
    "quartier": "Riviera"
   },
   {
-   "nom": "Pharmacie Malan Anglade",
-   "responsable": "Prof Malan Anglade",
-   "tel": "0702439858",
+   "nom": "Pharmacie Analya",
+   "responsable": "M. Yangni Nda Yves Stephane",
+   "tel": "0708951925",
    "tels": [
-    "0702439858",
-    "2722563716"
+    "0708951925"
    ],
-   "adresse": "Cocody Angre Djorogobite Tranche 1 Dans les Environs du CHU d'Angre",
+   "adresse": "400 M du Centre Hospitalier Universitaire Regionale d'Angre / au Feu Face Cité Gestoci",
    "commune": "Cocody",
    "quartier": "Riviera"
   },
@@ -715,716 +764,701 @@
     "0502325959",
     "0151349696"
    ],
-   "adresse": "Carrefour Petro-Ivoire Djorogobite 1 / Adossee A Chateaux et Lumieres/ Avenue Tiemoko Meyliet",
+   "adresse": "Carrefour Petro-Ivoire Djorogobite 1 / Adossee A Chateaux et Lumieres/ Avenue Tiemoko Meyliet Avant le Terminus SOTRA",
    "commune": "Cocody",
    "quartier": "Riviera"
   },
   {
-   "nom": "Pharmacie Ste Agnes",
-   "responsable": "Mme Harding Yolande",
-   "tel": "0101138417",
+   "nom": "Pharmacie Sts Come et Damien",
+   "responsable": "Mme Konan Akissi J.",
+   "tel": "0779445467",
    "tels": [
-    "0101138417"
+    "0779445467",
+    "0758094756"
    ],
-   "adresse": "Riviera Bonoumin / Carrefour Top Pain Terminus Woro Woro entre les Residences Emeraude IV Abri 2000 1 et le Rond Point Ado",
+   "adresse": "Riviera Bonoumin Operation Laurier 6",
    "commune": "Cocody",
    "quartier": "Riviera"
   },
   {
-   "nom": "Pharmacie St Francois de Danga",
-   "responsable": "Mme Carrette Ouegnin Elisabeth",
-   "tel": "0704631590",
+   "nom": "Pharmacie les 7 Colonnes",
+   "responsable": "Mme Sanle Yvonne",
+   "tel": "2722440296",
    "tels": [
-    "0704631590",
-    "0555650988"
+    "2722440296",
+    "0757490845"
    ],
-   "adresse": "Face Centre Culturel Americain / Cocody Danga / Prolongement Poste de Cocody",
+   "adresse": "Cité des Arts entre Carrefour Rti & Carrefour de la Vie /Face Sodemi",
    "commune": "Cocody",
    "quartier": "Cocody"
   },
   {
-   "nom": "Pharmacie Notre Dame de la Piete",
-   "responsable": "Mme Kouassi Nee Yao Kongoza Affoue Emma",
-   "tel": "2722551803",
+   "nom": "Pharmacie Berekyah",
+   "responsable": "Mme Koffi Yapi Marise Epse Gnayoro.",
+   "tel": "2722487989",
    "tels": [
-    "2722551803",
-    "0757493861"
+    "2722487989",
+    "0757490842"
    ],
-   "adresse": "Face A la Pmi/Cocody Val Doyen /Cocody Sud",
+   "adresse": "Cocody en Face du Lycee International Jean Mermoz",
    "commune": "Cocody",
    "quartier": "Cocody"
   },
   {
-   "nom": "Pharmacie II Plateaux Agban",
-   "responsable": "Mme Tia Annick Epse Dosso",
-   "tel": "0757490868",
+   "nom": "Pharmacie des Graces",
+   "responsable": "M. Vami Bi Nene Joseph",
+   "tel": "2722267211",
    "tels": [
-    "0757490868",
-    "0101456749"
+    "2722267211",
+    "0170545493"
    ],
-   "adresse": "II Plateaux entre Nouveau Marché et Hôpital des Impots / Sortie Nord du Camp de la Gendarmerie Agban",
+   "adresse": "II Plateaux Adjamé Extension sur la Route II Plateaux – Williamsville",
    "commune": "Cocody",
    "quartier": "II Plateaux"
   },
   {
-   "nom": "Pharmacie St Joseph",
+   "nom": "Pharmacie Divine Onction",
    "responsable": null,
-   "tel": "0779760577",
+   "tel": "2722416284",
    "tels": [
-    "0779760577",
-    "0546000444",
-    "0142057576"
+    "2722416284"
    ],
-   "adresse": "Rue des Jardins Face Clinique les Bleuets",
+   "adresse": "II Plateaux Rue J 92 / A 500 M de Sococe vers le 12eme Ardmt",
    "commune": "Cocody",
    "quartier": "II Plateaux"
   },
   {
-   "nom": "Pharmacie Aurore",
-   "responsable": "M. n'Gouin-Claih Seraphin",
-   "tel": "2722411808",
+   "nom": "Pharmacie des Jardins",
+   "responsable": "Mme Konan Marie Jeanne",
+   "tel": "2722411770",
    "tels": [
-    "2722411808",
-    "0102747056"
+    "2722411770"
    ],
-   "adresse": "II Plateaux Vallons Axe Carrefour Ena / Direction Rue des Jardins 100 M Avant la Biao et la Station Total",
+   "adresse": "II Plateaux Rue des Jardins/ près du Super Marché Hayat / Bus 35",
    "commune": "Cocody",
    "quartier": "II Plateaux"
   },
   {
-   "nom": "Pharmacie les Perles",
-   "responsable": "Mme Konan Annette",
-   "tel": "2722423985",
+   "nom": "Pharmacie Magnificat des II Plateaux",
+   "responsable": "Mme Bosset Gaddah K. Noelle Elodie",
+   "tel": "2722525300",
    "tels": [
-    "2722423985"
+    "2722525300",
+    "0707243737"
    ],
-   "adresse": "Residence les Perles Aghien / Par Bd Latrille / Tourner A Gauche Apres la Bhci & l'Oms / Carrefour Petroci",
+   "adresse": "Carrefour Opera-Adjien Tourner du Cote de la Station Petroci / 100 M du Cash Ivoire",
    "commune": "Cocody",
    "quartier": "II Plateaux"
   },
   {
-   "nom": "Pharmacie 7 Lys",
-   "responsable": "Mme Fadiga Soumah Yahka",
-   "tel": "2722426325",
+   "nom": "Pharmacie des Laureades",
+   "responsable": "Mme Badia Patricia",
+   "tel": "2722424810",
    "tels": [
-    "2722426325",
-    "0707836661"
+    "2722424810",
+    "0505791403",
+    "0708198086"
    ],
-   "adresse": "100 M de la Residence Bada / 7eme Tranche Route d'Angre Attoban / Carrefour Cité Zinsou – Hcr Non Loin du Centre Médical la Colombe",
+   "adresse": "Angre - Route d'Attoban (Rue L 155) vers la Djibi / Face Terrain Sport d'Angre Ou Par Bd Latrille Feux Tricolores /Commissariat d'Angre Tourner A Droite Tout Droit A 400 M",
    "commune": "Cocody",
    "quartier": "II Plateaux"
   },
   {
-   "nom": "Pharmacie Bel Horizon",
-   "responsable": "Mme Coulibaly Fatoumata",
-   "tel": "0173111010",
+   "nom": "Pharmacie du Jubile (Gde)",
+   "responsable": "M. Tai Ninsemon Brice",
+   "tel": "2722503822",
    "tels": [
-    "0173111010"
+    "2722503822"
    ],
-   "adresse": "Bd Latrille Angre Nord / 50 M Petro Ivoire – Latrille près de Western Union",
+   "adresse": "Angre Face EPP Cafeier A et B / A 50 M de l'École Commandant Cousteau",
    "commune": "Cocody",
    "quartier": "II Plateaux"
   },
   {
-   "nom": "Pharmacie Appaul",
-   "responsable": "Mme Coffi Goudou Raymonde",
-   "tel": "2722502640",
+   "nom": "Pharmacie Bien Etre (Gde)",
+   "responsable": "Mme Codo Keita Eliette",
+   "tel": "2722508080",
    "tels": [
-    "2722502640"
+    "2722508080",
+    "2722501111",
+    "0102328383"
    ],
-   "adresse": "Cocody 8eme Tranche 50 M du College Ste Camille / Interieur Centre Commercial \" Park'N Shop \"",
+   "adresse": "Angre de la 8eme Tranche sur la Voie de la CNPS / A l'Entrée Principale de la Cité Soleil 3",
    "commune": "Cocody",
    "quartier": "II Plateaux"
   },
   {
-   "nom": "Pharmacie Emmanuel",
-   "responsable": "Mme Gbobouo Georgette",
-   "tel": "0585543297",
+   "nom": "Pharmacie les Arcades",
+   "responsable": "Mme Diomande Toumoutouka",
+   "tel": "2722506225",
    "tels": [
-    "0585543297",
-    "0767476895"
+    "2722506225"
    ],
-   "adresse": "Angre Djibi Rue du Marché Cocovico",
+   "adresse": "Djibi 8ème Tranche / Terminus Bus Express 205",
    "commune": "Cocody",
    "quartier": "II Plateaux"
   },
   {
-   "nom": "Pharmacie du Chateau d'Eau d'Angre",
-   "responsable": "Mme Agoh Diawara Clemence",
-   "tel": "2722510749",
+   "nom": "Pharmacie Centrale-Angre",
+   "responsable": "M. Ouattara Progaphehe Issouf",
+   "tel": "2722467425",
    "tels": [
-    "2722510749",
-    "0709425660"
+    "2722467425"
    ],
-   "adresse": "II Plateaux Angre Djibi A Proximite du Chateau d'Eau",
+   "adresse": "Bd Latrille / Rez de Chaussee de l'Immeuble Abri 2000 et A 100 M du Chateau d'Eau d'Angre",
    "commune": "Cocody",
    "quartier": "II Plateaux"
   },
   {
-   "nom": "Pharmacie Ehile",
-   "responsable": "M. Ehile Roger",
-   "tel": "2721364544",
+   "nom": "Pharmacie Berakha",
+   "responsable": "M. Koffi Bernadin",
+   "tel": "2721289445",
    "tels": [
-    "2721364544"
+    "2721289445",
+    "0747503637",
+    "0709874905"
    ],
-   "adresse": "Bd du Caire Koumassi près du Gd Marché / Ligne Bus 13",
+   "adresse": "Koumassi Campement / Apres Commissariat du 20ème Arrdt. / Face Mosquee Sangare",
    "commune": "Koumassi",
    "quartier": null
   },
   {
-   "nom": "Pharmacie du Bd du Gabon",
-   "responsable": "Mme N'Dri Koffi Valerie",
-   "tel": "2721362462",
+   "nom": "Pharmacie Christ'Emile",
+   "responsable": "Mme Kouassi Erika Epse Aka",
+   "tel": "2721368133",
    "tels": [
-    "2721362462",
-    "0758094771",
-    "0779076412"
+    "2721368133",
+    "0505964273",
+    "0141630414"
    ],
-   "adresse": "Koumassi – Ahoussabougou / Venant du Plateau, Feu Ho Ibis A Gauche. Venant de l'Aeroport, Feu Ho Ibis A Droite, entre la Station Shell et First Petroleum. Venant de Marcory A 200m de l'Espace la Madone.",
+   "adresse": "Koumassi Quartier Divo / Carrefour Hôpital",
    "commune": "Koumassi",
    "quartier": null
   },
   {
-   "nom": "Pharmacie Kahira",
-   "responsable": "Mme Traore Djeneba",
-   "tel": "0758094761",
+   "nom": "Pharmacie Climbie",
+   "responsable": "Mme Obbin Waleme Elisabeth",
+   "tel": "2721366906",
    "tels": [
-    "0758094761",
-    "2724565954"
+    "2721366906",
+    "0757885821"
    ],
-   "adresse": "Koumassi les Remblais Bd du Cameroun Ligne / Bus 05 Apres Paroisse Ste Bernadette",
+   "adresse": "Angle Bd du Caire & Rue Raoul Follereau /Face A la Gde Mosquee",
    "commune": "Koumassi",
    "quartier": null
   },
   {
-   "nom": "Pharmacie du Marais",
-   "responsable": "M. Kouassi Michel Seraphin",
-   "tel": "2721360699",
+   "nom": "Pharmacie Galilee",
+   "responsable": "M. Gnaly Otro Moise",
+   "tel": "2721288120",
    "tels": [
-    "2721360699"
+    "2721288120"
    ],
-   "adresse": "05 65 Port Bouët II - Progres 1ere Rue A Gauche Apres la Mosquee & le Marché Adou Assale en Allant vers Prodomo - Bd du Cameroun",
+   "adresse": "Angle Bd Antannarivo Rue Geo Andre / Face Base CIE Koumassi",
    "commune": "Koumassi",
    "quartier": null
   },
   {
-   "nom": "Pharmacie Mesano",
-   "responsable": "M. Messou Anoi",
-   "tel": "2721362190",
+   "nom": "Pharmacie Gaudo",
+   "responsable": "M. Kouadio Cesar Auguste Gaudo",
+   "tel": "2721362251",
    "tels": [
-    "2721362190"
+    "2721362251"
    ],
-   "adresse": "Derriere l'Église de Prodomo",
+   "adresse": "Koumassi Rda Ligne Bus 26 / 200 M Carrefour College Ajavon vers SICOGI / 3eme Tranche près du Kalum Bar",
    "commune": "Koumassi",
    "quartier": null
   },
   {
-   "nom": "Pharmacie St Auguste",
-   "responsable": "M. Die Kouadio Georges",
-   "tel": "2724354204",
+   "nom": "Pharmacie Regina",
+   "responsable": "Mme Coulibaly Dodo Regine",
+   "tel": "0779305584",
    "tels": [
-    "2724354204",
-    "0778997268"
+    "0779305584",
+    "2721366865"
    ],
-   "adresse": "Koumassi SICOGI 1 / Carrefour Gelti en Allant vers l'École la Pepiniere",
+   "adresse": "Koumasi SOGEFIHA / 2 Eme Arret Bus Ligne 32 / Non Loin du Garage Akwaba",
    "commune": "Koumassi",
    "quartier": null
   },
   {
-   "nom": "Pharmacie Sainte Clotilde",
-   "responsable": "Mme Assagou Louise Michele Epse Gueye",
-   "tel": "0700298150",
+   "nom": "Pharmacie de l'I.N.J.S",
+   "responsable": "Mme Abong Ehounoud",
+   "tel": "0779030143",
    "tels": [
-    "0700298150"
+    "0779030143"
    ],
-   "adresse": "Koumassi Zoe Bruno Non Loin du Carrefour Citerne Apres la Paroisse St Pierre",
-   "commune": "Koumassi",
-   "quartier": null
-  },
-  {
-   "nom": "Pharmacie Lily Marie",
-   "responsable": "M. Traore Sibiry Idriss",
-   "tel": "2721280888",
-   "tels": [
-    "2721280888",
-    "0758474747"
-   ],
-   "adresse": "Boulevard du Gabon / Marcory A Cote la Clinique la Madone",
+   "adresse": "Marcory Gfci F Face I.n.j.s (Institut National de la Jeunesse et des Sports) / Bus 03 & 31",
    "commune": "Marcory",
    "quartier": "Marcory Nord"
   },
   {
-   "nom": "Pharmacie Elishama",
-   "responsable": "Mme latte Mireille Epse Anvo",
-   "tel": "2521003327",
+   "nom": "Pharmacie Métropole",
+   "responsable": "M. Kabran Affi Herve",
+   "tel": "2721392719",
    "tels": [
-    "2521003327",
-    "0778350364"
+    "2721392719",
+    "0173491307",
+    "0173491424"
    ],
-   "adresse": "Marcory Gfci Boulevard du Cameroun Dans le Centre Commercial",
+   "adresse": "Derriere Orca Deco / Non Loin de la Pmi de Marcory",
    "commune": "Marcory",
    "quartier": "Marcory Nord"
   },
   {
-   "nom": "Pharmacie des Lagunes",
-   "responsable": "M. Ajami Akil Tarek",
-   "tel": "2721261240",
+   "nom": "Pharmacie Marcory Ptt",
+   "responsable": "M. Sayegh Kamel",
+   "tel": "2721269883",
    "tels": [
-    "2721261240"
+    "2721269883"
    ],
-   "adresse": "63 80 / Rue de la Paix Face Agip & Super Marché Trade Center Face Comptoir Lorrain d'Afrique",
+   "adresse": "Bd du Cameroun 200 M de la Poste de Marcory / Derriere le Cours Lamartine",
    "commune": "Marcory",
    "quartier": "Marcory Nord"
   },
   {
-   "nom": "Pharmacie Roma d'Anoumabo",
-   "responsable": "Mme Cisse Massandje",
-   "tel": "2721280380",
+   "nom": "Pharmacie les Remblais",
+   "responsable": "Mme Anouma Dingui Madeleine",
+   "tel": "2721262540",
    "tels": [
-    "2721280380",
-    "0171615532"
+    "2721262540"
    ],
-   "adresse": "Face Groupe Scolaire Anoumabo / 300 M Avant Artci",
+   "adresse": "37 58 Marcory Sans Fil / Face Commissariat du 26eme Arrodissement / (Alliodan)",
    "commune": "Marcory",
    "quartier": "Anoumabo"
   },
   {
-   "nom": "Pharmacie Kaemilla",
-   "responsable": "Mme Kamelia Ballo Sarah",
-   "tel": "0556220103",
+   "nom": "Pharmacie de la Zone 3",
+   "responsable": "Mme Aubry Keita Pascale",
+   "tel": "2721351315",
    "tels": [
-    "0556220103"
+    "2721351315"
    ],
-   "adresse": "Carrefour Ancien Koumassi, A Cote de Oser, Apres les Rails.",
+   "adresse": "09 76 Square Center, Derriere Cap Sud Rue Clement Ader entre le Rallye et Callivoire",
    "commune": "Marcory",
    "quartier": "Marcory Sud"
   },
   {
-   "nom": "Pharmacie Langevin",
-   "responsable": "M. Diomande Moussa Sinze",
-   "tel": "2721594570",
+   "nom": "Pharmacie Perusia",
+   "responsable": "Mme Dibi Irene",
+   "tel": "2721574608",
    "tels": [
-    "2721594570",
-    "0757380208"
+    "2721574608",
+    "0101052686",
+    "0545148787"
    ],
-   "adresse": "Marcory Zone 4 A l'Intersection de la Rue Pierre et Marie Curie et la Rue Paul Langevin Juste A Cote de Realkebab",
+   "adresse": "Marcory Zone 4c / Rue du Canal / Immeuble Manouchka",
    "commune": "Marcory",
    "quartier": "Marcory Sud"
   },
   {
-   "nom": "Pharmacie Sevignie",
-   "responsable": "Mme Mroueh Mouna",
-   "tel": "0713811811",
+   "nom": "Pharmacie du Bd Giscard d'Estaing",
+   "responsable": "M. Kouadio Anne Faustin",
+   "tel": "0758094644",
    "tels": [
-    "0713811811"
+    "0758094644",
+    "0545704789"
    ],
-   "adresse": "Marcory Zone 4 C / Rue Dr Calmette A 500m de Prima Center entre le College et les Cours Sevigne",
+   "adresse": "Carrefour Score de Koumassi / Station Texaco",
    "commune": "Marcory",
    "quartier": "Marcory Sud"
   },
   {
-   "nom": "Pharmacie Ste Anne",
-   "responsable": "Mme Abole Sopie Ange Brigitte",
-   "tel": "0584919393",
+   "nom": "Pharmacie les Harmonies",
+   "responsable": "Mme Camara Mariam Esther",
+   "tel": "2720220492",
    "tels": [
-    "0584919393",
-    "0705922790"
+    "2720220492",
+    "0102020476",
+    "0160502278"
    ],
-   "adresse": "1 Rue Lecoeur Plateau Face Ambassade de France",
+   "adresse": "Non Loin du Camp Militaire Galieni / 20 M de la Gare SOTRA de la Cité Administrative Bd Carde Face Immeuble les Harmonies",
    "commune": "Plateau",
    "quartier": null
   },
   {
-   "nom": "Pharmacie St Ambroise",
-   "responsable": "M. Yayo Serge",
-   "tel": "2521006275",
+   "nom": "Pharmacie Wharf Sarl",
+   "responsable": "Mme Seka Attey M'Boya Armelle",
+   "tel": "0757241256",
    "tels": [
-    "2521006275",
-    "0566019999"
+    "0757241256"
    ],
-   "adresse": "Port Bouët SOGEFIHA Face au Stade Seni Fofana",
+   "adresse": "Route de l'Aeroport, Entrée Sipim, entre la SOTRA et l'Église Catholique Ascension Hôpital/ près de la Grande Mosquee",
    "commune": "Port-Bouët",
    "quartier": "Centre"
   },
   {
-   "nom": "Pharmacie Djigui",
-   "responsable": "M. Traore Abdourahamane",
-   "tel": "2721277586",
+   "nom": "Pharmacie Baltique",
+   "responsable": "Mme Loukou Nguessan Rosine",
+   "tel": "2721276671",
    "tels": [
-    "2721277586"
+    "2721276671"
    ],
-   "adresse": "Face Nouveau Marché 30 M du Commissariat / Angle Avenue Atlantique et Av. Pacifique",
+   "adresse": "Face A l'Abattoir",
    "commune": "Port-Bouët",
    "quartier": "Centre"
   },
   {
-   "nom": "Pharmacie du Phare",
-   "responsable": "Mme Angofi Marie-Ange",
-   "tel": "2724328558",
+   "nom": "Pharmacie Atlantique",
+   "responsable": "M. Ouattara Kanigui Hyacinthe",
+   "tel": "2721279500",
    "tels": [
-    "2724328558",
-    "0758318531"
+    "2721279500",
+    "2521011780",
+    "0712150018",
+    "0719269487"
    ],
-   "adresse": "Avenue des Caraibes près du Phare / Terminus Bus 12",
+   "adresse": "SOGEFIHA près du Marché de Nuit",
    "commune": "Port-Bouët",
    "quartier": "Centre"
   },
   {
-   "nom": "Pharmacie Vridi-Village",
-   "responsable": "M. Koffi Emmanuel",
-   "tel": "2721391370",
+   "nom": "Pharmacie Epiphanie",
+   "responsable": "M. Aka Eboukele",
+   "tel": "2721270023",
    "tels": [
-    "2721391370",
-    "2721275860"
+    "2721270023"
    ],
-   "adresse": "Vridi Canal / Zone du Rond Point Terminus Bus 19 / Non Loin de la Sir",
+   "adresse": "Vridi Cité Face Salle Polyvalente / Gendarmerie",
    "commune": "Port-Bouët",
    "quartier": "Vridi"
   },
   {
-   "nom": "Pharmacie des Plages",
-   "responsable": "M. Niamke Aristide",
-   "tel": "0758171597",
+   "nom": "Pharmacie Route de Bassam",
+   "responsable": "M. Yeo Ali",
+   "tel": "2520002663",
    "tels": [
-    "0758171597",
-    "0103163757"
+    "2520002663",
+    "0709618961",
+    "0102036599",
+    "0757849346"
    ],
-   "adresse": "Port Bouët Adjouffou / Route de Bassam",
+   "adresse": "Port-Bouët Jean Folly / Sis au Sein du Nouveau Marché entre la Rue du Marché et la Rue Mobibois / Voie Express Abidjan Grand Bassam",
    "commune": "Port-Bouët",
    "quartier": "Adjouffou / Gonzaq / Anani"
   },
   {
-   "nom": "Pharmacie Chatelet",
-   "responsable": "M. Natchia Ette W.",
-   "tel": "0767970467",
+   "nom": "Pharmacie Saint Gilbert (Grande)",
+   "responsable": "M. N'Gou Franck Amos",
+   "tel": "0705998989",
    "tels": [
-    "0767970467",
-    "0501569980",
-    "0777396630",
-    "0506171328"
+    "0705998989",
+    "2735976878"
    ],
-   "adresse": "Port-Bouët Gonzague Terre Rouge Immeuble Colonel",
+   "adresse": "Gonzague Terre Rouge 2 A 50 Metres de la Gare SOTRA",
    "commune": "Port-Bouët",
    "quartier": "Adjouffou / Gonzaq / Anani"
   },
   {
-   "nom": "Pharmacie Koffi Kra",
-   "responsable": "M. Koffi Kra Aime",
-   "tel": "0758007324",
+   "nom": "Pharmacie St Michel Archange",
+   "responsable": "Mme Kassi Vanessa Frederique Affoh",
+   "tel": "0759529874",
    "tels": [
-    "0758007324",
-    "0748646836"
+    "0759529874"
    ],
-   "adresse": "Gonzag /Carrefour Usine I2t / entre Boulangerie / Glacier Amore / 200m de la Voie Express Abidjan Grand-Bassam",
+   "adresse": "Port-Bouët / Irho, Rue Carrefour Motard près de l'EPP Houphouet Boigny d'Irho",
    "commune": "Port-Bouët",
    "quartier": "Adjouffou / Gonzaq / Anani"
   },
   {
-   "nom": "Pharmacie Djessou",
-   "responsable": "M. Coulibaly Noumory",
-   "tel": "0700056099",
+   "nom": "Pharmacie France Afrique",
+   "responsable": "Mme Toure Fadika",
+   "tel": "2721241819",
    "tels": [
-    "0700056099"
+    "2721241819"
    ],
-   "adresse": "Anani Drapeau Blanc Accole A Apsonic Motors et A Environ 100 Metres du \"mood Ho \"",
-   "commune": "Port-Bouët",
-   "quartier": "Adjouffou / Gonzaq / Anani"
-  },
-  {
-   "nom": "Pharmacie Roy",
-   "responsable": "Mme Allangba Esther",
-   "tel": "2721240913",
-   "tels": [
-    "2721240913"
-   ],
-   "adresse": "21 25 / Place du Marché",
+   "adresse": "Angle Avenue 2 Rue 5 / Face Cité Policiere & Stations Shell & Mobil",
    "commune": "Treichville",
    "quartier": null
   },
   {
-   "nom": "Pharmacie Ode",
-   "responsable": "M. Aho Akandan T. Michel",
-   "tel": "2721253927",
+   "nom": "Pharmacie du Palais des Sports",
+   "responsable": null,
+   "tel": "2721241349",
    "tels": [
-    "2721253927"
+    "2721241349",
+    "0141644316"
    ],
-   "adresse": "Rue 38 Treichville",
+   "adresse": "22 Bd de Marseille",
    "commune": "Treichville",
    "quartier": null
   },
   {
-   "nom": "Pharmacie Notre Dame des Victoires",
-   "responsable": "Mme Niamkey Marguerite-Marie Aurore",
-   "tel": "0757270445",
+   "nom": "Pharmacie d'Arras",
+   "responsable": "M. Tchimou Ackoundze Anney Madeleine.",
+   "tel": "2721241329",
    "tels": [
-    "0757270445",
-    "0778973275"
+    "2721241329",
+    "0748465148"
    ],
-   "adresse": "Attécoubé Mossikro/ A 200 M du Carrefour Locodjoro en Allant vers Toits-Rouges",
+   "adresse": "21 93 / Gare Routiere de Grand Bassam",
+   "commune": "Treichville",
+   "quartier": null
+  },
+  {
+   "nom": "Pharmacie Chenain",
+   "responsable": "Mme Brindou Amafou Maria",
+   "tel": "2723501378",
+   "tels": [
+    "2723501378",
+    "0758499675",
+    "0160674245"
+   ],
+   "adresse": "Jerusalem / Route Abobodoume / 200 M de l'Ho Gran-Maxime",
    "commune": "Yopougon",
    "quartier": "Abobodoume / Locodjoro"
   },
   {
-   "nom": "Pharmacie St Etienne",
-   "responsable": "M. Amoakon Ebretche Herve Gerard",
-   "tel": "0101132413",
+   "nom": "Pharmacie Ste Adele",
+   "responsable": "M. Yayo Sagou Patrick Olivier",
+   "tel": "0758845125",
    "tels": [
-    "0101132413",
-    "0769501969"
+    "0758845125",
+    "0544712131",
+    "0101026768"
    ],
-   "adresse": "Attécoubé / Abobodoume Carrefour Pinasses en Face de la Gare Lagunaire Aqualines",
+   "adresse": "Abobodoume Sortie du Quai des Bateaux Bus SOTRA et Stl.",
    "commune": "Yopougon",
    "quartier": "Abobodoume / Locodjoro"
   },
   {
-   "nom": "Pharmacie Mariama d'Allokoi",
-   "responsable": "Mme Soumahoro Awa",
-   "tel": "0798691355",
+   "nom": "Pharmacie Vie Divine d'Allokoi",
+   "responsable": "Mme Akatchi Bomisso Sylvie",
+   "tel": "0705757690",
    "tels": [
-    "0798691355",
-    "0574692225"
+    "0705757690",
+    "0501192323"
    ],
-   "adresse": "Autoroute du Nord Face A la Nouvelle Zone Industrielle de Yopougon",
+   "adresse": "Autoroute du Nord (Km22) en Face de la Nouvelle Zone Industrielle de Yopougon",
    "commune": "Yopougon",
    "quartier": "Allokoi PK 23"
   },
   {
-   "nom": "Pharmacie Wassakara",
-   "responsable": "Mme Niamke Marie Laure",
-   "tel": "0757492301",
+   "nom": "Pharmacie Keneya",
+   "responsable": "Mme Doukoure Epse Wodie Yasmine Melissa",
+   "tel": "2723453381",
    "tels": [
-    "0757492301"
+    "2723453381",
+    "2723454465"
    ],
-   "adresse": "Yopougon Wassakara (Rue Princesse) près du Carrefour Cité Sib",
+   "adresse": null,
    "commune": "Yopougon",
    "quartier": "Secteur 1"
   },
   {
-   "nom": "Pharmacie Wakouboue",
-   "responsable": "M. Ahipo Babo Gilles",
-   "tel": "0797666575",
+   "nom": "Pharmacie des 3 Ponts",
+   "responsable": "Mme Coulibaly B. Aminata",
+   "tel": "2723454370",
    "tels": [
-    "0797666575",
-    "0102759915",
-    "0575652523"
+    "2723454370",
+    "0103114926",
+    "0102031514"
    ],
-   "adresse": "Angle Rue du Marché SICOGI Face au Lavage Secteur 3",
+   "adresse": "Yopougon SOGEFIHA Route de Niangon près Centre Santé (Pmi-Maternite)",
    "commune": "Yopougon",
    "quartier": "Secteur 2"
   },
   {
-   "nom": "Pharmacie Ste Rita",
-   "responsable": "Mme Sie. Goboh Chrisanette",
-   "tel": "0759499681",
+   "nom": "Pharmacie Celia",
+   "responsable": "M. Ouattara Soungalo Antoine",
+   "tel": "2523018625",
    "tels": [
-    "0759499681",
-    "0140275189"
+    "2523018625"
    ],
-   "adresse": "Yopougon Gare (Sable) / Trois Cafeiers",
+   "adresse": "Yopougon Banco II, Route de Dabou Carrefour Lycee Professionnel A Cote du Petit Marché Secteur 4",
    "commune": "Yopougon",
-   "quartier": "Secteur 4"
+   "quartier": "Secteur 3"
   },
   {
-   "nom": "Pharmacie Nouveau Quartier",
-   "responsable": "M. Mensah L. Jonas",
-   "tel": "0102575765",
+   "nom": "Pharmacie Laoulo",
+   "responsable": "M. Koffi Kouame Raphael",
+   "tel": "0709811459",
    "tels": [
-    "0102575765"
+    "0709811459",
+    "2723417910"
    ],
-   "adresse": "Près Stade Municipal de Yopougon / Groupe Scolaire V. Schoelcher",
+   "adresse": "Yopougon Nouveau Quartier / Voie Express Face Nouveau Bureau Sodeci",
    "commune": "Yopougon",
    "quartier": "Secteur 5"
   },
   {
-   "nom": "Pharmacie Boissy",
-   "responsable": "Mme Akpa Desrosiers Anne Kethlaine",
-   "tel": "2723456559",
+   "nom": "Pharmacie Tizra",
+   "responsable": "M. zamble Orphee Jean Michel",
+   "tel": "2723500447",
    "tels": [
-    "2723456559"
+    "2723500447"
    ],
-   "adresse": "Yopougon Toit Rouge/ Face Commissariat du 19eme Arrdt. / Bus 44 - 37- 38",
+   "adresse": "Yopougon Toit Rouge/ Rue Groupe Scolaire Offoumou Yapo / Immeuble Ancien Bazar",
    "commune": "Yopougon",
    "quartier": "Secteur 6"
   },
   {
-   "nom": "Pharmacie Beraca",
-   "responsable": "M. Konan Mensah Josette",
-   "tel": "0709264899",
+   "nom": "Pharmacie Pefina",
+   "responsable": "M. silue Yesseliguena",
+   "tel": "0749034475",
    "tels": [
-    "0709264899",
-    "0707771020",
-    "0707696676"
+    "0749034475",
+    "0101205662"
    ],
-   "adresse": "Yopougon Petit Toit Rouge Carrefour Chapouli près du College Dorian",
+   "adresse": "Yopougon Carrefour Koute Par Église St Laurent entre Terminus 40 et la CNPS",
    "commune": "Yopougon",
    "quartier": "Secteur 7"
   },
   {
-   "nom": "Pharmacie Artemia",
-   "responsable": "Mme Effi N'Doua Esther",
-   "tel": "2723523854",
+   "nom": "Pharmacie St Martin",
+   "responsable": "Mme Kakou Essis M. Paule",
+   "tel": "0758094613",
    "tels": [
-    "2723523854",
-    "0707264257",
-    "0102808988"
+    "0758094613",
+    "0101138135"
    ],
-   "adresse": "Face Palais de Justice",
+   "adresse": "Yopougon SIDECI / Face College Iges",
    "commune": "Yopougon",
    "quartier": "Secteur 8"
   },
   {
-   "nom": "Pharmacie Carrefour Boby",
-   "responsable": "M. Adhout Claver Alain",
-   "tel": "0757145885",
+   "nom": "Pharmacie Ste Rita de Cascia",
+   "responsable": "Mme Guidy E. Cynthia Epse Creahi",
+   "tel": "2723455079",
    "tels": [
-    "0757145885"
+    "2723455079",
+    "0757644469"
    ],
-   "adresse": "Niangon / Face Base CIE / entre Stations Petro-Ivoire et Shell",
+   "adresse": "Yopougon Niangon Nord Non Loin de l'Église Ste Rita de Cascia",
    "commune": "Yopougon",
    "quartier": "Secteur 9"
   },
   {
-   "nom": "Pharmacie Jean Pierre Sarl",
-   "responsable": "M. Koua Stephane",
-   "tel": "2723463003",
+   "nom": "Pharmacie le Lotus",
+   "responsable": "Mme ",
+   "tel": "2723455797",
    "tels": [
-    "2723463003",
-    "0140441476"
+    "2723455797",
+    "0757485366"
    ],
-   "adresse": "Niangon Sud A Droite / Carrefour Jatak /Terminus Bus 39",
+   "adresse": "Niangon Sud A Gauche / Terminus Bus 27",
    "commune": "Yopougon",
    "quartier": "Secteur 10"
   },
   {
-   "nom": "Pharmacie Cité Maroc",
-   "responsable": null,
-   "tel": "2723518758",
+   "nom": "Pharmacie Lagoma",
+   "responsable": "M. Gbato Wakell Francis",
+   "tel": "2723527070",
    "tels": [
-    "2723518758",
-    "0757484075",
-    "0708443949"
+    "2723527070",
+    "0707055793",
+    "0102108575"
    ],
-   "adresse": "Yopougon Maroc Zone de l'Antenne près du Supermarche Cash 225",
+   "adresse": "Yopougon Carrefour Academie / Face Cité CNPS",
    "commune": "Yopougon",
    "quartier": "Secteur 11"
   },
   {
-   "nom": "Pharmacie Bethesda",
-   "responsable": "M. Lako Dago Gervais",
-   "tel": "2723462690",
+   "nom": "Pharmacie Zeulayet",
+   "responsable": "M. Kouame Yapo Victor",
+   "tel": "2723452039",
    "tels": [
-    "2723462690",
-    "0779457446"
+    "2723452039",
+    "0708118211"
    ],
-   "adresse": "Yopougon Ananeraie entre la Coopec & le College Guicharolain",
+   "adresse": "Yopougon Quartier Maroc / Face A la Mosquee / Non Loin de l'Ho Kimi Secteur 13",
    "commune": "Yopougon",
    "quartier": "Secteur 12"
   },
   {
-   "nom": "Pharmacie Cité Verte",
-   "responsable": "M. Kante Ismael",
-   "tel": "2723456233",
+   "nom": "Pharmacie la Vie",
+   "responsable": "M. Kouadio Armand",
+   "tel": "2724342226",
    "tels": [
-    "2723456233",
-    "0789669565"
+    "2724342226",
+    "0758172919",
+    "0103052870"
    ],
-   "adresse": "Cité Verte entre Carrefour Chambery et Carrefour College Sebaco / Face Mosquee Rahma",
-   "commune": "Yopougon",
-   "quartier": "Secteur 13"
-  },
-  {
-   "nom": "Pharmacie Peniel",
-   "responsable": "Mme Koffi Emissah Christine",
-   "tel": "0709758207",
-   "tels": [
-    "0709758207"
-   ],
-   "adresse": "Yopougon Ananeraie Rond Point Gesco",
+   "adresse": "Yopougon Rond Point du CHU / Face Église CMA",
    "commune": "Yopougon",
    "quartier": "Secteur 14"
   },
   {
-   "nom": "Pharmacie les Ecluses",
-   "responsable": "M. Kouassi Atta Raoul",
-   "tel": "2723532317",
+   "nom": "Pharmacie de l'Autoroute (Gde)",
+   "responsable": "Mme Bro Grebe Taqui Cynthia",
+   "tel": "2723526175",
    "tels": [
-    "2723532317",
-    "0103305089"
+    "2723526175",
+    "0101052677"
    ],
-   "adresse": "Yopougon Andokoi entre Depot SOTRA et College Minerva",
+   "adresse": "58 46 / Yopougon Corridor de Gesco - Terminus Bus 34 / près de la Gendarmerie",
    "commune": "Yopougon",
    "quartier": "Secteur 15"
   },
   {
-   "nom": "Pharmacie Principale",
-   "responsable": "Mme Ouattara Cecile",
-   "tel": "2723439808",
+   "nom": "Pharmacie St Simeon",
+   "responsable": "Mme Ake Annette Rose",
+   "tel": "2522004170",
    "tels": [
-    "2723439808",
-    "0757201349",
-    "0172452764"
+    "2522004170",
+    "0758195320"
    ],
-   "adresse": "Yopougon Face Place Ficgayo près du Centre Commercial Cosmos",
+   "adresse": "Quartier Micao Apres le Parking de Cargill",
    "commune": "Yopougon",
    "quartier": "Secteur 16"
   },
   {
-   "nom": "Pharmacie Azito",
-   "responsable": "Mme Zaman Zable Justine",
-   "tel": "0707630289",
+   "nom": "Pharmacie Ikhlas",
+   "responsable": "M. Yacouba Kone",
+   "tel": "0778388717",
    "tels": [
-    "0707630289",
-    "0759273642"
+    "0778388717"
    ],
-   "adresse": null,
+   "adresse": "Yopougon Gesco Derriere la Manutention Africaine",
    "commune": "Yopougon",
    "quartier": "Secteur 17"
   },
   {
-   "nom": "Pharmacie du Marché",
-   "responsable": "Mme Senin Don Mello A. Christelle",
-   "tel": "2735913009",
+   "nom": "Pharmacie de l'Indenie",
+   "responsable": "M. Koffi Joseph",
+   "tel": "2735913604",
    "tels": [
-    "2735913009",
-    "0102038717"
+    "2735913604"
    ],
-   "adresse": "Place du Grand Marché/ A Cote de Ecel",
+   "adresse": "33 82 Voie Principale A Cote de la Grande Mosquee",
    "commune": "Abengourou",
    "quartier": null,
    "interieur": true
   },
   {
-   "nom": "Pharmacie Ste Famille",
-   "responsable": "M. Gnagbo Urbain",
-   "tel": "2735913009",
+   "nom": "Pharmacie Moya",
+   "responsable": "M. Wassa Auguste",
+   "tel": "0758094708",
    "tels": [
-    "2735913009"
+    "0758094708",
+    "0778969970"
    ],
-   "adresse": "Près Ho le Royaume",
+   "adresse": "Rue Princesse / Petit Bassam / Dioulakro Sud",
    "commune": "Abengourou",
    "quartier": null,
    "interieur": true
   },
   {
-   "nom": "Pharmacie Providence",
-   "responsable": "M. Ouattara Mamadou",
-   "tel": "2735900900",
+   "nom": "Pharmacie Prunelle Marie",
+   "responsable": "M. Konan Yao Igor Fulgence.",
+   "tel": "2735913545",
    "tels": [
-    "2735900900",
-    "0778633218"
+    "2735913545"
    ],
-   "adresse": "Axe Abengourou Agnibilékro Face A la Station Oryx",
+   "adresse": "Quartier Agnikro Extension",
    "commune": "Abengourou",
    "quartier": null,
    "interieur": true
   },
   {
-   "nom": "Pharmacie du Sanwi (Grande)",
-   "responsable": "Mme Niamke Assey Annie Patricia",
-   "tel": "2721304382",
+   "nom": "Pharmacie Sokoura d'Aboisso",
+   "responsable": "Mme Sy Savane Massira Ines Prisca",
+   "tel": "2721304197",
    "tels": [
-    "2721304382",
-    "0701713542"
+    "2721304197",
+    "2733744869",
+    "0143281710",
+    "0789819799"
    ],
    "adresse": null,
    "commune": "Aboisso",
@@ -1432,12 +1466,12 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie Moderne",
-   "responsable": "M. Sanogo Yaya",
-   "tel": "2721307694",
+   "nom": "Pharmacie de la Gare",
+   "responsable": "Mme Traore Faty Epse Kouyate",
+   "tel": "0555440204",
    "tels": [
-    "2721307694",
-    "0709682972"
+    "0555440204",
+    "2735963052"
    ],
    "adresse": null,
    "commune": "Adiaké",
@@ -1445,39 +1479,36 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie Amira",
-   "responsable": "M. Toure Hamed",
-   "tel": "2723541171",
+   "nom": "Pharmacie d'Adzopé",
+   "responsable": "M. N'Guessan Konan Bertin",
+   "tel": "2723541911",
    "tels": [
-    "2723541171",
-    "2723540007",
-    "0505466444"
+    "2723541911"
    ],
-   "adresse": "Quartier Dioulakro Non Loin du Centre d'Enseignement Technique",
+   "adresse": "A l'Entrée d'Adzopé",
    "commune": "Adzopé",
    "quartier": null,
    "interieur": true
   },
   {
-   "nom": "Pharmacie Louise-Antoine",
-   "responsable": "Mme Lohoues Sonan Marie-Michelle",
-   "tel": "0777954751",
+   "nom": "Pharmacie Sainte Marie d'Elve",
+   "responsable": "Mme Mobio-Ouattara J. Elvire",
+   "tel": "0799131400",
    "tels": [
-    "0777954751",
-    "0152950348"
+    "0799131400",
+    "2735954010"
    ],
-   "adresse": "Au Grand Marché d'Adzopé Face A l'Église Protestante Methodiste",
+   "adresse": "Route des Scieries en Face du Petit Portail du Palais de Justice",
    "commune": "Adzopé",
    "quartier": null,
    "interieur": true
   },
   {
-   "nom": "Pharmacie du Commerce (Gde)",
-   "responsable": "M. Assoumou Michel",
-   "tel": "2723546040",
+   "nom": "Pharmacie Sini-Keneya",
+   "responsable": "M. Alloue Simon Pierre",
+   "tel": "0758094603",
    "tels": [
-    "2723546040",
-    "0759067957"
+    "0758094603"
    ],
    "adresse": null,
    "commune": "Agboville",
@@ -1485,12 +1516,11 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie Moaye",
-   "responsable": "M. ake Simplice",
-   "tel": "0778334088",
+   "nom": "Pharmacie du Chateau",
+   "responsable": "M. Djama Albert",
+   "tel": "2723548721",
    "tels": [
-    "0778334088",
-    "0708782800"
+    "2723548721"
    ],
    "adresse": null,
    "commune": "Agboville",
@@ -1498,12 +1528,11 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie du Djuablin",
-   "responsable": "M. Oula Dinhanonau Sylvain",
-   "tel": "2735910336",
+   "nom": "Pharmacie Avenir Santé",
+   "responsable": "M. Aka Tchimou Fernand",
+   "tel": "0140744920",
    "tels": [
-    "2735910336",
-    "0142725228"
+    "0140744920"
    ],
    "adresse": null,
    "commune": "Agnibilékro",
@@ -1511,35 +1540,48 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie Appy-Moya",
-   "responsable": "Mme Kacou Legbe Florentine",
-   "tel": "0702776963",
+   "nom": "Pharmacie Kata",
+   "responsable": "M. Koffi Kouame Thomas",
+   "tel": "0789738544",
    "tels": [
-    "0702776963"
+    "0789738544"
    ],
-   "adresse": "Bayota 2 sur l'Axe Bayota-Sinfra A 200m de la Gendarmerie",
+   "adresse": "Bayota 1 près du Marché",
    "commune": "Bayota",
    "quartier": null,
    "interieur": true
   },
   {
-   "nom": "Pharmacie Nacet",
-   "responsable": "M. Yao Francis",
-   "tel": "0594413432",
+   "nom": "Pharmacie de Bonoua",
+   "responsable": "Mme Ouattara Fatoumata",
+   "tel": "2721300905",
    "tels": [
-    "0594413432"
+    "2721300905",
+    "0709627150"
    ],
-   "adresse": "Carrefour Rose Marie",
+   "adresse": null,
    "commune": "Bonoua",
    "quartier": null,
    "interieur": true
   },
   {
-   "nom": "Pharmacie Carrefour",
-   "responsable": "M. Koffi Charles",
-   "tel": "0708656979",
+   "nom": "Pharmacie Fely",
+   "responsable": "Mme Kpan Mannou Francoise",
+   "tel": "0151422258",
    "tels": [
-    "0708656979"
+    "0151422258"
+   ],
+   "adresse": "Nouveau Marché",
+   "commune": "Bouaflé",
+   "quartier": null,
+   "interieur": true
+  },
+  {
+   "nom": "Pharmacie de l'Alliance",
+   "responsable": "M. Kouadio Nguessan Pascal",
+   "tel": "0707087957",
+   "tels": [
+    "0707087957"
    ],
    "adresse": null,
    "commune": "Bouaflé",
@@ -1547,129 +1589,127 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie Magnificat de Bouaflé",
-   "responsable": "M. Aboh Ives Anderson",
-   "tel": "0705748938",
+   "nom": "Pharmacie Bel Air",
+   "responsable": "M. Kone Moussa",
+   "tel": "2731635990",
    "tels": [
-    "0705748938"
+    "2731635990"
    ],
-   "adresse": "En Face de la Celpaid / au Niveau du Monument",
-   "commune": "Bouaflé",
-   "quartier": null,
-   "interieur": true
-  },
-  {
-   "nom": "Pharmacie Air France",
-   "responsable": "Mme Amiah Amlan Isabelle Epse Teti",
-   "tel": "2733778157",
-   "tels": [
-    "2733778157",
-    "2731624325",
-    "0757143821",
-    "0585242121"
-   ],
-   "adresse": "Quartier Air France / Face Foyer Feminin",
+   "adresse": "Zone en Face du Marché",
    "commune": "Bouaké",
    "quartier": null,
    "interieur": true
   },
   {
-   "nom": "Pharmacie Avicienne",
-   "responsable": "M. Haidara Hamadou",
-   "tel": "2731605450",
+   "nom": "Pharmacie Fatima",
+   "responsable": "M. Gnagbo Serge",
+   "tel": "2721788696",
    "tels": [
-    "2731605450",
-    "0757490870",
-    "0102500521"
+    "2721788696",
+    "0747616705",
+    "0707012185"
    ],
-   "adresse": "Vers Corridor Nord en Face de la Station Total sur la Grande Route de Katiola",
+   "adresse": "Dar Es Salam III / Route de Katiola Gare Kassoum",
    "commune": "Bouaké",
    "quartier": null,
    "interieur": true
   },
   {
-   "nom": "Pharmacie de la Cité",
-   "responsable": "M. Karamoko Kourouma",
-   "tel": "2731600837",
+   "nom": "Pharmacie Koko Sarl",
+   "responsable": "Mme Kone Epse Degbegnon Tatah",
+   "tel": "0757143835",
    "tels": [
-    "2731600837"
+    "0757143835"
    ],
-   "adresse": "Immeuble Fanny",
+   "adresse": "Koko Route du CHU",
    "commune": "Bouaké",
    "quartier": null,
    "interieur": true
   },
   {
-   "nom": "Pharmacie du Commerce Kodjo",
-   "responsable": "M. Kodjo Guy",
-   "tel": "0704548556",
+   "nom": "Pharmacie Lael",
+   "responsable": "M. Kacou Patrice",
+   "tel": "0747120027",
    "tels": [
-    "0704548556",
-    "0709373775"
+    "0747120027"
    ],
-   "adresse": "Commerce / en Face des Ptt",
+   "adresse": "Nimbo, Face aux Impots, Route Abidjan",
    "commune": "Bouaké",
    "quartier": null,
    "interieur": true
   },
   {
-   "nom": "Pharmacie Opriel",
-   "responsable": "M. Doho Hiro",
-   "tel": "2731602485",
+   "nom": "Pharmacie Moderne Kennedy",
+   "responsable": "M. toa Bi Irie",
+   "tel": "2731624204",
    "tels": [
-    "2731602485",
-    "0707078985"
+    "2731624204",
+    "0768115469",
+    "0717555076"
    ],
-   "adresse": "Air France 3, Rond Point de la Maternite Air France et de Sopim, Boulangerie de la Paix",
+   "adresse": "Kennedy Route de M'Bahiakro entre Station Total et Feux Tricolores",
    "commune": "Bouaké",
    "quartier": null,
    "interieur": true
   },
   {
-   "nom": "Pharmacie Rehoboth",
-   "responsable": "Mme Nanga Virginie",
-   "tel": "2731600783",
+   "nom": "Pharmacie Notre Dame de la Paix",
+   "responsable": "M. Ewussi Lucien",
+   "tel": "2731648585",
    "tels": [
-    "2731600783",
-    "0709339096"
+    "2731648585",
+    "0748546971"
    ],
-   "adresse": "Face Nouveau Stade",
+   "adresse": "Grand Marché en Face de la Gare Utb/ A Cote de la Préfecture de Police",
    "commune": "Bouaké",
    "quartier": null,
    "interieur": true
   },
   {
-   "nom": "Pharmacie Ste Catherine Sarl",
-   "responsable": "M. Bledou Jean Michel",
-   "tel": "0506276666",
+   "nom": "Pharmacie Saint Jean",
+   "responsable": null,
+   "tel": "2733800186",
    "tels": [
-    "0506276666",
-    "0707990177"
+    "2733800186",
+    "0757143842"
    ],
-   "adresse": "Gonfreville/ Face au Marché",
+   "adresse": "Quartier Ahougnansou Avant le Petit Marché",
    "commune": "Bouaké",
    "quartier": null,
    "interieur": true
   },
   {
-   "nom": "Pharmacie Nlle Sokoura",
-   "responsable": "Mme Kacou Marie Claude",
-   "tel": "2731631081",
+   "nom": "Pharmacie Saint Marc Broukro",
+   "responsable": "M. Toure Toffanh Norbert",
+   "tel": "0749072797",
    "tels": [
-    "2731631081",
-    "0757143824"
+    "0749072797",
+    "0101157220"
    ],
-   "adresse": "Quartier Sokoura",
+   "adresse": "3eme Arret / Pret du Groupe Scolaire Broukro 1",
    "commune": "Bouaké",
    "quartier": null,
    "interieur": true
   },
   {
-   "nom": "Pharmacie Fezan",
-   "responsable": "Mme Nenin Youan Lou",
-   "tel": "2723572352",
+   "nom": "Pharmacie Sainte Famille de Tollakouadiokro",
+   "responsable": "M. Kouame Bleoue Jean",
+   "tel": "2732794666",
    "tels": [
-    "2723572352"
+    "2732794666",
+    "0714642434"
+   ],
+   "adresse": "En Face du Marché de Tollakouadiokro",
+   "commune": "Bouaké",
+   "quartier": null,
+   "interieur": true
+  },
+  {
+   "nom": "Pharmacie Tehia",
+   "responsable": "M. Brou Herve",
+   "tel": "0140275503",
+   "tels": [
+    "0140275503"
    ],
    "adresse": null,
    "commune": "Dabou",
@@ -1677,11 +1717,11 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie des Lagunes",
-   "responsable": "M. N'Diaye Zoubayrou",
-   "tel": "2723572145",
+   "nom": "Pharmacie Abraham",
+   "responsable": "M. Gore Bi Goue Denis",
+   "tel": "2723572093",
    "tels": [
-    "2723572145"
+    "2723572093"
    ],
    "adresse": null,
    "commune": "Dabou",
@@ -1689,24 +1729,23 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie du Pont de Lianes",
-   "responsable": "M. Dro Sieni Albert",
-   "tel": "0709610000",
+   "nom": "Pharmacie Moderne",
+   "responsable": "M. Ouattara Lacina.",
+   "tel": "0779445474",
    "tels": [
-    "0709610000",
-    "0101352439"
+    "0779445474"
    ],
-   "adresse": "Quartier Commerce près de l'Hôpital Général",
+   "adresse": null,
    "commune": "Danané",
    "quartier": null,
    "interieur": true
   },
   {
-   "nom": "Pharmacie du Progres",
-   "responsable": "M. Ahouman Tedje Joseph",
-   "tel": "2732782253",
+   "nom": "Pharmacie Lobia",
+   "responsable": "M. Djevie Kouame",
+   "tel": "2732767833",
    "tels": [
-    "2732782253"
+    "2732767833"
    ],
    "adresse": null,
    "commune": "Daloa",
@@ -1714,11 +1753,12 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie du Jubile de Tazibouo",
-   "responsable": "M. Djassa Bi Kakou",
-   "tel": "2732785252",
+   "nom": "Pharmacie Principale",
+   "responsable": "M. Kouakou Kouakou Victor",
+   "tel": "2732784692",
    "tels": [
-    "2732785252"
+    "2732784692",
+    "0707607984"
    ],
    "adresse": null,
    "commune": "Daloa",
@@ -1726,12 +1766,11 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie Aneaud",
-   "responsable": "M. Kouame N'Doly Gervais Kodjo",
-   "tel": "2732782828",
+   "nom": "Pharmacie Corridor d'Issia",
+   "responsable": "M. Bodji Kassi Rodrigues",
+   "tel": "0565297338",
    "tels": [
-    "2732782828",
-    "0710258353"
+    "0565297338"
    ],
    "adresse": null,
    "commune": "Daloa",
@@ -1739,12 +1778,11 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie des Garages (Grde)",
-   "responsable": "M. Coulibaly Kassouna",
-   "tel": "0757492315",
+   "nom": "Pharmacie Quartier Huberson",
+   "responsable": "Mme Seri Michele Davila Epse Tchero",
+   "tel": "2732782338",
    "tels": [
-    "0757492315",
-    "0140239072"
+    "2732782338"
    ],
    "adresse": null,
    "commune": "Daloa",
@@ -1752,12 +1790,25 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie Hamany",
-   "responsable": "M. Kouadio Anicet",
-   "tel": "2724581501",
+   "nom": "Pharmacie Misericorde Kennedy 1",
+   "responsable": "M. Anzan Koime",
+   "tel": "0708176961",
    "tels": [
-    "2724581501",
-    "0711966854"
+    "0708176961",
+    "0594166772"
+   ],
+   "adresse": null,
+   "commune": "Daloa",
+   "quartier": null,
+   "interieur": true
+  },
+  {
+   "nom": "Pharmacie Mairie (Grande)",
+   "responsable": "M. Konate Issiaka",
+   "tel": "0723015081",
+   "tels": [
+    "0723015081",
+    "0787760200"
    ],
    "adresse": null,
    "commune": "Diégonéfla",
@@ -1765,12 +1816,11 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie Sainte Marie",
-   "responsable": "M. Seri Guy Ghadout",
-   "tel": "2732760932",
+   "nom": "Pharmacie du Marché",
+   "responsable": "M. Kouadio Kouassi",
+   "tel": "2732760075",
    "tels": [
-    "2732760932",
-    "2732763676"
+    "2732760075"
    ],
    "adresse": null,
    "commune": "Divo",
@@ -1778,11 +1828,11 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie Ahoukoua",
-   "responsable": "M. Tra Bi Vanie Alain",
-   "tel": "0149527420",
+   "nom": "Pharmacie Sainte Veronique",
+   "responsable": "Mme Dibril Gottah Béatrice",
+   "tel": "2732760505",
    "tels": [
-    "0149527420"
+    "2732760505"
    ],
    "adresse": null,
    "commune": "Divo",
@@ -1790,11 +1840,11 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie du Dialogue",
-   "responsable": "M. Ahouty Jerome.",
-   "tel": "2732763177",
+   "nom": "Pharmacie In'Challa",
+   "responsable": "M. Ouattara Issa",
+   "tel": "0707575487",
    "tels": [
-    "2732763177"
+    "0707575487"
    ],
    "adresse": null,
    "commune": "Divo",
@@ -1802,13 +1852,11 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie Kamelia la Grace",
-   "responsable": "M. Jean Jonas Kouadio",
-   "tel": "2735968158",
+   "nom": "Pharmacie Harmony",
+   "responsable": "M. Kouame Koffi Flavien",
+   "tel": "0708188055",
    "tels": [
-    "2735968158",
-    "0799026948",
-    "0566243636"
+    "0708188055"
    ],
    "adresse": null,
    "commune": "Divo",
@@ -1816,23 +1864,11 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie Moderne de Bribore",
-   "responsable": "M. Tanoh Eric Kouame",
-   "tel": "0757848476",
+   "nom": "Pharmacie Wahon",
+   "responsable": "Mme Grattie Leonie",
+   "tel": "0757029057",
    "tels": [
-    "0757848476"
-   ],
-   "adresse": null,
-   "commune": "Divo",
-   "quartier": null,
-   "interieur": true
-  },
-  {
-   "nom": "Pharmacie de Duékoué (Grande)",
-   "responsable": "Mme Coulibaly Leila",
-   "tel": "2733703105",
-   "tels": [
-    "2733703105"
+    "0757029057"
    ],
    "adresse": null,
    "commune": "Duékoué",
@@ -1840,12 +1876,12 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie Kokoman Vie",
-   "responsable": "M. Mambo Atsain Remy Yves",
-   "tel": "2721587315",
+   "nom": "Pharmacie de la Paix Duékoué",
+   "responsable": "M. Kone Herve Bonaventure",
+   "tel": "0714257767",
    "tels": [
-    "2721587315",
-    "0787751373"
+    "0714257767",
+    "0715878787"
    ],
    "adresse": null,
    "commune": "Duékoué",
@@ -1853,47 +1889,52 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie Lafia",
-   "responsable": "M. toure Tesse Hamed",
-   "tel": "2732772520",
+   "nom": "Pharmacie Marlyns",
+   "responsable": "Mme Mosso Roselyne Nina",
+   "tel": "2732771224",
    "tels": [
-    "2732772520"
+    "2732771224",
+    "0757493818",
+    "0749033244"
    ],
-   "adresse": "Petit Marché Dioulabougou",
+   "adresse": "Face Csk",
    "commune": "Gagnoa",
    "quartier": null,
    "interieur": true
   },
   {
-   "nom": "Pharmacie Principale",
-   "responsable": "M. Diabi Mamadou",
-   "tel": "2732772316",
+   "nom": "Pharmacie Ahouane",
+   "responsable": "M. Kosso Abouya Edith Moïse",
+   "tel": "2732778235",
    "tels": [
-    "2732772316"
+    "2732778235"
    ],
-   "adresse": "Face Sococe",
+   "adresse": "Babre",
    "commune": "Gagnoa",
    "quartier": null,
    "interieur": true
   },
   {
-   "nom": "Pharmacie de Garahio",
-   "responsable": "M. Yeboue Henri Leonce",
-   "tel": null,
-   "tels": [],
-   "adresse": "32 77 10 56 / Garahio",
+   "nom": "Pharmacie du Marché",
+   "responsable": "M. Oria Adou",
+   "tel": "2732772262",
+   "tels": [
+    "2732772262"
+   ],
+   "adresse": "Face Bit",
    "commune": "Gagnoa",
    "quartier": null,
    "interieur": true
   },
   {
-   "nom": "Pharmacie Dioulabougou Santé",
-   "responsable": "M. Adjalou Brou Felix",
-   "tel": "2732771635",
+   "nom": "Pharmacie de Barhyo",
+   "responsable": "M. ezoa Jean Adje Kouame",
+   "tel": "0767888520",
    "tels": [
-    "2732771635"
+    "0767888520",
+    "0142641187"
    ],
-   "adresse": null,
+   "adresse": "Garage Koffi",
    "commune": "Gagnoa",
    "quartier": null,
    "interieur": true
@@ -1912,11 +1953,11 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie Quartier Air France",
-   "responsable": "Mme Achi Juste Apie",
-   "tel": "2721312183",
+   "nom": "Pharmacie du Littoral",
+   "responsable": "M. Kone Namaro",
+   "tel": "2721301064",
    "tels": [
-    "2721312183"
+    "2721301064"
    ],
    "adresse": null,
    "commune": "Grand-Bassam",
@@ -1924,11 +1965,11 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie Yele",
-   "responsable": "M. Kone Ibrahime",
-   "tel": "2721302685",
+   "nom": "Pharmacie Petit Marché",
+   "responsable": "Mme Ehoulan Oka",
+   "tel": "2721303005",
    "tels": [
-    "2721302685"
+    "2721303005"
    ],
    "adresse": null,
    "commune": "Grand-Bassam",
@@ -1936,11 +1977,11 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie Mockeyville",
-   "responsable": "M. Nayeoun Seraphin",
-   "tel": "0799447846",
+   "nom": "Pharmacie le Reel",
+   "responsable": "Mme Eroubinou Epse Affro Aya Evelyne",
+   "tel": "2721303347",
    "tels": [
-    "0799447846"
+    "2721303347"
    ],
    "adresse": null,
    "commune": "Grand-Bassam",
@@ -1948,11 +1989,12 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie Leana",
-   "responsable": "M. Balley Patrick Justin",
-   "tel": "0797018464",
+   "nom": "Pharmacie Likabel",
+   "responsable": "Mme Kone Bakayoko Sandia",
+   "tel": "0747960209",
    "tels": [
-    "0797018464"
+    "0747960209",
+    "0140299546"
    ],
    "adresse": null,
    "commune": "Grand-Bassam",
@@ -1960,11 +2002,12 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie Nikla",
-   "responsable": "M. Doue Noumandiez Desire",
-   "tel": "2733705380",
+   "nom": "Pharmacie du Marché de Guiglo",
+   "responsable": "M. Ecriby Koffi",
+   "tel": "2733704483",
    "tels": [
-    "2733705380"
+    "2733704483",
+    "0707878334"
    ],
    "adresse": null,
    "commune": "Guiglo",
@@ -1972,11 +2015,11 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie Watta",
-   "responsable": "M. N'Dia Pascal",
-   "tel": "0565483088",
+   "nom": "Pharmacie Mairie de Hire",
+   "responsable": "M. Boka Owo Firmin",
+   "tel": "0710578378",
    "tels": [
-    "0565483088"
+    "0710578378"
    ],
    "adresse": null,
    "commune": "Hiré",
@@ -1984,12 +2027,13 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie Espoir",
-   "responsable": "M. Adje Kotcha Anselme",
-   "tel": "2732770176",
+   "nom": "Pharmacie Divine Grace",
+   "responsable": "M. Affoumou Gnangoran Blaise",
+   "tel": "2734778220",
    "tels": [
-    "2732770176",
-    "0707711760"
+    "2734778220",
+    "0709998483",
+    "0101606973"
    ],
    "adresse": null,
    "commune": "Issia",
@@ -1997,11 +2041,13 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie Hadassa (Gde)",
-   "responsable": "Mme Dembele Mariam Epse Olukolo",
-   "tel": "0787876239",
+   "nom": "Pharmacie Notre Dame de la Delivrance",
+   "responsable": "M. kouame Djemis Ange Nogues",
+   "tel": "2733744606",
    "tels": [
-    "0787876239"
+    "2733744606",
+    "0707070971",
+    "0748714673"
    ],
    "adresse": null,
    "commune": "Issia",
@@ -2009,12 +2055,11 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie Katio",
-   "responsable": "M. allangba Henri Yves",
-   "tel": "0150888777",
+   "nom": "Pharmacie Kakoumani",
+   "responsable": "M. Lakoun Toure",
+   "tel": "0768958654",
    "tels": [
-    "0150888777",
-    "0707011520"
+    "0768958654"
    ],
    "adresse": null,
    "commune": "Katiola",
@@ -2022,11 +2067,11 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie Fotamana",
-   "responsable": "M. Okou Sosthene",
-   "tel": "0704649382",
+   "nom": "Pharmacie du Nord",
+   "responsable": "M. Kone Moulaye Idrissa",
+   "tel": "2736860274",
    "tels": [
-    "0704649382"
+    "2736860274"
    ],
    "adresse": null,
    "commune": "Korhogo",
@@ -2034,11 +2079,12 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie Nour",
-   "responsable": "M. Diabate Amzoumana",
-   "tel": "2736860739",
+   "nom": "Pharmacie Palais de Justice",
+   "responsable": "M. Kossa Vincent de Paul",
+   "tel": "2736853755",
    "tels": [
-    "2736860739"
+    "2736853755",
+    "0787702033"
    ],
    "adresse": null,
    "commune": "Korhogo",
@@ -2046,11 +2092,11 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie du Mont Korhogo",
-   "responsable": "Mme Aboh Traore Akissi Virginie",
-   "tel": "2736860647",
+   "nom": "Pharmacie Nassara",
+   "responsable": "M. Ouattara Modibo",
+   "tel": "2736863264",
    "tels": [
-    "2736860647"
+    "2736863264"
    ],
    "adresse": null,
    "commune": "Korhogo",
@@ -2058,12 +2104,11 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie Salam Korhogo",
-   "responsable": "M. Degbegnon Davy Ismael",
-   "tel": "2736800051",
+   "nom": "Pharmacie Soba",
+   "responsable": "M. Coulibaly Gninlma",
+   "tel": "2736863739",
    "tels": [
-    "2736800051",
-    "0769519629"
+    "2736863739"
    ],
    "adresse": null,
    "commune": "Korhogo",
@@ -2071,61 +2116,37 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie Nouveau Quartier",
-   "responsable": "M. Yavo Boni",
-   "tel": "0757713391",
+   "nom": "Pharmacie Sanmien de Natio",
+   "responsable": "Mme Houssou Epse Kouame Christine",
+   "tel": "2735959796",
    "tels": [
-    "0757713391"
+    "2735959796",
+    "0700778808"
    ],
-   "adresse": null,
+   "adresse": "Quartier Natio Kobadara, Route de Ferke",
    "commune": "Korhogo",
    "quartier": null,
    "interieur": true
   },
   {
-   "nom": "Pharmacie Lycee Club",
-   "responsable": "Mme Amani E.gisele",
-   "tel": "0101006124",
+   "nom": "Pharmacie des Cascades",
+   "responsable": "M. Yapo Serge",
+   "tel": "2724577710",
    "tels": [
-    "0101006124"
+    "2724577710",
+    "0101038391"
    ],
-   "adresse": "Qtier Lycee Residentiel",
+   "adresse": "50 M de la Station Ola sur la Voie Principale de l'Axe Man-Biankouma",
    "commune": "Man",
    "quartier": null,
    "interieur": true
   },
   {
-   "nom": "Pharmacie du Commerce",
-   "responsable": "M. Dagnoko Gaoussou",
-   "tel": "2733793272",
+   "nom": "Pharmacie Lymanya",
+   "responsable": "M. Dosso Vataki",
+   "tel": "2733730369",
    "tels": [
-    "2733793272"
-   ],
-   "adresse": null,
-   "commune": "Man",
-   "quartier": null,
-   "interieur": true
-  },
-  {
-   "nom": "Pharmacie Libreville",
-   "responsable": "M. kouame Yao Brou Hylaire",
-   "tel": "2733799001",
-   "tels": [
-    "2733799001",
-    "0173718535"
-   ],
-   "adresse": "Quartier Libreville Face A la Boulangerie / près de la Gare de Touba",
-   "commune": "Man",
-   "quartier": null,
-   "interieur": true
-  },
-  {
-   "nom": "Pharmacie Khianelly",
-   "responsable": "M. Ble Nogbou Valerie",
-   "tel": "0544337460",
-   "tels": [
-    "0544337460",
-    "2733793682"
+    "2733730369"
    ],
    "adresse": null,
    "commune": "Man",
@@ -2133,11 +2154,38 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie du Rond Point",
-   "responsable": "M. Kouassi Kouame Martin",
-   "tel": "0707498910",
+   "nom": "Pharmacie la Colombe",
+   "responsable": "Mme Mian Tia Yoboua",
+   "tel": "0133780749",
    "tels": [
-    "0707498910"
+    "0133780749"
+   ],
+   "adresse": null,
+   "commune": "Man",
+   "quartier": null,
+   "interieur": true
+  },
+  {
+   "nom": "Pharmacie Di Georges",
+   "responsable": "M. Konan Kouadio Georges",
+   "tel": "0748927000",
+   "tels": [
+    "0748927000",
+    "0575437374",
+    "0707404607"
+   ],
+   "adresse": "Quartier Grand Gbapleu Face de Nidhaley (Conseil Regional du Tonkpi)",
+   "commune": "Man",
+   "quartier": null,
+   "interieur": true
+  },
+  {
+   "nom": "Pharmacie du Stade Odienné",
+   "responsable": "M. Gbamble Bi Trazie Gustave",
+   "tel": "0171885865",
+   "tels": [
+    "0171885865",
+    "0595538846"
    ],
    "adresse": null,
    "commune": "Odienné",
@@ -2145,141 +2193,139 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie Nitoro",
-   "responsable": "M. Kouassi Yann Abdoul",
-   "tel": "2734713911",
+   "nom": "Pharmacie Quartier Francophonie",
+   "responsable": "M. kouame Phillipe",
+   "tel": "0767078462",
    "tels": [
-    "2734713911",
-    "0707822327"
+    "0767078462"
    ],
-   "adresse": "Ex Carrefour S.i.b, en Face de Ministere de l'Enseignement Technique et de la Formation Professionnelle",
+   "adresse": "Apres la Pharmacie du Lac, près de l'Église Christianisme Céleste",
    "commune": "San-Pédro",
    "quartier": null,
    "interieur": true
   },
   {
-   "nom": "Pharmacie du Lac",
-   "responsable": "M. N'Dakpri Bedia Goly Anselme",
-   "tel": "2734711569",
+   "nom": "Pharmacie Beatitudes",
+   "responsable": "M. N'Gom Aruna",
+   "tel": "2734713187",
    "tels": [
-    "2734711569",
-    "0505892232"
+    "2734713187",
+    "0708944057"
    ],
-   "adresse": "Terminus Lac",
+   "adresse": "Quartier Lac, en Face des Grandes Endemies",
    "commune": "San-Pédro",
    "quartier": null,
    "interieur": true
   },
   {
-   "nom": "Pharmacie du Bien Etre",
-   "responsable": "M. Yao Charles Alexis",
-   "tel": "2734713131",
+   "nom": "Pharmacie Élite",
+   "responsable": "M. Niamien Adjei Patrick",
+   "tel": "0715646464",
    "tels": [
-    "2734713131",
-    "0504022233"
+    "0715646464"
    ],
-   "adresse": "Quartier Jb, près du College la Fayette",
+   "adresse": "Jb Quartier Cathedrale, en Face du Lycee Lucien Yebarth",
    "commune": "San-Pédro",
    "quartier": null,
    "interieur": true
   },
   {
-   "nom": "Pharmacie Terre Rouge",
-   "responsable": "M. Kouassi N'Goran Laurent",
-   "tel": "0708964167",
+   "nom": "Pharmacie de l'Archange",
+   "responsable": "Mme Doffou Mamene Marie Chistelle",
+   "tel": "2734710162",
    "tels": [
-    "0708964167",
-    "0140063669"
+    "2734710162",
+    "0707090037"
    ],
-   "adresse": "Terre Rouge, près de la Maternite Terre Rouge",
+   "adresse": "Quartier Colas au Carrefour Cp1",
    "commune": "San-Pédro",
    "quartier": null,
    "interieur": true
   },
   {
-   "nom": "Pharmacie Bardot 2000",
-   "responsable": "M. Kouadio N'Da Koffi",
-   "tel": "2734713391",
+   "nom": "Pharmacie des Mosquees",
+   "responsable": "M. Amon Arnaud",
+   "tel": "0779445487",
    "tels": [
-    "2734713391",
-    "0749492684"
+    "0779445487"
    ],
-   "adresse": "Quartier Bardot, en Face de la Maternite Hkb, près de la Station Shell",
+   "adresse": "Commissariat du Bardot, Non Loin du Feu",
    "commune": "San-Pédro",
    "quartier": null,
    "interieur": true
   },
   {
-   "nom": "Pharmacie du Bonheur",
-   "responsable": "Mme Attoh Marcelle Delphine",
-   "tel": "0759902582",
+   "nom": "Pharmacie Ste Marie",
+   "responsable": "M. Komenan Amani",
+   "tel": "0102363638",
    "tels": [
-    "0759902582",
-    "0708946188"
+    "0102363638",
+    "0757409350"
    ],
-   "adresse": "Seweke 5, Rue des Maquis, Carrefour Iroko, A Droite",
+   "adresse": "Route d'Abidjan, en Face de Saf Cacao",
    "commune": "San-Pédro",
    "quartier": null,
    "interieur": true
   },
   {
-   "nom": "Pharmacie Kavoudroh (Gde)",
-   "responsable": "M. Toure Mamadou",
-   "tel": "2730680711",
+   "nom": "Pharmacie Principale de Sinfra",
+   "responsable": "M. Kouassi Charlemagne",
+   "tel": "0779964626",
    "tels": [
-    "2730680711",
-    "0779788722",
-    "2723260655",
-    "0142104545",
-    "0720303046"
+    "0779964626",
+    "0151056724",
+    "0758176225",
+    "0142241678",
+    "0576575353"
    ],
-   "adresse": "Quartier Dioulabougou entre la Gare de Bouaflé et l'Agence Orange Ci Songon / Km 17 Phcie St Sauveur / Mme Ahoulou A. Marie-Sophie / Carrefour Abadjin-Koute",
+   "adresse": "Route de Yamoussoukro / Face A la Station Total Km 17 / Songon Phcie Notre Dame de la Paix / Mme Mian Ane Benie Juliette / Adiapodoume A Cote du Restaurant Chez Zongo",
    "commune": "Sinfra",
    "quartier": null,
    "interieur": true
   },
   {
-   "nom": "Pharmacie Eliora",
-   "responsable": "Mme Saugone Carine Epse Latta",
-   "tel": "0103793905",
+   "nom": "Pharmacie de Songon",
+   "responsable": "M. Boua Philomène",
+   "tel": "0759264033",
    "tels": [
-    "0103793905"
+    "0759264033",
+    "0101351116"
    ],
-   "adresse": "Songon Kassemble",
+   "adresse": "Songon-Agban / Route de Dabou",
    "commune": "Sinfra",
    "quartier": null,
    "interieur": true
   },
   {
-   "nom": "Pharmacie du Chateau Sarl",
-   "responsable": "M. Aguido Abraham",
-   "tel": "2734725996",
+   "nom": "Pharmacie de la Mosquee",
+   "responsable": "M. Dapre Djoukoua Michel.",
+   "tel": "2734701167",
    "tels": [
-    "2734725996"
+    "2734701167"
    ],
-   "adresse": "Route Petit Marché Chateau",
+   "adresse": "Face Grande Mosquee Quartier Daba Dagnoko",
    "commune": "Soubré",
    "quartier": null,
    "interieur": true
   },
   {
-   "nom": "Pharmacie Gallea",
-   "responsable": "M. Coulibaly Bakaramoko",
-   "tel": "0720058783",
+   "nom": "Pharmacie St Joseph",
+   "responsable": "M. Dasse K. Romeo",
+   "tel": "0757493833",
    "tels": [
-    "0720058783"
+    "0757493833"
    ],
-   "adresse": "Quartier Gallea",
+   "adresse": "Carrefour Doboa",
    "commune": "Soubré",
    "quartier": null,
    "interieur": true
   },
   {
-   "nom": "Pharmacie Aya Valentine",
-   "responsable": "M. Akpo Joseph",
-   "tel": "2723575091",
+   "nom": "Pharmacie Saint Joseph",
+   "responsable": "Mme Akpo Marie Louise",
+   "tel": "0103221563",
    "tels": [
-    "2723575091"
+    "0103221563"
    ],
    "adresse": null,
    "commune": "Tiassalé",
@@ -2287,39 +2333,51 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie de Yamoussoukro",
-   "responsable": "Mme Agbassi Marie Antoinette",
-   "tel": "0749379942",
+   "nom": "Pharmacie des Lacs",
+   "responsable": "M. Cowpply-Bony",
+   "tel": "2730640311",
    "tels": [
-    "0749379942",
-    "2730640412"
+    "2730640311",
+    "0749548158",
+    "0544472511"
    ],
-   "adresse": "Face Gd Marché Nzuessi",
+   "adresse": "Gare Routiere Station Total",
    "commune": "Yamoussoukro",
    "quartier": null,
    "interieur": true
   },
   {
-   "nom": "Pharmacie Erginal",
-   "responsable": "M. Ehora Tehoa",
-   "tel": "0757143836",
+   "nom": "Pharmacie le Belier",
+   "responsable": "Mme Kassi Noelle",
+   "tel": "0758609040",
    "tels": [
-    "0757143836",
-    "2730646220",
-    "2730646221"
+    "0758609040",
+    "2730641107"
    ],
-   "adresse": "Gd Carrefour Assabou",
+   "adresse": "Gd Marché Apres Gare Taxi Inp",
    "commune": "Yamoussoukro",
    "quartier": null,
    "interieur": true
   },
   {
-   "nom": "Pharmacie Notre Dame de Fatima",
-   "responsable": "Mme Amoussou Tra Tiebi H. Patricia",
-   "tel": "0757170700",
+   "nom": "Pharmacie les Magnolias",
+   "responsable": "M. Manouan Kouame Alfred",
+   "tel": "0768776069",
    "tels": [
-    "0757170700",
-    "2730645710"
+    "0768776069",
+    "0708021472"
+   ],
+   "adresse": "Non Loin Sodeci",
+   "commune": "Yamoussoukro",
+   "quartier": null,
+   "interieur": true
+  },
+  {
+   "nom": "Pharmacie Kokrenou",
+   "responsable": "M. Kouassi Konan Olivier",
+   "tel": "0702809292",
+   "tels": [
+    "0702809292"
    ],
    "adresse": null,
    "commune": "Yamoussoukro",
@@ -2327,41 +2385,28 @@
    "interieur": true
   },
   {
-   "nom": "Pharmacie Sans Frontieres",
-   "responsable": "Mme Amande Apo Raymonde Epse Kouakou",
-   "tel": "0784887354",
+   "nom": "Pharmacie de la Capitale (Grande)",
+   "responsable": "M. Kra Michel",
+   "tel": "2724361166",
    "tels": [
-    "0784887354",
-    "2720244652",
-    "0584887354"
+    "2724361166",
+    "0708123958"
    ],
-   "adresse": "Dioulakro-Carrefour Gare Sans Frontieres",
+   "adresse": "Gare d'Attiegouakro, Non Loin de la Gare Utb",
    "commune": "Yamoussoukro",
    "quartier": null,
    "interieur": true
   },
   {
-   "nom": "Pharmacie Ste Famille",
-   "responsable": "M. Nda Kacou",
-   "tel": "0141639208",
+   "nom": "Pharmacie Milliwanga",
+   "responsable": "Mme Agole Ndouba Josephine",
+   "tel": "2731620851",
    "tels": [
-    "0141639208",
-    "2530000669"
+    "2731620851",
+    "0749868676",
+    "0141868676"
    ],
-   "adresse": "Marché Sopim",
-   "commune": "Yamoussoukro",
-   "quartier": null,
-   "interieur": true
-  },
-  {
-   "nom": "Pharmacie les Jasmins",
-   "responsable": "Mme Manouan-Carvalho Kharine Marie",
-   "tel": "2721764242",
-   "tels": [
-    "2721764242",
-    "0779906917"
-   ],
-   "adresse": "Au Quartier Nanan Après les Sapeurs Pompiers, Voie du Corridor Sud Abidjan",
+   "adresse": "Qtier Dioulabougou/ Carrefour Pont Bedie près de Grande École",
    "commune": "Yamoussoukro",
    "quartier": null,
    "interieur": true
