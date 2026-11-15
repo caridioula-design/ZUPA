@@ -1,6 +1,6 @@
 # Dernière récupération des pharmacies de garde
 
-2026-11-14 12:26 UTC
+2026-11-15 12:54 UTC
 
 - **UNPPCI articles** : 303 : TOUR DE GARDE DU MOIS DE NOVEMBRE 2026
 - **UNPPCI article 303** : PDF : downloads.php?id=995, downloads.php?id=994
@@ -10,4 +10,4 @@
 - **pharmacies-de-garde.ci** : 117 pharmacies, période 2026-11-14→2026-11-20
 - ⚠️ **annuaireci.com** : HTTP 403 sur https://annuaireci.com/pharmacies-de-garde/abidjan/
 - **Contrôle** : pharmacies-de-garde.ci : 117/117 pharmacies communes avec UNPPCI pour la semaine du 2026-11-14
-- **Pharmacies de garde** : 4 semaine(s) : 2026-11-07→2026-11-13 (194, UNPPCI (Abidjan), UNPPCI (intérieur)) ; 2026-11-14→2026-11-20 (196, UNPPCI (Abidjan), UNPPCI (intérieur)) ; 2026-11-21→2026-11-27 (190, UNPPCI (Abidjan), UNPPCI (intérieur)) ; 2026-11-28→2026-12-04 (205, UNPPCI (Abidjan), UNPPCI (intérieur))
+- **Pharmacies de garde** : 3 semaine(s) : 2026-11-14→2026-11-20 (196, UNPPCI (Abidjan), UNPPCI (intérieur)) ; 2026-11-21→2026-11-27 (190, UNPPCI (Abidjan), UNPPCI (intérieur)) ; 2026-11-28→2026-12-04 (205, UNPPCI (Abidjan), UNPPCI (intérieur))
